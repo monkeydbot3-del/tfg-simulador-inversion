@@ -5,7 +5,7 @@
 ### Confirmación de contexto operativo
 - Repositorio local: `/root/.openclaw/workspace/tfg-web-ci-python-bot`
 - Rama activa inicial del diagnóstico: `bot/diagnostico-inicial`
-- Rama de iteración actual: `bot/iteracion-02-mojibake-y-feedback`
+- Rama activa actual de trabajo y despliegue: `bot/render-preview`
 - Remotos configurados:
   - `origin`: `git@github.com:monkeydbot3-del/tfg-web-ci-python-bot.git`
   - `reference`: `git@github.com:sanlaja/tfg-web-ci-python.git`
@@ -35,6 +35,8 @@ Puntos positivos:
 - Hay suite de tests y CI declarada.
 - La separación `templates/static/data` es razonable para un TFG.
 - Hay cobertura funcional relativamente amplia en rutas críticas.
+- La app expone un objeto WSGI válido desde `run.py` mediante `app = create_app()`.
+- `gunicorn` ya está incluido en dependencias.
 
 Debilidades técnicas:
 - `app/routes.py` concentra demasiadas responsabilidades: vistas, API, validación, normalización, persistencia, exportación y lógica de cálculo.
@@ -51,6 +53,7 @@ Debilidades técnicas:
 3. **Escalabilidad baja** por archivos Python muy grandes.
 4. **Persistencia local en JSON** dentro del repo, válida para prototipo pero frágil para crecimiento.
 5. **Calidad del repositorio irregular** por mezcla de código serio, assets y artefactos temporales.
+6. **Riesgo de despliegue** detectado y corregido en esta iteración: `requirements.txt` estaba en UTF-16, lo que podía romper la instalación de dependencias en Render.
 
 ## Diagnóstico de diseño y UX/UI
 
@@ -91,77 +94,6 @@ Fricciones:
 - el manual sigue siendo muy largo dentro de la interfaz
 - aún quedan incoherencias visibles de microcopy y estilo
 
-### Responsive
-La base CSS usa `grid`, `clamp` y `auto-fit`, lo cual ayuda.
-Sin ejecutar pruebas visuales reales, el responsive parece razonable en estructura, pero hay riesgos claros:
-- tablas amplias en empresas e historial
-- pantallas muy densas en modo carrera
-- navegación superior potencialmente saturada en móvil
-- modales y bloques largos del manual pueden requerir refinamiento específico
-
-## Problemas detectados
-
-### 1. Codificación rota en varios puntos
-Persisten restos de mojibake en backend y comentarios internos, aunque esta iteración corrige varios textos visibles de error y datos mostrados al usuario.
-
-### 2. README desalineado con el producto real
-El `README.md` describe un proyecto Flask mínimo, pero el repo contiene una aplicación bastante más compleja.
-
-### 3. Arquitectura backend poco modular
-`routes.py` y `career.py` concentran demasiada lógica.
-
-### 4. Feedback UI inconsistente
-Se ha reducido el uso de `alert()`, pero todavía queda trabajo para unificar todos los patrones de feedback y componentes visuales.
-
-### 5. Repositorio poco limpio
-Presencia de `venv/` y scripts temporales.
-
-## Oportunidades de mejora de alto impacto
-
-1. **Seguir corrigiendo mojibake visible y microcopy heredado**.
-2. **Terminar de unificar el feedback UI**.
-3. **Mejorar formularios y jerarquía en el flujo de análisis**.
-4. **Pulir tablas e historial para legibilidad y percepción de producto**.
-5. **Actualizar README y limpieza del repo**.
-
-## Plan de mejoras por fases
-
-### Fase 0. Higiene y diagnóstico base
-- Corregir encoding roto en textos críticos.
-- Mantener `BOT_INSTRUCTIONS.md` y `PROJECT_CONTEXT.md`.
-- Actualizar `README.md` para reflejar el producto real.
-- Identificar y retirar artefactos temporales del repo.
-- Preparar una línea base de ejecución local y tests.
-
-### Fase 1. Consistencia visual y microcopy
-- Unificar tono y textos de navegación, formularios, ayudas y mensajes.
-- Eliminar `alert()` y sustituirlos por toasts/modales consistentes.
-- Eliminar estilos inline restantes.
-- Revisar jerarquía visual, espaciados y estados interactivos.
-
-### Fase 2. UX de flujos principales
-- Mejorar landing y puntos de entrada.
-- Simplificar y agrupar mejor el flujo de “Nuevo análisis”.
-- Reordenar empresas e historial para reducir fricción.
-- Hacer el manual más escaneable y menos intimidante.
-
-### Fase 3. Responsive y accesibilidad
-- Revisar navegación en móvil.
-- Mejorar tablas, modales y formularios complejos en pantallas pequeñas.
-- Revisar focus, contraste, labels, estados y mensajes accesibles.
-
-### Fase 4. Refactor técnico interno
-- Extraer lógica de negocio fuera de `routes.py` y `career.py`.
-- Separar validación, servicios de mercado, persistencia y reporting.
-- Reorganizar dependencias y entorno.
-- Fortalecer tests sobre los flujos más sensibles.
-
-### Fase 5. Cierre de calidad para TFG
-- Afinar acabado visual final.
-- Mejorar documentación técnica y de uso.
-- Preparar narrativa de producto y decisiones de diseño para memoria/defensa.
-- Priorizar cambios con alto impacto demostrable frente a cambios cosméticos menores.
-
 ## Iteración 01. Textos clave y home
 
 ### Objetivo de la iteración
@@ -197,16 +129,25 @@ Corregir errores visibles de textos rotos y reducir incoherencias claras de feed
 - Corrección de bloques visibles de observaciones y resumen en `app/data/analisis.json`.
 - Corrección parcial de textos visibles/documentales en `app/routes.py` relacionados con análisis e historial.
 
-### Impacto esperado
-- feedback más coherente y menos abrupto
-- mejor percepción de calidad en acciones frecuentes
-- eliminación de varios textos corruptos visibles para el usuario
-- mayor sensación de producto cuidado en mensajes de error y observaciones
+## Iteración 03. Preparación mínima para Render
 
-### Limitaciones de esta iteración
-- Persisten restos de mojibake en partes internas o documentales del backend.
-- No se ha hecho todavía una limpieza completa de `app/routes.py`.
-- No se ha ejecutado la suite de tests por falta de entorno local preparado en esta sesión.
+### Objetivo de la iteración
+Comprobar si la aplicación puede desplegarse en Render con configuración simple y aplicar solo el ajuste mínimo imprescindible para evitar fallos de arranque.
 
-## Nota de comparación con el repo de referencia
-El repo del bot ya diverge del estado base de `reference/main` por las mejoras acumuladas en interfaz, microcopy y consistencia visual/documental.
+### Hallazgos
+- `run.py` ya expone un objeto WSGI válido: `app = create_app()`.
+- `gunicorn` ya está incluido en `requirements.txt`.
+- No se detecta dependencia obligatoria de variables de entorno para arrancar.
+- Sí se detecta un problema real de despliegue: `requirements.txt` estaba codificado en UTF-16.
+
+### Cambio mínimo aplicado
+- Conversión de `requirements.txt` a UTF-8 para que Render pueda instalar dependencias correctamente con `pip install -r requirements.txt`.
+
+### Configuración recomendada para Render
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `gunicorn run:app`
+- **Variables de entorno obligatorias:** ninguna
+- **Variables opcionales recomendables:** ninguna imprescindible para arrancar
+
+### Estado tras la iteración
+Con el ajuste aplicado, el proyecto queda razonablemente preparado para un despliegue básico en Render, sin tocar la lógica del simulador.

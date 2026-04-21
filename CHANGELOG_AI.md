@@ -24,3 +24,10 @@
 - Se corrigen observaciones y resúmenes visibles con mojibake en `app/data/analisis.json`.
 - Se aplican correcciones parciales de microcopy visible en `app/routes.py`, manteniendo intacta la lógica del simulador.
 - No se ha hecho refactor estructural ni se ha modificado la lógica funcional del simulador en esta iteración.
+- Cambio de flujo de trabajo: a partir de este punto se trabaja sobre la rama fija `bot/render-preview`.
+- Se analiza el proyecto específicamente para despliegue en Render.
+- Se verifica que `run.py` ya expone un objeto WSGI válido para Gunicorn.
+- Se verifica que no hacen falta variables de entorno obligatorias para arrancar.
+- Se detecta un problema real de despliegue: `requirements.txt` estaba en UTF-16.
+- Se aplica el cambio mínimo necesario para Render: conversión de `requirements.txt` a UTF-8.
+- Configuración recomendada para Render: build `pip install -r requirements.txt`, start `gunicorn run:app`.
