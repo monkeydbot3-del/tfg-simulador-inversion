@@ -6806,22 +6806,22 @@
     "observaciones": [
       {
         "tipo": "ok",
-        "msg": "Horizonte adecuado (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥5 aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±os)."
+        "msg": "Horizonte adecuado (≥5 años)."
       },
       {
         "tipo": "ok",
-        "msg": "Margen de seguridad sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥20%)."
+        "msg": "Margen de seguridad sólido (≥20%)."
       },
       {
         "tipo": "ok",
-        "msg": "Crecimiento razonable (5ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25%)."
+        "msg": "Crecimiento razonable (5%–25%)."
       },
       {
         "tipo": "ok",
-        "msg": "Buena justificaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (detallada)."
+        "msg": "Buena justificación (detallada)."
       }
     ],
-    "resumen": "AnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido.",
+    "resumen": "Análisis sólido.",
     "inicio": "2015-09-10",
     "fin": "2025-10-26",
     "backtest": {
@@ -6869,22 +6869,22 @@
     "observaciones": [
       {
         "tipo": "ok",
-        "msg": "Horizonte adecuado (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥5 aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±os)."
+        "msg": "Horizonte adecuado (≥5 años)."
       },
       {
         "tipo": "ok",
-        "msg": "Margen de seguridad sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥20%)."
+        "msg": "Margen de seguridad sólido (≥20%)."
       },
       {
         "tipo": "ok",
-        "msg": "Crecimiento razonable (5ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25%)."
+        "msg": "Crecimiento razonable (5%–25%)."
       },
       {
         "tipo": "ok",
-        "msg": "Buena justificaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (detallada)."
+        "msg": "Buena justificación (detallada)."
       }
     ],
-    "resumen": "AnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido.",
+    "resumen": "Análisis sólido.",
     "inicio": "2015-09-10",
     "fin": null,
     "backtest": {
@@ -6932,22 +6932,22 @@
     "observaciones": [
       {
         "tipo": "ok",
-        "msg": "Horizonte adecuado (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥5 aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±os)."
+        "msg": "Horizonte adecuado (≥5 años)."
       },
       {
         "tipo": "ok",
-        "msg": "Margen de seguridad sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥20%)."
+        "msg": "Margen de seguridad sólido (≥20%)."
       },
       {
         "tipo": "ok",
-        "msg": "Crecimiento razonable (5ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25%)."
+        "msg": "Crecimiento razonable (5%–25%)."
       },
       {
         "tipo": "ok",
-        "msg": "Buena justificaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (detallada)."
+        "msg": "Buena justificación (detallada)."
       }
     ],
-    "resumen": "AnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido.",
+    "resumen": "Análisis sólido.",
     "inicio": "2018-08-20",
     "fin": null,
     "backtest": {
@@ -6995,22 +6995,22 @@
     "observaciones": [
       {
         "tipo": "ok",
-        "msg": "Horizonte adecuado (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥5 aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±os)."
+        "msg": "Horizonte adecuado (≥5 años)."
       },
       {
         "tipo": "ok",
-        "msg": "Margen de seguridad sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥20%)."
+        "msg": "Margen de seguridad sólido (≥20%)."
       },
       {
         "tipo": "ok",
-        "msg": "Crecimiento razonable (5ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25%)."
+        "msg": "Crecimiento razonable (5%–25%)."
       },
       {
         "tipo": "ok",
-        "msg": "Buena justificaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (detallada)."
+        "msg": "Buena justificación (detallada)."
       }
     ],
-    "resumen": "AnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido.",
+    "resumen": "Análisis sólido.",
     "inicio": "2018-08-20",
     "fin": null,
     "backtest": {
@@ -7058,18 +7058,18 @@
     "observaciones": [
       {
         "tipo": "ok",
-        "msg": "Margen de seguridad sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥20%)."
+        "msg": "Margen de seguridad sólido (≥20%)."
       },
       {
         "tipo": "ok",
-        "msg": "Crecimiento razonable (5ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25%)."
+        "msg": "Crecimiento razonable (5%–25%)."
       },
       {
         "tipo": "ok",
-        "msg": "Buena justificaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (detallada)."
+        "msg": "Buena justificación (detallada)."
       }
     ],
-    "resumen": "AnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido.",
+    "resumen": "Análisis sólido.",
     "inicio": "2016-06-20",
     "fin": null,
     "backtest": {
@@ -7117,18 +7117,18 @@
     "observaciones": [
       {
         "tipo": "ok",
-        "msg": "Margen de seguridad sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido (ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â°Ãƒâ€šÃ‚Â¥20%)."
+        "msg": "Margen de seguridad sólido (≥20%)."
       },
       {
         "tipo": "ok",
-        "msg": "Crecimiento razonable (5ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ25%)."
+        "msg": "Crecimiento razonable (5%–25%)."
       },
       {
         "tipo": "ok",
-        "msg": "Buena justificaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n (detallada)."
+        "msg": "Buena justificación (detallada)."
       }
     ],
-    "resumen": "AnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis sÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³lido.",
+    "resumen": "Análisis sólido.",
     "inicio": null,
     "fin": null,
     "backtest": {

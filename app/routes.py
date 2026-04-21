@@ -123,8 +123,8 @@ def listar_empresas():
     """
     Devuelve lista de empresas.
     Filtros opcionales:
-      - ?sector=...  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ igualdad exacta (normalizada)
-      - ?q=...       ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda contiene en ticker o nombre (normalizada)
+      - ?sector=... -> igualdad exacta normalizada
+      - ?q=... -> búsqueda parcial en ticker o nombre
       - ?page&per_page ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ (opcional) si se envÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­an, responde paginado
     """
     sector = request.args.get("sector")
@@ -155,7 +155,7 @@ def listar_empresas():
 
 
 # ----------------------
-#   Motor de anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis
+#   Motor de análisis
 # ----------------------
 def _validar_payload(p):
     errores = []
@@ -421,7 +421,7 @@ def _puntuar_y_observar(p):
 
 
 # ----------------------
-#   Persistencia anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis
+#   Persistencia análisis
 
 
 def _fix_mojibake(s):
@@ -568,7 +568,7 @@ def crear_propuesta_api():
 @bp.get("/analisis")
 def listar_analisis():
     """
-    Devuelve el historial de anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis (mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡s recientes primero).
+    Devuelve el historial de análisis, mostrando primero los más recientes.
     Filtros opcionales (se aplican ANTES del paginado):
       - ?ticker=MSFT      (case-insensitive, igualdad exacta)
       - ?desde=YYYY-MM-DD (inclusive por fecha de timestamp)
@@ -588,8 +588,8 @@ def listar_analisis():
         tnorm = _norm(ticker)
         historial = [h for h in historial if _norm(h.get("ticker", "")) == tnorm]
 
-    # Para fechas, usamos comparaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n por prefijo de fecha (YYYY-MM-DD)
-    # porque timestamp estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ en ISO completo (YYYY-MM-DDTHH:MM:SSZ)
+    # Para fechas, usamos comparación por prefijo de fecha (YYYY-MM-DD)
+    # porque timestamp está en ISO completo (YYYY-MM-DDTHH:MM:SSZ)
     if desde:
         # mantenemos items cuya fecha >= desde
         historial = [h for h in historial if h.get("timestamp", "")[:10] >= desde]
@@ -608,7 +608,7 @@ def listar_analisis():
 @bp.get("/analisis.csv")
 def exportar_analisis_csv():
     """
-    Exporta el historial de anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis en CSV (UTF-8 con BOM para Excel).
+    Exporta el historial de análisis en CSV (UTF-8 con BOM para Excel).
     Acepta los mismos filtros que GET /analisis: ?ticker, ?desde, ?hasta
     """
     historial = _cargar_lista(ANALISIS_PATH)
@@ -657,7 +657,7 @@ def exportar_analisis_csv():
             )
         w.writerow(row)
 
-    # AÃƒÆ’Ã‚Â±adimos BOM para que Excel detecte UTF-8 automÃƒÆ’Ã‚Â¡ticamente
+    # Añadimos BOM para que Excel detecte UTF-8 automáticamente
     csv_text = "\ufeff" + out.getvalue()
 
     return Response(
@@ -1002,7 +1002,7 @@ def _market_backtest_core(payload: dict) -> dict:
     except (TypeError, ValueError):
         raise BacktestError("Horizonte invalido", 400)
     if horizon < 1:
-        raise BacktestError("Horizonte >= 1 aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o", 400)
+        raise BacktestError("Horizonte >= 1 año", 400)
 
     try:
         invested_initial = float(payload.get("importe_inicial") or 0)
@@ -1118,7 +1118,7 @@ def _market_backtest_core(payload: dict) -> dict:
 @bp.post("/market/backtest")
 def market_backtest():
     """
-    Calcula el resultado real de una inversiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n dada usando precios Ajustados (Adj Close).
+    Calcula el resultado real de una inversión usando precios ajustados (Adj Close).
     Body JSON esperado:
     {
       "ticker": "AAPL",

@@ -447,16 +447,15 @@ function sortItems(items, key, dir = "asc") {
 async function copyCurrentUrl() {
   try {
     await navigator.clipboard.writeText(location.href);
-    alert("URL copiada al portapapeles ✅");
+    mostrarToastOk("URL copiada al portapapeles.");
   } catch {
-    // Fallback clásico
     const ta = document.createElement("textarea");
     ta.value = location.href;
     document.body.appendChild(ta);
     ta.select();
     document.execCommand("copy");
     document.body.removeChild(ta);
-    alert("URL copiada (fallback) ✅");
+    mostrarToastOk("URL copiada correctamente.");
   }
 }
 
@@ -562,7 +561,7 @@ function bindEmpresas() {
     state.emp.sector = $("#emp-sector").value.trim();
     state.emp.page = 1;
     writeParams();
-    loadEmpresas().catch((e) => alert(e.message));
+    loadEmpresas().catch((e) => mostrarToastError(e.message));
   });
 
   // Por página
@@ -571,7 +570,7 @@ function bindEmpresas() {
     state.emp.per_page = Number(perSel.value) || 10;
     state.emp.page = 1;
     writeParams();
-    loadEmpresas().catch((e) => alert(e.message));
+    loadEmpresas().catch((e) => mostrarToastError(e.message));
   });
 
   // Prev / Next
@@ -579,14 +578,14 @@ function bindEmpresas() {
     if (state.emp.page > 1) {
       state.emp.page--;
       writeParams();
-      loadEmpresas().catch((e) => alert(e.message));
+      loadEmpresas().catch((e) => mostrarToastError(e.message));
     }
   });
 
   $("#emp-next").addEventListener("click", () => {
     state.emp.page++;
     writeParams();
-    loadEmpresas().catch((e) => alert(e.message));
+    loadEmpresas().catch((e) => mostrarToastError(e.message));
   });
 
   // Share URL (Ejemplos de empresas) — solo si existe el botón
@@ -717,13 +716,20 @@ async function enviarPropuesta(payload) {
   return jsonPost("/analisis", fallbackPayload);
 }
 
-function mostrarToast(tipo, msg, ttl) {
-  const container = document.getElementById("toast-container");
-  if (!container) {
-    alert(msg);
-    return;
-  }
+function ensureToastContainer() {
+  let container = document.getElementById("toast-container");
+  if (container) return container;
 
+  container = document.createElement("div");
+  container.id = "toast-container";
+  container.setAttribute("aria-live", "polite");
+  container.setAttribute("aria-atomic", "true");
+  document.body.appendChild(container);
+  return container;
+}
+
+function mostrarToast(tipo, msg, ttl) {
+  const container = ensureToastContainer();
   const el = document.createElement("div");
   el.className = `toast ${tipo === "ok" ? "toast-ok" : "toast-error"}`;
   el.textContent = msg;
@@ -1018,7 +1024,7 @@ function bindHistorial() {
     state.his.hasta = $("#his-hasta").value || "";
     state.his.page = 1;
     writeParams();
-    loadHistorial().catch((e) => alert(e.message));
+    loadHistorial().catch((e) => mostrarToastError(e.message));
   });
 
   const perSel = $("#his-per-page");
@@ -1026,21 +1032,21 @@ function bindHistorial() {
     state.his.per_page = Number(perSel.value) || 10;
     state.his.page = 1;
     writeParams();
-    loadHistorial().catch((e) => alert(e.message));
+    loadHistorial().catch((e) => mostrarToastError(e.message));
   });
 
   $("#his-prev").addEventListener("click", () => {
     if (state.his.page > 1) {
       state.his.page--;
       writeParams();
-      loadHistorial().catch((e) => alert(e.message));
+      loadHistorial().catch((e) => mostrarToastError(e.message));
     }
   });
 
   $("#his-next").addEventListener("click", () => {
     state.his.page++;
     writeParams();
-    loadHistorial().catch((e) => alert(e.message));
+    loadHistorial().catch((e) => mostrarToastError(e.message));
   });
 
   //$("#his-export").addEventListener("click", exportCSV);
@@ -1204,7 +1210,7 @@ function bindSorting() {
         state.emp.dir = "asc";
       }
       writeParams();
-      loadEmpresas().catch((e) => alert(e.message));
+      loadEmpresas().catch((e) => mostrarToastError(e.message));
     });
   });
 
@@ -1220,7 +1226,7 @@ function bindSorting() {
         state.his.dir = "asc";
       }
       writeParams();
-      loadHistorial().catch((e) => alert(e.message));
+      loadHistorial().catch((e) => mostrarToastError(e.message));
     });
   });
 }
@@ -1271,7 +1277,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.warn("No se pudieron cargar sectores:", e);
     }
 
-    loadEmpresas().catch((e) => alert(e.message));
+    loadEmpresas().catch((e) => mostrarToastError(e.message));
   }
 
   if (hasHistorial) {
@@ -1284,7 +1290,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const hisPer = $("#his-per-page");
     if (hisPer) hisPer.value = String(state.his.per_page);
 
-    loadHistorial().catch((e) => alert(e.message));
+    loadHistorial().catch((e) => mostrarToastError(e.message));
   }
 
   if (hasHistorial) {

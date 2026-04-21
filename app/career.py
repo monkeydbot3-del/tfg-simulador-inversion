@@ -889,7 +889,7 @@ def _build_normalized_series_map(
     for ticker in non_cash:
         data = _fetch_adj_close(
             ticker, start, end
-        )  # REUSE: reutiliza descarga y normalizaciÃ³n del histÃ³rico diario
+        )  # REUSE: reutiliza descarga y normalización del histórico diario
         if data and anchor_dates is None:
             anchor_dates = _extract_dates_from_series(data)
         series_map[ticker] = _normalize_base100(data)
@@ -1097,12 +1097,12 @@ def _session_analysis_range(session: dict[str, Any]) -> tuple[date, date, str, s
     period = session.get("period") or {}
     start_iso = period.get("start")
     if not start_iso:
-        raise BadRequest("La sesiÃ³n no tiene periodo configurado.")
+        raise BadRequest("La sesión no tiene periodo configurado.")
     start_d = date.fromisoformat(start_iso)
 
     turns = session.get("turns") or []
     if not turns:
-        raise BadRequest("La sesiÃ³n no dispone de turnos configurados.")
+        raise BadRequest("La sesión no dispone de turnos configurados.")
 
     completed_turns = session.get("completed_turns") or []
     turn_lookup = {
@@ -1322,14 +1322,14 @@ def _compute_score_payload(
     elif te_component >= 0.4:
         notes_parts.append("tracking medio")
     else:
-        notes_parts.append("tracking volÃ¡til")
+        notes_parts.append("tracking volátil")
 
     if turnover_component >= 0.7:
-        notes_parts.append("rotaciÃ³n baja")
+        notes_parts.append("rotación baja")
     elif turnover_component >= 0.4:
-        notes_parts.append("rotaciÃ³n media")
+        notes_parts.append("rotación media")
     else:
-        notes_parts.append("rotaciÃ³n alta")
+        notes_parts.append("rotación alta")
 
     notes = ", ".join(notes_parts) + "; buen balance riesgo/retorno"
 
@@ -1784,7 +1784,7 @@ def _ensure_max_assets(
             aggregated[ticker] += weight
     if len(aggregated) > max_assets:
         raise BadRequest(
-            f"La cartera admite como mÃ¡ximo {max_assets} activos por turno."
+            f"La cartera admite como máximo {max_assets} activos por turno."
         )
     return [
         {"ticker": ticker, "weight": round(aggregated[ticker], 6)} for ticker in order
@@ -1797,7 +1797,7 @@ def _parse_date(value: str | None, field: str) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError as exc:  # pragma: no cover
-        raise BadRequest(f"Fecha invÃ¡lida para '{field}'.") from exc
+        raise BadRequest(f"Fecha inválida para '{field}'.") from exc
 
 
 def _instantiate_event_from_template(
@@ -2080,7 +2080,7 @@ def _build_event_from_payload(
     try:
         impact_value = float(impact_value)
     except (TypeError, ValueError) as exc:
-        raise BadRequest("impact_pct debe ser numÃ©rico.") from exc
+        raise BadRequest("impact_pct debe ser numérico.") from exc
     if impact_value < MIN_EVENT_IMPACT or impact_value > MAX_EVENT_IMPACT:
         raise BadRequest("impact_pct fuera de rango permitido [-0.5, 0.5].")
 
@@ -2111,7 +2111,7 @@ def _build_event_from_payload(
             sectors = _available_sectors(session, reference_alloc)
             if not sectors:
                 raise BadRequest(
-                    "No se encontrÃ³ un sector vÃ¡lido para asignar al evento sectorial."
+                    "No se encontró un sector válido para asignar al evento sectorial."
                 )
             target_value = rng.choice(sectors)
     elif scope_lower == "ticker":
@@ -2221,14 +2221,14 @@ def create_session():
     difficulty = str(payload.get("difficulty", "")).strip().lower()
     if difficulty not in DIFFICULTY_CONFIG:
         return _json_error(
-            "Dificultad invÃ¡lida. Usa principiante, intermedio o experto.", 400
+            "Dificultad inválida. Usa principiante, intermedio o experto.", 400
         )
     universe = payload.get("universe") or []
     capital = payload.get("capital", 50000)
     try:
         capital_value = float(capital)
     except (TypeError, ValueError):
-        return _json_error("Capital invÃ¡lido.", 400)
+        return _json_error("Capital inválido.", 400)
     if capital_value <= 0:
         return _json_error("El capital debe ser mayor que cero.", 400)
 
@@ -2367,7 +2367,7 @@ def close_turn():
         raise NotFound("Sesión no encontrada.")
     _ensure_session_defaults(session)
     if session.get("closed"):
-        return _json_error("La sesiÃ³n ya finalizÃ³.", 400)
+        return _json_error("La sesión ya finalizó.", 400)
 
     pending_turn = _next_pending_turn(session)
     if not pending_turn:
@@ -2715,7 +2715,7 @@ def normalized_series():
         return _json_error("Debe proporcionar al menos un ticker.", 400)
     unique_tickers = list(dict.fromkeys(tickers))
     if len(unique_tickers) > MAX_ASSETS:
-        return _json_error("La cartera admite como mÃ¡ximo 10 activos por turno.", 400)
+        return _json_error("La cartera admite como máximo 10 activos por turno.", 400)
     start_d = _parse_date(t0_param, "t0")
     end_d = _parse_date(t1_param, "t1")
     if end_d < start_d:
@@ -2744,18 +2744,18 @@ def session_series(session_id: str):
         return _json_error("Debe proporcionar al menos un ticker.", 400)
     unique_tickers = list(dict.fromkeys(tickers))
     if len(unique_tickers) > MAX_ASSETS:
-        return _json_error("La cartera admite como mÃ¡ximo 10 activos por turno.", 400)
+        return _json_error("La cartera admite como máximo 10 activos por turno.", 400)
 
     period = session.get("period") or {}
     start_iso = period.get("start")
     end_iso_period = period.get("end")
     if not start_iso:
-        return _json_error("La sesiÃ³n no tiene periodo configurado.", 400)
+        return _json_error("La sesión no tiene periodo configurado.", 400)
     start_d = date.fromisoformat(start_iso)
 
     turns = session.get("turns") or []
     if not turns:
-        return _json_error("La sesiÃ³n no dispone de turnos configurados.", 400)
+        return _json_error("La sesión no dispone de turnos configurados.", 400)
 
     completed_turns = session.get("completed_turns") or []
     turn_lookup = {

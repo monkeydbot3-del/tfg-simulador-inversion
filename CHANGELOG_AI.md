@@ -16,3 +16,11 @@
 - Se sustituye un estilo inline por clases/atributos más consistentes en `analisis.html`.
 - Se consolidan y limpian estilos CSS duplicados de la landing y se mejora el responsive básico de esa zona.
 - No se han aplicado cambios en la lógica de negocio del simulador en esta iteración.
+- Se relee de nuevo el contexto obligatorio antes de la siguiente iteración.
+- Se crea la rama `bot/iteracion-02-mojibake-y-feedback` para centrarse en textos rotos visibles y feedback UI básico.
+- Se sustituyen `alert()` evidentes por toasts reutilizables en acciones de copiar URL, empresas, historial y ordenación.
+- Se mejora el sistema de toasts para funcionar también en páginas donde el contenedor no existe inicialmente.
+- Se corrigen múltiples textos con mojibake visibles para el usuario en `app/career.py`.
+- Se corrigen observaciones y resúmenes visibles con mojibake en `app/data/analisis.json`.
+- Se aplican correcciones parciales de microcopy visible en `app/routes.py`, manteniendo intacta la lógica del simulador.
+- No se ha hecho refactor estructural ni se ha modificado la lógica funcional del simulador en esta iteración.

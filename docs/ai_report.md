@@ -5,7 +5,7 @@
 ### Confirmación de contexto operativo
 - Repositorio local: `/root/.openclaw/workspace/tfg-web-ci-python-bot`
 - Rama activa inicial del diagnóstico: `bot/diagnostico-inicial`
-- Rama de iteración actual: `bot/iteracion-01-textos-y-home`
+- Rama de iteración actual: `bot/iteracion-02-mojibake-y-feedback`
 - Remotos configurados:
   - `origin`: `git@github.com:monkeydbot3-del/tfg-web-ci-python-bot.git`
   - `reference`: `git@github.com:sanlaja/tfg-web-ci-python.git`
@@ -74,10 +74,10 @@ Puntos buenos:
 - la navegación principal está unificada
 
 Problemas:
-- hay estilos inline en plantillas, señal de consistencia incompleta
-- conviven modales, alerts nativos y componentes personalizados
+- hay todavía estilos inline en partes del frontend
+- conviven modales, toasts y componentes heredados
 - textos, tono y microcopy no siempre comparten la misma voz
-- el modo carrera tiene una complejidad visual superior al resto y parece casi otra app
+- el modo carrera sigue teniendo una complejidad visual superior al resto
 
 ### UX y navegación
 Fortalezas:
@@ -86,11 +86,10 @@ Fortalezas:
 - existe contenido educativo y manual amplio
 
 Fricciones:
-- la home no prioriza del todo bien la decisión principal del usuario
-- el modo análisis tiene muchos campos sin suficiente progresión o agrupación avanzada
+- el modo análisis sigue teniendo bastante carga para usuarios novatos
 - la navegación entre aprendizaje, análisis, historial y carrera puede sentirse fragmentada
-- el manual es muy extenso y puede resultar abrumador dentro de la propia interfaz
-- el uso de `alert()` reduce sensación de calidad y rompe la experiencia
+- el manual sigue siendo muy largo dentro de la interfaz
+- aún quedan incoherencias visibles de microcopy y estilo
 
 ### Responsive
 La base CSS usa `grid`, `clamp` y `auto-fit`, lo cual ayuda.
@@ -103,69 +102,33 @@ Sin ejecutar pruebas visuales reales, el responsive parece razonable en estructu
 ## Problemas detectados
 
 ### 1. Codificación rota en varios puntos
-Se observan textos corruptos tipo `Ã`, `â¬`, etc. en:
-- `app/routes.py`
-- `app/career.py`
-- `app/templates/career.html`
-- `app/data/analisis.json`
-
-Impacto:
-- empeora credibilidad del producto
-- afecta UX
-- sugiere deuda técnica en tratamiento de encoding
+Persisten restos de mojibake en backend y comentarios internos, aunque esta iteración corrige varios textos visibles de error y datos mostrados al usuario.
 
 ### 2. README desalineado con el producto real
 El `README.md` describe un proyecto Flask mínimo, pero el repo contiene una aplicación bastante más compleja.
-Impacto:
-- mala primera impresión
-- documentación poco fiable
-- dificulta evaluación académica o técnica
 
 ### 3. Arquitectura backend poco modular
 `routes.py` y `career.py` concentran demasiada lógica.
-Impacto:
-- mantenimiento difícil
-- alta complejidad cognitiva
-- testing y evolución más costosos
 
 ### 4. Feedback UI inconsistente
-Uso de `alert()` y estilos inline junto a componentes más elaborados.
-Impacto:
-- experiencia menos profesional
-- inconsistencia en estados de error/éxito
+Se ha reducido el uso de `alert()`, pero todavía queda trabajo para unificar todos los patrones de feedback y componentes visuales.
 
 ### 5. Repositorio poco limpio
 Presencia de `venv/` y scripts temporales.
-Impacto:
-- tamaño innecesario
-- ruido técnico
-- mala percepción de calidad
 
 ## Oportunidades de mejora de alto impacto
 
-1. **Corregir toda la capa de textos y encoding**.
-   Es la mejora con mejor ratio impacto/esfuerzo percibido.
-
-2. **Definir un sistema UI mínimo**.
-   Tokens, componentes, estados, tablas, modales, formularios y feedback homogéneo.
-
-3. **Refactorizar por módulos la lógica backend**.
-   Separar servicios, validaciones, persistencia y utilidades de mercado.
-
-4. **Replantear la home y los recorridos clave**.
-   Dejar más claro qué hacer primero y cómo se relacionan práctica, aprendizaje y carrera.
-
-5. **Pulir el modo carrera como producto principal**.
-   Es la parte con más potencial diferencial, pero necesita mejor digestibilidad visual y operativa.
-
-6. **Ordenar el repositorio para defensa de TFG**.
-   Limpiar artefactos, actualizar documentación y reforzar impresión de proyecto serio.
+1. **Seguir corrigiendo mojibake visible y microcopy heredado**.
+2. **Terminar de unificar el feedback UI**.
+3. **Mejorar formularios y jerarquía en el flujo de análisis**.
+4. **Pulir tablas e historial para legibilidad y percepción de producto**.
+5. **Actualizar README y limpieza del repo**.
 
 ## Plan de mejoras por fases
 
 ### Fase 0. Higiene y diagnóstico base
 - Corregir encoding roto en textos críticos.
-- Crear y mantener `BOT_INSTRUCTIONS.md` y `PROJECT_CONTEXT.md`.
+- Mantener `BOT_INSTRUCTIONS.md` y `PROJECT_CONTEXT.md`.
 - Actualizar `README.md` para reflejar el producto real.
 - Identificar y retirar artefactos temporales del repo.
 - Preparar una línea base de ejecución local y tests.
@@ -173,7 +136,7 @@ Impacto:
 ### Fase 1. Consistencia visual y microcopy
 - Unificar tono y textos de navegación, formularios, ayudas y mensajes.
 - Eliminar `alert()` y sustituirlos por toasts/modales consistentes.
-- Eliminar estilos inline.
+- Eliminar estilos inline restantes.
 - Revisar jerarquía visual, espaciados y estados interactivos.
 
 ### Fase 2. UX de flujos principales
@@ -218,17 +181,32 @@ Atacar mejoras visibles y seguras, sin tocar lógica de negocio:
 - Limpieza y consolidación de estilos duplicados de la landing en `app/static/estilos.css`.
 - Creación de estilos reutilizables para `hero__actions`, `hero--split`, nueva landing y mejor comportamiento responsive.
 
+## Iteración 02. Mojibake visible y feedback UI básico
+
+### Objetivo de la iteración
+Corregir errores visibles de textos rotos y reducir incoherencias claras de feedback, sin tocar la lógica del simulador.
+
+### Cambios aplicados
+- Sustitución de `alert()` por toasts reutilizables en interacciones de:
+  - copiar URL
+  - listado de empresas
+  - historial
+  - ordenación y recarga de tablas
+- Mejora del sistema de toasts en `app/static/app.js` para que cree el contenedor si no existe en la página actual.
+- Corrección de textos visibles con mojibake en `app/career.py` para errores y mensajes que pueden llegar al usuario.
+- Corrección de bloques visibles de observaciones y resumen en `app/data/analisis.json`.
+- Corrección parcial de textos visibles/documentales en `app/routes.py` relacionados con análisis e historial.
+
 ### Impacto esperado
-- primera impresión más profesional
-- navegación inicial más clara
-- mejor consistencia visual entre landing e inicio
-- menos señales de improvisación en plantillas
-- reducción de ruido visual y de duplicidad CSS
+- feedback más coherente y menos abrupto
+- mejor percepción de calidad en acciones frecuentes
+- eliminación de varios textos corruptos visibles para el usuario
+- mayor sensación de producto cuidado en mensajes de error y observaciones
 
 ### Limitaciones de esta iteración
-- No se ha tocado la lógica del simulador.
-- No se ha corregido todavía el grueso del mojibake en backend y datos.
-- No se ha podido ejecutar la suite de tests por falta de entorno local preparado en esta sesión.
+- Persisten restos de mojibake en partes internas o documentales del backend.
+- No se ha hecho todavía una limpieza completa de `app/routes.py`.
+- No se ha ejecutado la suite de tests por falta de entorno local preparado en esta sesión.
 
 ## Nota de comparación con el repo de referencia
-Tras añadir y consultar el remoto `reference`, el árbol versionado visible del repo del bot no muestra diferencias frente a `reference/main` en la comprobación inicial. A partir de esta iteración, el repo del bot ya sí diverge de ese punto base por las mejoras documentadas aquí.
+El repo del bot ya diverge del estado base de `reference/main` por las mejoras acumuladas en interfaz, microcopy y consistencia visual/documental.
