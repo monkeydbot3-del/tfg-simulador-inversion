@@ -2306,6 +2306,8 @@ function loadCareerSeries() {
 
   const emptyMsg = document.getElementById("career-series-empty");
   if (emptyMsg) emptyMsg.textContent = "Cargando series...";
+  const seriesLoading = document.getElementById("career-series-loading");
+  if (seriesLoading) seriesLoading.classList.remove("hidden");
 
   jsonGet(url)
     .then((data) => {
@@ -2316,6 +2318,8 @@ function loadCareerSeries() {
     })
     .finally(() => {
       if (emptyMsg) emptyMsg.textContent = "";
+      const seriesLoadingDone = document.getElementById("career-series-loading");
+      if (seriesLoadingDone) seriesLoadingDone.classList.add("hidden");
     });
 }
 
@@ -2391,6 +2395,8 @@ function renderCareerSeriesChart(payload) {
   if (emptyMsg) {
     emptyMsg.textContent = datasets.length ? "" : "Sin datos para mostrar.";
   }
+  const seriesLoadingDone = document.getElementById("career-series-loading");
+  if (seriesLoadingDone) seriesLoadingDone.classList.add("hidden");
 }
 
 function renderCareerReport(options = {}) {
@@ -2680,9 +2686,13 @@ function careerSetLoading(button, stateFlag) {
   if (stateFlag) {
     button.disabled = true;
     button.dataset.loading = "true";
+    const equityLoading = document.getElementById("career-equity-loading");
+    if (equityLoading) equityLoading.classList.remove("hidden");
   } else {
     button.disabled = false;
     delete button.dataset.loading;
+    const equityLoading = document.getElementById("career-equity-loading");
+    if (equityLoading) equityLoading.classList.add("hidden");
   }
 }
 

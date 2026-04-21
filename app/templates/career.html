@@ -38,7 +38,13 @@
 
     <div class="card-section">
 
-      <h2>1. Crear nueva sesión</h2>
+      <div class="career-section-heading">
+        <div>
+          <span class="career-step-badge">Paso 1</span>
+          <h2>Crear nueva sesión</h2>
+          <p class="muted">Configura el jugador, la dificultad y el periodo antes de empezar a asignar cartera.</p>
+        </div>
+      </div>
 
       <div class="form-grid">
 
@@ -161,9 +167,9 @@
         </div>
 
 
-      <div class="actions-row">
+      <div class="actions-row actions-row--panel career-action-bar">
 
-        <button id="career-create-btn" class="btn btn-primary" type="button">
+        <button id="career-create-btn" class="btn btn-primary btn-large" type="button">
 
           Crear sesión
 
@@ -191,7 +197,8 @@
 
         <div>
 
-          <h2>2. Sesión activa</h2>
+          <span class="career-step-badge">Paso 2</span>
+          <h2>Sesión activa</h2>
 
           <p class="muted">
 
@@ -231,7 +238,10 @@
 
         <div class="turn-builder-head">
 
-          <h3>Asignación del turno</h3>
+          <div>
+            <span class="career-subtle-badge">Asignación</span>
+            <h3>Asignación del turno</h3>
+          </div>
 
           <p class="muted">
 
@@ -241,9 +251,14 @@
 
         </div>
 
-        <div class="alloc-table" id="career-alloc-list" aria-live="polite"></div>
+        <div class="alloc-table alloc-table--stateful" id="career-alloc-list" aria-live="polite">
+          <div class="empty-state empty-state--soft">
+            <strong>No hay activos añadidos todavía</strong>
+            <p>Empieza añadiendo uno o varios activos para construir la cartera del turno.</p>
+          </div>
+        </div>
 
-        <p class="muted" id="career-alloc-summary">Peso total: 0.00 · Activos: 0</p>
+        <p class="muted career-summary-pill" id="career-alloc-summary">Peso total: 0.00 · Activos: 0</p>
 
         <div class="actions-row">
 
@@ -267,7 +282,7 @@
 
           <div class="actions-row__right">
 
-            <button id="career-close-turn" class="btn btn-primary" type="button" disabled>
+            <button id="career-close-turn" class="btn btn-primary btn-large" type="button" disabled>
 
               Cerrar turno
 
@@ -324,7 +339,10 @@
 
       <div class="career-panel-head">
 
-        <h2>3. Series por activo</h2>
+        <div>
+          <span class="career-step-badge">Paso 3</span>
+          <h2>Series por activo</h2>
+        </div>
 
         <div class="career-series-controls" id="career-series-tickers"></div>
 
@@ -336,11 +354,15 @@
 
       </div>
 
-      <div class="chart-wrapper">
+      <div class="chart-wrapper chart-wrapper--career">
 
+        <div class="loading-surface loading-surface--inline hidden" id="career-series-loading" aria-live="polite">
+          <span class="global-loading-spinner" aria-hidden="true"></span>
+          <span>Cargando series...</span>
+        </div>
         <canvas id="career-series-chart" aria-label="Series base 100 por activo"></canvas>
 
-        <p id="career-series-empty" class="empty">Selecciona una sesión y activos para ver las series.</p>
+        <p id="career-series-empty" class="empty empty--panel">Selecciona una sesión y activos para ver las series.</p>
 
       </div>
 
@@ -356,7 +378,10 @@
 
       <div class="career-panel-head">
 
-        <h2>4. Informe final</h2>
+        <div>
+          <span class="career-step-badge">Paso 4</span>
+          <h2>Informe final</h2>
+        </div>
 
         <div class="actions-row">
 
@@ -430,7 +455,7 @@
 
         <div id="career-warnings-list" class="warning-chips" aria-live="polite">
 
-          <span class="muted">Sin advertencias.</span>
+          <span class="status-chip status-chip--ok">Sin advertencias</span>
 
         </div>
 
@@ -438,8 +463,12 @@
 
 
 
-      <div class="chart-wrapper">
+      <div class="chart-wrapper chart-wrapper--career">
 
+        <div class="loading-surface loading-surface--inline hidden" id="career-equity-loading" aria-live="polite">
+          <span class="global-loading-spinner" aria-hidden="true"></span>
+          <span>Generando informe y gráfico...</span>
+        </div>
         <canvas id="career-equity-chart" aria-label="Equity vs Benchmark"></canvas>
 
       </div>
@@ -506,7 +535,7 @@
               </tr>
             </thead>
             <tbody id="career-ranking-body">
-              <tr><td colspan="6" class="empty">Sin envíos todavía.</td></tr>
+              <tr><td colspan="6" class="empty empty--panel">Sin envíos todavía.</td></tr>
             </tbody>
           </table>
         </div>
@@ -529,6 +558,7 @@
         </div>
 
         <pre id="career-share-output" class="career-share-output" aria-live="polite">Solicita un informe para habilitar el share.</pre>
+        <p class="muted career-helper-copy">Cuando haya informe, podrás reutilizar este payload para compartir o reproducir la simulación.</p>
 
       </div>
 

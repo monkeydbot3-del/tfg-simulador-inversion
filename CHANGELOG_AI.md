@@ -59,13 +59,24 @@
 
 ## 2026-04-21
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `cefa060`
 - Título: Iteración 05, dashboard visual para historial, carrera y documentación
 - Archivos tocados:
   - `app/templates/historial.html`
   - `app/templates/career.html`
   - `app/templates/aprende.html`
   - `app/templates/manual.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 06, refinado visual de modo carrera y estados
+- Archivos tocados:
+  - `app/templates/career.html`
+  - `app/static/app.js`
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

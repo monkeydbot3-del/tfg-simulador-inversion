@@ -186,3 +186,51 @@ Tras la iteración anterior, la home, práctica, análisis y exploración ya ten
 - Unificar con más detalle estados de feedback, cargas y mensajes vacíos en historial y carrera.
 - Seguir corrigiendo restos de microcopy irregular o mojibake residual si aparece en otras zonas.
 - Valorar una iteración futura centrada en ranking, reporting y manual avanzado para cierre académico del producto.
+
+## Iteración 06 - Refinado visual de modo carrera y estados
+
+### Objetivo
+Convertir el modo carrera en la zona más fuerte del producto y unificar mejor la calidad visual de estados de feedback, carga y vacío, sin tocar backend ni hacer refactor técnico.
+
+### Contexto
+Tras la Iteración 05, el modo carrera ya tenía una base visual más cercana a dashboard, pero seguía mostrando demasiada densidad interna y estados poco expresivos. El usuario pidió centrar la siguiente iteración exclusivamente en esta zona y en la calidad perceptiva de sus interacciones.
+
+### Cambios aplicados
+- Refinamiento de `app/templates/career.html` para introducir una jerarquía más clara por pasos:
+  - badges de paso para creación de sesión, sesión activa, series e informe
+  - mejor separación visual entre encabezados, métricas y acciones
+  - resumen más claro del constructor de turno
+- Mejora del bloque de asignación del turno con un estado vacío más útil y más visual dentro de `career-alloc-list`.
+- Refuerzo de jerarquía en botones de acción clave, destacando más `Crear sesión` y `Cerrar turno`.
+- Mejora de los estados vacíos en series y ranking con tratamiento visual de panel vacío más consistente.
+- Mejora del bloque de alertas de datos con un chip de estado positivo más coherente cuando no hay advertencias.
+- Añadidos estados visuales de carga en gráficos de series e informe mediante superficies inline con spinner reutilizando el sistema visual existente.
+- Ajuste de `app/static/app.js` para mostrar y ocultar estos estados de carga de forma coherente durante la carga de series y la generación del informe.
+- Ampliación de `app/static/estilos.css` para unificar:
+  - badges de paso y badges sutiles
+  - estados vacíos suaves
+  - superficies de carga
+  - chips de estado
+  - barra de acciones principal
+  - refuerzo visual de toasts de éxito y error
+
+### Decisiones tomadas
+- Mantener el foco solo en `modo carrera` y estados, sin abrir frentes nuevos.
+- No tocar backend ni lógica del simulador.
+- Aprovechar la estructura dashboard creada en la iteración anterior y hacerla más comprensible en lugar de rediseñarla otra vez.
+- Usar una jerarquía por pasos para mejorar escaneo y orientación dentro de una pantalla larga y compleja.
+
+### Riesgos / problemas detectados
+- Parte del contenido dinámico del modo carrera sigue dependiendo de HTML generado por JavaScript, así que todavía puede haber pequeños desajustes visuales finos cuando se carguen todos los datos reales.
+- No se ha ejecutado una validación funcional completa del flujo entero, solo comprobación sintáctica y ajuste visual sobre estructura existente.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Confirmación del último número de iteración usado para crear correctamente la `Iteración 06`.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py` y `app/career.py`.
+- Revisión del estado Git para confirmar que esta iteración toca solo frontend/documentación.
+
+### Pendientes
+- Afinar todavía más el detalle visual del contenido dinámico interno del constructor de turnos si en Render aparecen zonas con densidad desigual.
+- Unificar futuros estados vacíos y loading de otras secciones usando el mismo patrón visual.
+- Revisar microcopy puntual del modo carrera tras ver la iteración en uso real.
