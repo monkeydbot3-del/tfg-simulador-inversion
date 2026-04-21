@@ -72,11 +72,21 @@
 
 ## 2026-04-21
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e576ab3`
 - Título: Iteración 06, refinado visual de modo carrera y estados
 - Archivos tocados:
   - `app/templates/career.html`
   - `app/static/app.js`
   - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 07, limpieza de UI interna y análisis previo de base de datos y login
+- Archivos tocados:
+  - `app/templates/home.html`
+  - `app/templates/inicio.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

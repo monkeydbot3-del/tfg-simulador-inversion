@@ -234,3 +234,40 @@ Tras la Iteración 05, el modo carrera ya tenía una base visual más cercana a 
 - Afinar todavía más el detalle visual del contenido dinámico interno del constructor de turnos si en Render aparecen zonas con densidad desigual.
 - Unificar futuros estados vacíos y loading de otras secciones usando el mismo patrón visual.
 - Revisar microcopy puntual del modo carrera tras ver la iteración en uso real.
+
+## Iteración 07 - Limpieza de UI interna y análisis previo de base de datos y login
+
+### Objetivo
+Eliminar de la interfaz cualquier mensaje que hable de iteraciones, trabajo interno del bot o meta-comentarios sobre el propio proceso de mejora, y preparar un diagnóstico técnico previo para una implementación mínima de base de datos y autenticación.
+
+### Contexto
+Tras varias iteraciones visuales, el usuario detectó que todavía podían quedar mensajes demasiado internos o meta dentro de la UI final. Además, pidió analizar una evolución mínima y defendible del proyecto hacia persistencia con base de datos, usuarios, registro, login/logout e historial por usuario, pero sin implementarlo todavía.
+
+### Cambios aplicados
+- Revisión de templates y textos visibles para localizar mensajes que pudieran exponer trabajo interno o hablar del proceso de iteración.
+- Limpieza en `app/templates/home.html` de mensajes demasiado internos o meta:
+  - sustitución de `Producto académico, interfaz profesional` por un mensaje neutro orientado al usuario
+  - ajuste del texto principal para eliminar referencias a “presentar mejor el proyecto final”
+- Limpieza en `app/templates/inicio.html` de copy demasiado meta, sustituyendo bloques como `Enfoque académico` por mensajes centrados en uso real del producto.
+- No se han realizado cambios de backend ni de arquitectura en esta iteración.
+
+### Decisiones tomadas
+- Dejar toda referencia a iteraciones, cambios internos o trabajo del bot exclusivamente en `CHANGELOG_AI.md` y `docs/ai_report.md`.
+- Mantener en UI solo mensajes orientados al usuario final y al uso funcional del simulador.
+- No implementar aún base de datos ni autenticación, solo analizar una solución mínima compatible con el estado actual del proyecto.
+
+### Riesgos / problemas detectados
+- Parte del copy añadido en iteraciones anteriores era correcto desde el punto de vista visual, pero demasiado meta para una app final.
+- La arquitectura actual está centrada en JSON locales y rutas Flask monolíticas, por lo que añadir usuarios y persistencia requerirá introducir una capa de datos con cuidado para no desestabilizar el proyecto.
+- `requirements.txt` ya incluye `peewee`, lo cual es útil, pero el proyecto aún no tiene estructura de modelos, migraciones ni gestión de sesión de usuario.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Búsqueda textual en frontend para localizar mensajes potencialmente internos o meta.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py` y `app/career.py`.
+- Revisión de `requirements.txt`, `app/__init__.py` y `app/routes.py` para analizar el impacto de una futura integración mínima de base de datos y autenticación.
+
+### Pendientes
+- Confirmar en Render que no quedan mensajes internos visibles al usuario final.
+- Si el análisis convence, planificar una implementación mínima en fases: base de datos, modelo de usuario, sesiones de login, historial por usuario y persistencia de modo carrera.
+- Decidir si el modo carrera debe persistirse completo por usuario desde la primera iteración de autenticación o como segunda fase.
