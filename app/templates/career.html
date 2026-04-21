@@ -6,23 +6,35 @@
 
 {% block content %}
 
-<div class="page-header">
+<section class="page-header page-header--with-badge">
+  <div>
+    <p class="eyebrow">Simulación avanzada</p>
+    <h1>Modo Carrera</h1>
+    <p class="muted">
+      Gestiona tu carrera como gestor con una presentación más clara: crea la sesión, cierra turnos, revisa métricas y compara tu resultado frente al benchmark.
+    </p>
+  </div>
+  <span class="badge badge-soft">Modo estratégico</span>
+</section>
 
-  <h1>Modo Carrera</h1>
+<section class="career-overview-strip">
+  <article class="info-strip__item">
+    <strong>Sesiones históricas</strong>
+    <p>Crea una partida sobre un periodo real y adapta decisiones a cada turno.</p>
+  </article>
+  <article class="info-strip__item">
+    <strong>Control de cartera</strong>
+    <p>Asigna pesos, activa DCA y revisa cómo evoluciona tu exposición.</p>
+  </article>
+  <article class="info-strip__item">
+    <strong>Informe final</strong>
+    <p>Compara portfolio, benchmark, alertas y ranking local en una sola vista.</p>
+  </article>
+</section>
 
-  <p class="muted">
+<div id="career-app" class="career-layout career-layout--dashboard">
 
-    Gestiona tu carrera como gestor: crea una partida con datos históricos reales, cierra turnos con tu cartera y revisa tu informe final con métricas, techo teórico y ranking local.
-
-  </p>
-
-</div>
-
-
-
-<div id="career-app" class="career-layout">
-
-  <section class="card">
+  <section class="card card--elevated career-card career-card--setup">
 
     <div class="card-section">
 
@@ -171,7 +183,7 @@
 
 
 
-  <section class="card" id="career-session-card" hidden>
+  <section class="card card--elevated career-card" id="career-session-card" hidden>
 
     <div class="card-section">
 
@@ -306,7 +318,7 @@
 
 
 
-  <section class="card" id="career-series-card" hidden>
+  <section class="card card--elevated career-card" id="career-series-card" hidden>
 
     <div class="card-section">
 
@@ -338,7 +350,7 @@
 
 
 
-  <section class="card" id="career-report-card" hidden>
+  <section class="card card--elevated career-card" id="career-report-card" hidden>
 
     <div class="card-section">
 
@@ -366,7 +378,7 @@
 
 
 
-      <div class="career-score">
+      <div class="career-score career-score--elevated">
 
         <div class="star-badge" id="career-score-stars" aria-live="polite">&mdash;&#9733;</div>
 
@@ -382,7 +394,7 @@
 
 
 
-      <div class="career-metrics">
+      <div class="career-metrics career-metrics--dashboard">
 
         <div class="metric-card">
 

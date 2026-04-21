@@ -2,9 +2,18 @@
 {% block title %}Manual de Usuario{% endblock %}
 
 {% block content %}
-<section class="card">
+<section class="page-header page-header--with-badge">
+  <div>
+    <p class="eyebrow">Referencia de uso</p>
+    <h1>Manual de Usuario</h1>
+    <p class="muted">Una versión más clara y escaneable del funcionamiento de la app, pensada para consulta rápida y defensa académica.</p>
+  </div>
+  <span class="badge badge-soft">Documentación funcional</span>
+</section>
+
+<section class="card card--elevated manual-shell">
   <div class="card-section">
-    <h1>Manual de Usuario &mdash; Simulador de Inversiones</h1>
+    <h2>Manual de Usuario &mdash; Simulador de Inversiones</h2>
     <div class="manual-video">
       <div class="video-placeholder" role="img" aria-label="Vídeo introductorio">
         <video
@@ -20,7 +29,7 @@
       </div>
     </div>
 
-    <article class="manual-content">
+    <article class="manual-content manual-content--enhanced">
       <p>
         Este manual guía cada pantalla del simulador con explicaciones habladas en lenguaje cotidiano,
         ejemplos numéricos redondos y referencias directas al backend (<code>app/career.py</code>) y
@@ -28,7 +37,7 @@
         entender qué significa cada campo, por qué importa y dónde aparece.
       </p>
 
-      <nav class="manual-index">
+      <nav class="manual-index manual-index--enhanced">
         <h2>Tabla de contenidos</h2>
         <ol>
           <li><a href="#introduccion" aria-label="Ir a Introducción rápida">Introducción rápida</a></li>

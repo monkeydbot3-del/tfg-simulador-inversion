@@ -1,43 +1,71 @@
 # CHANGELOG_AI
 
 ## 2026-04-21
-- Se clona el repositorio de trabajo `monkeydbot3-del/tfg-web-ci-python-bot` en el workspace.
-- Se configura el remoto de referencia `sanlaja/tfg-web-ci-python` como `reference`.
-- Se crea la rama de trabajo `bot/diagnostico-inicial`.
-- Se realiza análisis inicial del proyecto sin aplicar cambios funcionales ni visuales.
-- Hallazgo clave: el estado actual del repo del bot coincide con `reference/main` en el árbol versionado consultado.
-- Hallazgo clave: faltan los archivos de contexto persistente indicados por el usuario (`BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`) y también faltaban en el repo `CHANGELOG_AI.md` y `docs/ai_report.md`, que se crean en esta iteración.
-- Se releen los archivos de contexto persistente ya presentes en el repo antes de continuar.
-- Se crea la rama `bot/iteracion-01-textos-y-home` para una mejora incremental segura.
-- Se mejora la landing principal con una estructura más clara, más orientada a decisiones y visualmente más consistente.
-- Se mejora el bloque de inicio del modo práctica con mejor jerarquía visual, copy más claro y acciones agrupadas.
-- Se ajustan textos globales de navegación y título base para reforzar consistencia de producto.
-- Se corrigen textos visibles en modo carrera y en el precheck del análisis.
-- Se sustituye un estilo inline por clases/atributos más consistentes en `analisis.html`.
-- Se consolidan y limpian estilos CSS duplicados de la landing y se mejora el responsive básico de esa zona.
-- No se han aplicado cambios en la lógica de negocio del simulador en esta iteración.
-- Se relee de nuevo el contexto obligatorio antes de la siguiente iteración.
-- Se crea la rama `bot/iteracion-02-mojibake-y-feedback` para centrarse en textos rotos visibles y feedback UI básico.
-- Se sustituyen `alert()` evidentes por toasts reutilizables en acciones de copiar URL, empresas, historial y ordenación.
-- Se mejora el sistema de toasts para funcionar también en páginas donde el contenedor no existe inicialmente.
-- Se corrigen múltiples textos con mojibake visibles para el usuario en `app/career.py`.
-- Se corrigen observaciones y resúmenes visibles con mojibake en `app/data/analisis.json`.
-- Se aplican correcciones parciales de microcopy visible en `app/routes.py`, manteniendo intacta la lógica del simulador.
-- No se ha hecho refactor estructural ni se ha modificado la lógica funcional del simulador en esta iteración.
-- Cambio de flujo de trabajo: a partir de este punto se trabaja sobre la rama fija `bot/render-preview`.
-- Se analiza el proyecto específicamente para despliegue en Render.
-- Se verifica que `run.py` ya expone un objeto WSGI válido para Gunicorn.
-- Se verifica que no hacen falta variables de entorno obligatorias para arrancar.
-- Se detecta un problema real de despliegue: `requirements.txt` estaba en UTF-16.
-- Se aplica el cambio mínimo necesario para Render: conversión de `requirements.txt` a UTF-8.
-- Configuración recomendada para Render: build `pip install -r requirements.txt`, start `gunicorn run:app`.
-- Se releen de nuevo `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de una iteración visual más ambiciosa.
-- Se investiga en internet dirección visual y buenas prácticas actuales de producto web, tomando como guía principios de jerarquía visual, espaciado, sistema de superficies, formularios claros, tablas escaneables y navegación más premium.
-- Se elige una dirección visual sobria tipo producto moderno: estética limpia, superficies translúcidas suaves, hero más editorial, cards elevadas, navegación con identidad de marca y componentes con más aire.
-- Se rediseña la cabecera global en `app/templates/base.html` con una marca más sólida y una presentación de producto más profesional.
-- Se rehace la home en `app/templates/home.html` con hero ampliado, panel lateral informativo, métricas resumidas y llamadas a la acción más claras.
-- Se mejora `app/templates/inicio.html` con hero más rico, bloque de valor lateral e info-strip de beneficios.
-- Se rediseña `app/templates/empresas.html` con cabecera más editorial, badge contextual, card más elevada y panel de acciones más limpio.
-- Se rediseña `app/templates/analisis.html` con introducción guiada, callout lateral, selector de modo más claro y barra final de envío más cuidada.
-- Se amplía `app/static/estilos.css` para introducir una capa visual más consistente en navegación, superficies, cards, tablas, formularios, callouts y layout responsive.
-- No se modifica la lógica funcional del simulador ni el arranque en Render.
+- Rama: `bot/diagnostico-inicial`
+- Commit: `78c55c4`
+- Título: diagnóstico inicial del proyecto
+- Archivos tocados:
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/iteracion-01-textos-y-home`
+- Commit: `b0cacd8`
+- Título: mejora de landing, home y consistencia inicial de textos
+- Archivos tocados:
+  - `app/templates/home.html`
+  - `app/templates/inicio.html`
+  - `app/templates/base.html`
+  - `app/templates/career.html`
+  - `app/templates/analisis.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/iteracion-02-mojibake-y-feedback`
+- Commit: `b90beb0`
+- Título: limpieza de mojibake visible y feedback UI básico
+- Archivos tocados:
+  - `app/static/app.js`
+  - `app/career.py`
+  - `app/data/analisis.json`
+  - `app/routes.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/render-preview`
+- Commit: `21faf0f`
+- Título: ajuste mínimo de despliegue para Render
+- Archivos tocados:
+  - `requirements.txt`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/render-preview`
+- Commit: `4b79a81`
+- Título: primera elevación visual de dirección de producto
+- Archivos tocados:
+  - `app/templates/base.html`
+  - `app/templates/home.html`
+  - `app/templates/inicio.html`
+  - `app/templates/empresas.html`
+  - `app/templates/analisis.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-21
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 05, dashboard visual para historial, carrera y documentación
+- Archivos tocados:
+  - `app/templates/historial.html`
+  - `app/templates/career.html`
+  - `app/templates/aprende.html`
+  - `app/templates/manual.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
