@@ -1,25 +1,43 @@
 {% extends "base.html" %}
-{% block title %}Simulador de Inversiones{% endblock %}
+{% block title %}Simulador de inversiones{% endblock %}
 
 {% block content %}
 <section class="landing-hero">
-  <h1>Bienvenido al simulador de inversiones, escoja el modo que desea:</h1>
+  <div class="landing-hero__content">
+    <p class="eyebrow">Simulador de inversiones</p>
+    <h1>Elige cómo quieres explorar y practicar tus decisiones de inversión</h1>
+    <p class="lead landing-lead">
+      Accede al modo práctica para analizar empresas, entra en modo carrera para simular una trayectoria completa o consulta el manual para entender cada parte de la aplicación.
+    </p>
+  </div>
 
   <div class="landing-actions">
-    <div class="landing-item">
-      <img src="{{ url_for('static', filename='img/modo-practica.png') }}" alt="Modo Práctica" class="landing-icon">
-      <a class="landing-btn" href="{{ url_for('main.inicio_alias') }}">Modo Práctica</a>
-    </div>
+    <a class="landing-item" href="{{ url_for('main.inicio_alias') }}">
+      <img src="{{ url_for('static', filename='img/modo-practica.png') }}" alt="Modo práctica" class="landing-icon">
+      <div class="landing-copy">
+        <h2>Modo práctica</h2>
+        <p>Analiza una empresa, prueba hipótesis y entiende el resultado de tus decisiones.</p>
+        <span class="landing-btn">Entrar en modo práctica</span>
+      </div>
+    </a>
 
-    <div class="landing-item">
-      <img src="{{ url_for('static', filename='img/modo-carrera.png') }}" alt="Modo Carrera" class="landing-icon">
-      <a class="landing-btn" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
-    </div>
+    <a class="landing-item" href="{{ url_for('main.career_page') }}">
+      <img src="{{ url_for('static', filename='img/modo-carrera.png') }}" alt="Modo carrera" class="landing-icon">
+      <div class="landing-copy">
+        <h2>Modo carrera</h2>
+        <p>Gestiona una cartera por turnos con datos históricos y revisa tu evolución como gestor.</p>
+        <span class="landing-btn">Entrar en modo carrera</span>
+      </div>
+    </a>
 
-    <div class="landing-item">
-      <img src="{{ url_for('static', filename='img/manual-usuario.png') }}" alt="Manual de Usuario" class="landing-icon">
-      <a class="landing-btn" href="{{ url_for('main.manual_page') }}">Manual de Usuario</a>
-    </div>
+    <a class="landing-item" href="{{ url_for('main.manual_page') }}">
+      <img src="{{ url_for('static', filename='img/manual-usuario.png') }}" alt="Manual de usuario" class="landing-icon">
+      <div class="landing-copy">
+        <h2>Manual de usuario</h2>
+        <p>Consulta el funcionamiento de cada pantalla y resuelve dudas antes de empezar.</p>
+        <span class="landing-btn">Abrir manual</span>
+      </div>
+    </a>
   </div>
 </section>
 {% endblock %}

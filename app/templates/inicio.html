@@ -1,21 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Inicio · Simulador de an&aacute;lisis{% endblock %}
+{% block title %}Inicio · Simulador de análisis{% endblock %}
 
 {% block content %}
-<section class="hero">
+<section class="hero hero--split">
   <div class="hero__content">
-    <p class="eyebrow">Bienvenido</p>
-    <h1>Simulador de Inversi&oacute;n Hist&oacute;rica y An&aacute;lisis Fundamental</h1>
+    <p class="eyebrow">Modo práctica</p>
+    <h1>Simulador de inversión histórica y análisis fundamental</h1>
     <p class="lead">
-      Gestiona una cartera virtual en el pasado, analiza fundamentales y valida tus estrategias a largo plazo sin riesgo financiero.
+      Analiza empresas, compara escenarios y valida decisiones de inversión a largo plazo con datos históricos, sin asumir riesgo financiero real.
     </p>
-    <a class="btn btn-secondary btn-large" href="{{ url_for('main.aprende_page') }}" style="margin-bottom:10px;">
-      Aprende a invertir
-    </a>
-    <a class="btn btn-primary btn-large" href="{{ url_for('main.analisis_page') }}">
-      Nuevo an&aacute;lisis
-    </a>
+    <div class="hero__actions">
+      <a class="btn btn-secondary btn-large" href="{{ url_for('main.aprende_page') }}">
+        Aprende a invertir
+      </a>
+      <a class="btn btn-primary btn-large" href="{{ url_for('main.analisis_page') }}">
+        Nuevo análisis
+      </a>
+    </div>
   </div>
 </section>
 {% endblock %}

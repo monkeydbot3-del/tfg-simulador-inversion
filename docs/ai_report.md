@@ -4,17 +4,16 @@
 
 ### Confirmación de contexto operativo
 - Repositorio local: `/root/.openclaw/workspace/tfg-web-ci-python-bot`
-- Rama activa: `bot/diagnostico-inicial`
+- Rama activa inicial del diagnóstico: `bot/diagnostico-inicial`
+- Rama de iteración actual: `bot/iteracion-01-textos-y-home`
 - Remotos configurados:
   - `origin`: `git@github.com:monkeydbot3-del/tfg-web-ci-python-bot.git`
   - `reference`: `git@github.com:sanlaja/tfg-web-ci-python.git`
 
 ### Estado de los archivos de contexto persistente
-En esta primera iteración faltan en el repo los siguientes archivos indicados como obligatorios por el usuario:
+Ya existen en el repo y deben releerse antes de cada iteración:
 - `BOT_INSTRUCTIONS.md`
 - `PROJECT_CONTEXT.md`
-
-También faltaban estos archivos de seguimiento y se crean en esta iteración:
 - `CHANGELOG_AI.md`
 - `docs/ai_report.md`
 
@@ -142,15 +141,6 @@ Impacto:
 - ruido técnico
 - mala percepción de calidad
 
-### 6. Archivos de contexto del proyecto ausentes
-No existen todavía:
-- `BOT_INSTRUCTIONS.md`
-- `PROJECT_CONTEXT.md`
-
-Impacto:
-- falta memoria de proyecto dentro del propio repo
-- reduce continuidad operativa
-
 ## Oportunidades de mejora de alto impacto
 
 1. **Corregir toda la capa de textos y encoding**.
@@ -209,5 +199,36 @@ Impacto:
 - Preparar narrativa de producto y decisiones de diseño para memoria/defensa.
 - Priorizar cambios con alto impacto demostrable frente a cambios cosméticos menores.
 
+## Iteración 01. Textos clave y home
+
+### Objetivo de la iteración
+Atacar mejoras visibles y seguras, sin tocar lógica de negocio:
+- pulir la home
+- mejorar la claridad del modo práctica
+- corregir algunos textos rotos o poco consistentes
+- eliminar un pequeño uso de estilo inline
+
+### Cambios aplicados
+- Rediseño ligero de `app/templates/home.html` para convertir la landing en una entrada más clara y orientada a decisiones.
+- Mejora del copy y jerarquía visual en `app/templates/inicio.html`.
+- Ajuste de textos globales en `app/templates/base.html`.
+- Corrección de dos textos visibles en `app/templates/career.html`.
+- Sustitución de `style="display:none"` por clases/atributos más consistentes en `app/templates/analisis.html`.
+- Mejora del texto del precheck de Yahoo Finance en `app/templates/analisis.html`.
+- Limpieza y consolidación de estilos duplicados de la landing en `app/static/estilos.css`.
+- Creación de estilos reutilizables para `hero__actions`, `hero--split`, nueva landing y mejor comportamiento responsive.
+
+### Impacto esperado
+- primera impresión más profesional
+- navegación inicial más clara
+- mejor consistencia visual entre landing e inicio
+- menos señales de improvisación en plantillas
+- reducción de ruido visual y de duplicidad CSS
+
+### Limitaciones de esta iteración
+- No se ha tocado la lógica del simulador.
+- No se ha corregido todavía el grueso del mojibake en backend y datos.
+- No se ha podido ejecutar la suite de tests por falta de entorno local preparado en esta sesión.
+
 ## Nota de comparación con el repo de referencia
-Tras añadir y consultar el remoto `reference`, el árbol versionado visible del repo del bot no muestra diferencias frente a `reference/main` en la comprobación realizada. En esta fase inicial, el repo del bot parece partir del mismo estado base que el original de referencia.
+Tras añadir y consultar el remoto `reference`, el árbol versionado visible del repo del bot no muestra diferencias frente a `reference/main` en la comprobación inicial. A partir de esta iteración, el repo del bot ya sí diverge de ese punto base por las mejoras documentadas aquí.
