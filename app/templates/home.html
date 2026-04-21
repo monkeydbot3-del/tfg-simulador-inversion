@@ -2,14 +2,45 @@
 {% block title %}Simulador de inversiones{% endblock %}
 
 {% block content %}
-<section class="landing-hero">
+<section class="landing-hero landing-hero--enhanced">
   <div class="landing-hero__content">
     <p class="eyebrow">Simulador de inversiones</p>
-    <h1>Elige cómo quieres explorar y practicar tus decisiones de inversión</h1>
+    <span class="hero-badge">Producto académico, interfaz profesional</span>
+    <h1>Una forma más clara y visual de practicar análisis e inversión con datos históricos</h1>
     <p class="lead landing-lead">
-      Accede al modo práctica para analizar empresas, entra en modo carrera para simular una trayectoria completa o consulta el manual para entender cada parte de la aplicación.
+      Explora empresas, simula decisiones con criterio y revisa tu evolución en un entorno pensado para aprender, comparar escenarios y presentar mejor el proyecto final.
     </p>
+    <div class="hero__actions">
+      <a class="btn btn-primary btn-large" href="{{ url_for('main.inicio_alias') }}">Empezar en modo práctica</a>
+      <a class="btn btn-secondary btn-large" href="{{ url_for('main.career_page') }}">Explorar modo carrera</a>
+    </div>
   </div>
+
+  <aside class="landing-panel">
+    <div class="metric-card">
+      <span class="metric-card__label">Qué mejora esta app</span>
+      <strong>Claridad, práctica y seguimiento</strong>
+      <p>Diseñada para comparar decisiones, documentar hipótesis y revisar resultados con más contexto visual.</p>
+    </div>
+    <div class="metric-grid">
+      <div class="metric-pill">
+        <strong>Análisis</strong>
+        <span>Escenarios y observaciones</span>
+      </div>
+      <div class="metric-pill">
+        <strong>Histórico</strong>
+        <span>Datos reales de mercado</span>
+      </div>
+      <div class="metric-pill">
+        <strong>Carrera</strong>
+        <span>Simulación por turnos</span>
+      </div>
+      <div class="metric-pill">
+        <strong>Manual</strong>
+        <span>Apoyo para aprender</span>
+      </div>
+    </div>
+  </aside>
 
   <div class="landing-actions">
     <a class="landing-item" href="{{ url_for('main.inicio_alias') }}">

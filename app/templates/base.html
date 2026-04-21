@@ -9,9 +9,16 @@
 </head>
 {% set _nav_mode = nav_mode or 'practice' %}
 <body data-nav-mode="{{ _nav_mode }}">
+  <div class="app-shell">
   <header class="top-nav">
     <div class="brand">
-      <a href="{{ url_for('main.home') }}">Simulador</a>
+      <a href="{{ url_for('main.home') }}">
+        <span class="brand-mark">SI</span>
+        <span class="brand-copy">
+          <strong>Simulador</strong>
+          <span>Inversión y análisis</span>
+        </span>
+      </a>
     </div>
     {% if _nav_mode == 'practice' %}
     <nav class="top-nav__links" aria-label="Principal">
@@ -38,6 +45,7 @@
       {% block content %}{% endblock %}
     </div>
   </main>
+  </div>
 
   <!-- Loader global de la aplicación -->
   <div id="global-loading" class="global-loading" aria-hidden="true">

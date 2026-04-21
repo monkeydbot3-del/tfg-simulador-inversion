@@ -31,3 +31,13 @@
 - Se detecta un problema real de despliegue: `requirements.txt` estaba en UTF-16.
 - Se aplica el cambio mínimo necesario para Render: conversión de `requirements.txt` a UTF-8.
 - Configuración recomendada para Render: build `pip install -r requirements.txt`, start `gunicorn run:app`.
+- Se releen de nuevo `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de una iteración visual más ambiciosa.
+- Se investiga en internet dirección visual y buenas prácticas actuales de producto web, tomando como guía principios de jerarquía visual, espaciado, sistema de superficies, formularios claros, tablas escaneables y navegación más premium.
+- Se elige una dirección visual sobria tipo producto moderno: estética limpia, superficies translúcidas suaves, hero más editorial, cards elevadas, navegación con identidad de marca y componentes con más aire.
+- Se rediseña la cabecera global en `app/templates/base.html` con una marca más sólida y una presentación de producto más profesional.
+- Se rehace la home en `app/templates/home.html` con hero ampliado, panel lateral informativo, métricas resumidas y llamadas a la acción más claras.
+- Se mejora `app/templates/inicio.html` con hero más rico, bloque de valor lateral e info-strip de beneficios.
+- Se rediseña `app/templates/empresas.html` con cabecera más editorial, badge contextual, card más elevada y panel de acciones más limpio.
+- Se rediseña `app/templates/analisis.html` con introducción guiada, callout lateral, selector de modo más claro y barra final de envío más cuidada.
+- Se amplía `app/static/estilos.css` para introducir una capa visual más consistente en navegación, superficies, cards, tablas, formularios, callouts y layout responsive.
+- No se modifica la lógica funcional del simulador ni el arranque en Render.
