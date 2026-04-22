@@ -4,11 +4,20 @@
 
 {% block content %}
 <section class="page-header page-header--with-badge">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="stack stack--sm">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category|default('info') }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
   <div>
     <p class="eyebrow">Seguimiento y trazabilidad</p>
     <h1>Historial de an&aacute;lisis</h1>
     <p class="muted">
-      Consulta an&aacute;lisis anteriores, filtra por fecha o ticker y exporta los resultados en CSV con una lectura m&aacute;s clara y estructurada.
+      Consulta tus an&aacute;lisis guardados, filtra por fecha o ticker y exporta tu historial en CSV con una lectura m&aacute;s clara y estructurada.
     </p>
   </div>
   <span class="badge badge-soft">Registro histórico</span>

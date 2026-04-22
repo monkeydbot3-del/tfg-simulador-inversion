@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Crear cuenta{% endblock %}
+{% block content %}
+<section class="page-hero compact-hero">
+  <div class="page-hero__content">
+    <span class="eyebrow">Registro</span>
+    <h1>Crea tu cuenta</h1>
+    <p>Guarda tus análisis y recupera tu historial desde cualquier sesión.</p>
+  </div>
+</section>
+
+<section class="panel-section">
+  <div class="panel-card panel-card--form">
+    <form method="post" action="{{ url_for('auth.register_submit') }}" class="form-grid">
+      <label>
+        <span>Correo electrónico</span>
+        <input type="email" name="email" required />
+      </label>
+      <label>
+        <span>Nombre visible (opcional)</span>
+        <input type="text" name="username" />
+      </label>
+      <label>
+        <span>Contraseña</span>
+        <input type="password" name="password" required />
+      </label>
+      <label>
+        <span>Repite la contraseña</span>
+        <input type="password" name="password_confirm" required />
+      </label>
+      <button type="submit" class="btn btn-primary">Crear cuenta</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

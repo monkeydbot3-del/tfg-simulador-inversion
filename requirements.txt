@@ -28,6 +28,7 @@ packaging==25.0
 pandas==2.3.3
 pathspec==0.12.1
 peewee==3.18.2
+psycopg2-binary==2.9.10
 platformdirs==4.5.0
 pluggy==1.6.0
 pre_commit==4.3.0

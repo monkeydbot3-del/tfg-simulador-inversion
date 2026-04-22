@@ -271,3 +271,166 @@ Tras varias iteraciones visuales, el usuario detectó que todavía podían queda
 - Confirmar en Render que no quedan mensajes internos visibles al usuario final.
 - Si el análisis convence, planificar una implementación mínima en fases: base de datos, modelo de usuario, sesiones de login, historial por usuario y persistencia de modo carrera.
 - Decidir si el modo carrera debe persistirse completo por usuario desde la primera iteración de autenticación o como segunda fase.
+
+## Iteración 08 - Diseño técnico previo para Postgres y autenticación en Render
+
+### Objetivo
+Definir una arquitectura mínima, defendible y lista para ejecutar después, que permita añadir autenticación y persistencia por usuario usando Render Postgres y `DATABASE_URL`, sin implementar todavía los cambios.
+
+### Contexto
+Tras el análisis previo de base de datos y login, el usuario decidió descartar SQLite y pidió que la evolución futura se diseñe directamente para Render Postgres. El proyecto actual sigue basado en Flask, rutas concentradas en `app/routes.py`, persistencia local JSON para historial y ficheros JSON para sesiones del modo carrera. La siguiente iteración debía centrarse solo en diseño técnico y orden de ejecución, sin tocar aún la lógica grande del simulador.
+
+### Cambios aplicados
+- Relectura de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de comenzar.
+- Revisión de `requirements.txt`, `app/__init__.py`, `app/routes.py` y `app/career.py` para localizar puntos reales de integración con Postgres.
+- Identificación de la persistencia actual basada en JSON:
+  - `app/routes.py` usa `app/data/analisis.json` para historial
+  - `app/career.py` usa `app/data/career_sessions.json` para sesiones del modo carrera
+- Preparación del diseño técnico mínimo para:
+  - conexión a Render Postgres mediante `DATABASE_URL`
+  - autenticación simple con sesión Flask
+  - historial por usuario
+  - persistencia de sesiones del modo carrera por usuario
+- No se ha implementado código de base de datos, autenticación ni migraciones en esta iteración.
+
+### Decisiones tomadas
+- Diseñar la solución solo para Postgres en Render, sin proponer persistencia local en SQLite.
+- Mantener el enfoque mínimo y defendible:
+  - Flask
+  - Peewee
+  - Postgres vía `DATABASE_URL`
+  - hash de contraseña con Werkzeug
+  - sesión autenticada básica con `session` de Flask
+- Evitar por ahora capas adicionales como Flask-Login, Alembic o una normalización profunda del estado del modo carrera.
+- Mantener el modo carrera inicialmente persistido como estado JSON dentro de Postgres para reducir riesgo y complejidad.
+- Separar claramente autenticación, acceso a base de datos y lógica existente, para no romper la app actual durante la futura implementación.
+
+### Riesgos / problemas detectados
+- `app/routes.py` y `app/career.py` concentran bastante responsabilidad, así que introducir persistencia requerirá añadir puntos de integración con cuidado.
+- El historial actual es global y en JSON; pasar a historial por usuario implica rediseñar lectura, escritura y exportación.
+- El modo carrera persiste hoy sesiones completas en JSON local; llevarlo a Postgres sin tocar mucho la lógica exige encapsular bien la capa de almacenamiento.
+- Usar Postgres en Render implica depender siempre de `DATABASE_URL`, por lo que habrá que gestionar con claridad el arranque cuando falte esa variable.
+- `peewee` ya está incluido, pero para Postgres hará falta asegurar el driver adecuado durante la implementación real.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de contexto y memoria del proyecto.
+- Inspección de `requirements.txt` para confirmar dependencias presentes.
+- Revisión de `app/__init__.py` para detectar el punto correcto de inicialización de base de datos.
+- Revisión de `app/routes.py` para localizar persistencia de historial en `analisis.json`.
+- Revisión de `app/career.py` para localizar persistencia de sesiones en `career_sessions.json`.
+- Contraste de la propuesta con la restricción del usuario: solo diseño técnico, sin implementación en esta iteración.
+
+### Pendientes
+- Decidir si la siguiente iteración ejecuta solo la Fase 1 (base técnica + usuarios + login/logout) o si incluye también historial autenticado.
+- Confirmar si la primera implementación debe exigir login para historial y modo carrera, o permitir uso anónimo con funcionalidades limitadas.
+- Añadir, en la futura ejecución, la dependencia final necesaria para conectar Peewee con Postgres si no estuviera ya presente.
+
+## Iteración 09 - Especificación ejecutable para Postgres, auth por email e historial por usuario
+
+### Objetivo
+Cerrar el plano técnico final previo a implementación, definiendo con precisión archivos, dependencias, modelos, rutas, variables de entorno, puntos de integración y orden de ejecución para añadir autenticación por email y persistencia en Render Postgres, sin implementar todavía la funcionalidad completa.
+
+### Contexto
+Tras validar la dirección general de la Iteración 08, el usuario confirmó que la solución debe mantenerse mínima, trabajar con Render Postgres vía `DATABASE_URL`, usar login solo por email y evitar abrir frentes como OAuth, recuperación de contraseña o roles. Esta iteración se centra en convertir la propuesta general en una especificación de implementación concreta y ejecutable, lista para llevarse a código en la siguiente fase.
+
+### Cambios aplicados
+- Ajuste de la propuesta para que el acceso se haga solo por email.
+- Cierre de la decisión técnica sobre el driver recomendado para Postgres con Peewee.
+- Definición del conjunto mínimo de archivos a crear y modificar.
+- Definición detallada de modelos, rutas de auth, variables de entorno, dependencias nuevas, helpers/servicios mínimos y puntos concretos de intervención en `app/routes.py` y `app/career.py`.
+- Definición del orden de implementación por subfases/commits y de los puntos de rollback y validación.
+- No se ha implementado ninguna funcionalidad nueva en esta iteración.
+
+### Decisiones tomadas
+- El login quedará limitado a email + contraseña, sin soporte dual con username.
+- `username` puede mantenerse como dato de perfil opcional o identificador visible, pero no será credencial de acceso.
+- La integración con Postgres se diseñará con Peewee y driver `psycopg2-binary` como opción mínima práctica para Render.
+- Se mantendrá autenticación basada en `session` de Flask y `SECRET_KEY`.
+- Se evitará introducir capas extra como Flask-Login, migraciones complejas o servicios innecesarios mientras no aporten valor claro.
+- Si la ejecución se recorta a una primera fase más pequeña, la prioridad será dejar operativos Postgres, usuarios, login por email y persistencia del historial por usuario antes de tocar modo carrera.
+
+### Riesgos / problemas detectados
+- El cambio a historial por usuario obligará a decidir cómo se comportan las rutas actuales cuando no haya sesión autenticada.
+- El modo carrera sigue siendo la parte más sensible del proyecto, así que conviene llegar a él solo cuando auth e historial ya estén estables.
+- `psycopg2-binary` es adecuado para una solución mínima en Render, pero habrá que vigilar compatibilidad y arranque real en despliegue cuando se implemente.
+- El proyecto todavía carece de una capa intermedia clara entre rutas y persistencia, por lo que habrá que introducir la mínima separación útil sin caer en sobrearquitectura.
+
+### Comprobaciones realizadas
+- Relectura del contexto y de la memoria previa antes de redactar la especificación.
+- Contraste de la propuesta con la decisión del usuario: auth solo por email, Postgres en Render, sin SQLite y sin funcionalidades extra de identidad.
+- Verificación del estado del proyecto para mantener el plan dentro del alcance actual y no proponer cambios estructurales excesivos.
+
+### Pendientes
+- Ejecutar la implementación real en una iteración posterior siguiendo este plano.
+- Decidir si la primera ejecución práctica llega hasta historial autenticado o incluye ya la primera persistencia del modo carrera.
+- Preparar después los templates mínimos de registro/login y los mensajes de error/éxito asociados cuando se pase a implementación.
+
+## Iteración 10 - Implementación real de Postgres, auth por email e historial por usuario
+
+### Objetivo
+Implementar la primera fase real de persistencia con Render Postgres hasta historial por usuario autenticado, manteniendo el alcance acotado y evitando tocar todavía el modo carrera o abrir frentes de identidad más complejos.
+
+### Contexto
+Tras cerrar la especificación ejecutable, el usuario aprobó pasar a implementación real con un alcance exacto: conexión Postgres con `DATABASE_URL`, `SECRET_KEY`, `app/db.py`, modelos `User` y `AnalysisHistory`, auth por email con registro/login/logout, adaptación del historial al usuario autenticado, exportación CSV del historial por usuario y ajustes mínimos de navegación/templates. Se pidió explícitamente no tocar aún la persistencia del modo carrera ni hacer refactor grande.
+
+### Cambios aplicados
+- Añadida la dependencia `psycopg2-binary` en `requirements.txt` como driver mínimo para Postgres con Peewee.
+- Creado `app/db.py` con:
+  - `DatabaseProxy`
+  - inicialización de BD desde `DATABASE_URL`
+  - helpers de conexión y cierre
+- Modificado `app/__init__.py` para:
+  - exigir `SECRET_KEY`
+  - inicializar la base de datos
+  - conectar/desconectar por ciclo de petición
+  - crear tablas mínimas `User` y `AnalysisHistory`
+  - registrar blueprint de autenticación
+- Creado `app/models.py` con los modelos `User` y `AnalysisHistory`.
+- Creado `app/services/auth_service.py` con helpers mínimos para crear usuario, buscar por email, buscar por id y autenticar.
+- Creado `app/services/history_service.py` para guardar y recuperar historial por usuario desde Postgres.
+- Creado `app/auth.py` con auth por email:
+  - `GET /registro`
+  - `POST /registro`
+  - `GET /login`
+  - `POST /login`
+  - `POST /logout`
+- Creados templates mínimos:
+  - `app/templates/login.html`
+  - `app/templates/register.html`
+- Modificado `app/templates/base.html` para mostrar acciones de sesión en navegación:
+  - iniciar sesión
+  - crear cuenta
+  - cerrar sesión
+- Modificado `app/routes.py` para:
+  - resolver usuario actual desde `session`
+  - proteger la vista de historial
+  - guardar análisis en Postgres cuando hay usuario autenticado
+  - listar historial desde Postgres por usuario
+  - exportar CSV desde Postgres por usuario
+- Modificado `app/templates/historial.html` para ajustar el copy al historial propio del usuario y mostrar mensajes flash básicos.
+
+### Decisiones tomadas
+- Mantener login exclusivamente por email.
+- No exigir autenticación para generar análisis, pero sí para disponer de historial persistente y exportación de historial.
+- Mantener el JSON legacy fuera del nuevo flujo principal del historial, pero sin eliminarlo definitivamente en esta iteración.
+- No tocar `career.py` ni la persistencia del modo carrera para respetar el alcance aprobado.
+- Crear tablas directamente desde la app en esta primera fase mínima, evitando introducir migraciones complejas todavía.
+
+### Riesgos / problemas detectados
+- La validación realizada ha sido sintáctica, no funcional contra una base Postgres real de Render, así que todavía queda por confirmar el arranque efectivo con variables reales y conexión real.
+- El historial antiguo en JSON queda como legado y ya no alimenta el flujo nuevo autenticado; si hiciera falta rescatar esos datos, habrá que decidir una migración posterior.
+- Los mensajes flash se han integrado mínimamente en la zona de historial, pero la presentación visual de login/registro podría necesitar una iteración de pulido posterior.
+- La creación automática de tablas desde la app es válida para esta fase mínima, pero a futuro convendrá valorar una estrategia de migraciones más controlada.
+
+### Comprobaciones realizadas
+- Validación por subfases con `python3 -m py_compile` tras:
+  - la base técnica Postgres
+  - la creación de modelos y auth
+  - la adaptación del historial
+- Verificación de que la implementación se mantiene dentro del alcance aprobado y no toca la lógica del modo carrera.
+- Revisión de imports, wiring de blueprints y dependencias mínimas añadidas.
+
+### Pendientes
+- Confirmar el funcionamiento real en Render con `DATABASE_URL` y `SECRET_KEY` reales.
+- Si esta fase queda estable, documentar el comportamiento exacto del historial cuando el usuario no está autenticado.
+- En una iteración posterior, decidir si se aborda ya la persistencia del modo carrera por usuario.

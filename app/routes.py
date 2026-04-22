@@ -11,12 +11,18 @@ from flask import (
     Blueprint,
     Response,
     jsonify,
+    redirect,
     render_template,
     request,
     send_from_directory,
+    session,
+    url_for,
 )
 import pandas as pd
 import yfinance as yf
+
+from .services.auth_service import get_user_by_id
+from .services.history_service import list_analysis_for_user, save_analysis_for_user
 
 
 bp = Blueprint("main", __name__)
@@ -54,6 +60,8 @@ def analisis_page():
 
 @bp.get("/historial")
 def historial_page():
+    if not _current_user_id():
+        return redirect(url_for("auth.login_page"))
     return render_template("historial.html", active="historial", nav_mode="practice")
 
 
@@ -480,6 +488,12 @@ def _guardar_lista(path: Path, lista):
         json.dump(lista, f, ensure_ascii=False, indent=2)
 
 
+def _current_user_id():
+    user_id = session.get("user_id")
+    user = get_user_by_id(user_id)
+    return user.id if user else None
+
+
 def _registrar_analisis(datos):
     errores = _validar_payload(datos)
     if errores:
@@ -528,9 +542,30 @@ def _registrar_analisis(datos):
 
     registro = _sanear_registro(registro)
 
-    historial = _cargar_lista(ANALISIS_PATH)
-    historial.insert(0, registro)
-    _guardar_lista(ANALISIS_PATH, historial)
+    user_id = _current_user_id()
+    if user_id:
+        save_analysis_for_user(
+            user_id=user_id,
+            ticker=registro.get("ticker"),
+            payload={
+                "importe_inicial": registro.get("importe_inicial"),
+                "horizonte_anios": registro.get("horizonte_anios"),
+                "supuestos": registro.get("supuestos", {}),
+                "justificacion": registro.get("justificacion", ""),
+                "modo": registro.get("modo"),
+                "dca": registro.get("dca"),
+                "crecimiento_anual_estimado": registro.get("crecimiento_anual_estimado"),
+                "margen_seguridad_pct": registro.get("margen_seguridad_pct"),
+                "inicio": registro.get("inicio"),
+                "fin": registro.get("fin"),
+            },
+            result={
+                "puntuacion": registro.get("puntuacion"),
+                "observaciones": registro.get("observaciones"),
+                "resumen": registro.get("resumen"),
+                "backtest": registro.get("backtest"),
+            },
+        )
 
     return jsonify(
         {
@@ -576,28 +611,15 @@ def listar_analisis():
     Paginado opcional:
       - ?page, ?per_page
     """
-    historial = _cargar_lista(ANALISIS_PATH)
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Debes iniciar sesión para consultar tu historial."}), 401
 
-    # --- Filtros ---
     ticker = request.args.get("ticker")
     desde = request.args.get("desde")
     hasta = request.args.get("hasta")
-    historial = _filtrar_analisis(historial, ticker, desde, hasta)
+    historial = list_analysis_for_user(user_id, ticker=ticker, desde=desde, hasta=hasta)
 
-    if ticker:
-        tnorm = _norm(ticker)
-        historial = [h for h in historial if _norm(h.get("ticker", "")) == tnorm]
-
-    # Para fechas, usamos comparación por prefijo de fecha (YYYY-MM-DD)
-    # porque timestamp está en ISO completo (YYYY-MM-DDTHH:MM:SSZ)
-    if desde:
-        # mantenemos items cuya fecha >= desde
-        historial = [h for h in historial if h.get("timestamp", "")[:10] >= desde]
-    if hasta:
-        # mantenemos items cuya fecha < hasta (exclusivo)
-        historial = [h for h in historial if h.get("timestamp", "")[:10] < hasta]
-
-    # --- Respuesta: lista o paginado ---
     page = request.args.get("page")
     per_page = request.args.get("per_page")
     if page or per_page:
@@ -611,11 +633,14 @@ def exportar_analisis_csv():
     Exporta el historial de análisis en CSV (UTF-8 con BOM para Excel).
     Acepta los mismos filtros que GET /analisis: ?ticker, ?desde, ?hasta
     """
-    historial = _cargar_lista(ANALISIS_PATH)
+    user_id = _current_user_id()
+    if not user_id:
+        return jsonify({"error": "Debes iniciar sesión para exportar tu historial."}), 401
+
     ticker = request.args.get("ticker")
     desde = request.args.get("desde")
     hasta = request.args.get("hasta")
-    historial = _filtrar_analisis(historial, ticker, desde, hasta)
+    historial = list_analysis_for_user(user_id, ticker=ticker, desde=desde, hasta=hasta)
 
     headers = [
         "id",

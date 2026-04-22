@@ -83,10 +83,46 @@
 
 ## 2026-04-21
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `06ac590`
 - Título: Iteración 07, limpieza de UI interna y análisis previo de base de datos y login
 - Archivos tocados:
   - `app/templates/home.html`
   - `app/templates/inicio.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-22
+- Rama: `bot/render-preview`
+- Commit: `SIN COMMIT`
+- Título: Iteración 08, diseño técnico previo para Postgres y autenticación en Render
+- Archivos tocados:
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-22
+- Rama: `bot/render-preview`
+- Commit: `SIN COMMIT`
+- Título: Iteración 09, especificación ejecutable para Postgres, auth por email e historial por usuario
+- Archivos tocados:
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-22
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 10, implementación real de Postgres, auth por email e historial por usuario
+- Archivos tocados:
+  - `app/db.py`
+  - `app/models.py`
+  - `app/auth.py`
+  - `app/services/auth_service.py`
+  - `app/services/history_service.py`
+  - `app/templates/login.html`
+  - `app/templates/register.html`
+  - `app/templates/base.html`
+  - `app/templates/historial.html`
+  - `app/__init__.py`
+  - `app/routes.py`
+  - `requirements.txt`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
