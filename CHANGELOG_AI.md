@@ -109,7 +109,7 @@
 
 ## 2026-04-22
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `c030230`
 - Título: Iteración 10, implementación real de Postgres, auth por email e historial por usuario
 - Archivos tocados:
   - `app/db.py`
