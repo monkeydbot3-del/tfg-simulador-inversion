@@ -27,3 +27,15 @@ class AnalysisHistory(BaseModel):
     payload_json = TextField()
     result_json = TextField()
     created_at = DateTimeField(default=datetime.utcnow, index=True)
+
+
+class CareerSessionLink(BaseModel):
+    id = AutoField()
+    user = ForeignKeyField(User, backref="career_sessions", on_delete="CASCADE")
+    session_id = CharField(max_length=40, unique=True, index=True)
+    player = CharField(max_length=120, null=True)
+    difficulty = CharField(max_length=32, null=True)
+    period_start = CharField(max_length=10, null=True)
+    period_end = CharField(max_length=10, null=True)
+    created_at = DateTimeField(default=datetime.utcnow, index=True)
+    updated_at = DateTimeField(default=datetime.utcnow, index=True)

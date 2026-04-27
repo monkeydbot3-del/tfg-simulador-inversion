@@ -2218,14 +2218,25 @@ function handleCareerCreate() {
 }
 
 function handleCareerLoadLast() {
-  const prefs = loadCareerPrefs();
-  if (!prefs.lastSessionId) {
-    mostrarToastError("No hay sesión previa almacenada.");
-    return;
-  }
-  handleCareerLoadSession(prefs.lastSessionId).catch((err) => {
-    mostrarToastError(err?.message || "No se pudo cargar la sesión.");
-  });
+  jsonGet("/api/career/session/latest")
+    .then((data) => {
+      if (data?.session_id) {
+        return handleCareerLoadSession(data.session_id, { silent: true });
+      }
+      throw new Error("No hay sesión previa guardada.");
+    })
+    .catch(async (err) => {
+      const prefs = loadCareerPrefs();
+      if (!prefs.lastSessionId) {
+        mostrarToastError(err?.message || "No hay sesión previa almacenada.");
+        return;
+      }
+      try {
+        await handleCareerLoadSession(prefs.lastSessionId);
+      } catch (fallbackErr) {
+        mostrarToastError(fallbackErr?.message || err?.message || "No se pudo cargar la sesión.");
+      }
+    });
 }
 
 async function handleCareerLoadSession(sessionId, opts = {}) {

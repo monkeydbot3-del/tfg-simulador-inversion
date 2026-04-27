@@ -215,11 +215,24 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `127e9d0`
 - Título: Iteración 19, carga global de Chart.js y render robusto de la gráfica
 - Archivos tocados:
   - `app/templates/base.html`
   - `app/templates/career.html`
+  - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 20, persistencia mínima del modo carrera por usuario
+- Archivos tocados:
+  - `app/__init__.py`
+  - `app/models.py`
+  - `app/career.py`
+  - `app/services/career_session_service.py`
   - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

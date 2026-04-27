@@ -18,8 +18,13 @@ from statistics import StatisticsError, mean
 from typing import Any, Iterable
 
 import pandas as pd
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, jsonify, make_response, request, session
 from werkzeug.exceptions import BadRequest, NotFound
+
+from .services.career_session_service import (
+    get_latest_career_session_for_user,
+    save_career_session_for_user,
+)
 
 try:
     from app.routes import (
@@ -2214,6 +2219,14 @@ def _entered_on_turn_map(session: dict[str, Any]) -> dict[str, int]:
     return entered
 
 
+def _current_user_id() -> int | None:
+    raw = session.get("user_id")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
 @career_bp.route("/session", methods=["POST"])
 def create_session():
     payload = request.get_json(silent=True) or {}
@@ -2320,6 +2333,10 @@ def create_session():
     }
     _persist_session(session)
 
+    current_user_id = _current_user_id()
+    if current_user_id:
+        save_career_session_for_user(current_user_id, session_id, session)
+
     next_turn = turns[0] if turns else None
     response_payload = {
         "session_id": session_id,
@@ -2339,6 +2356,20 @@ def _generate_session_id() -> str:
         candidate = f"car_{secrets.token_hex(3)}"
         if candidate not in sessions:
             return candidate
+
+
+@career_bp.route("/session/latest", methods=["GET"])
+def latest_session_status():
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error("Debes iniciar sesión para cargar tu última sesión guardada.", 401)
+    latest = get_latest_career_session_for_user(current_user_id)
+    if not latest:
+        return _json_error("No tienes sesiones de carrera guardadas todavía.", 404)
+    session_data = _get_session(latest.session_id)
+    if not session_data:
+        return _json_error("La última sesión guardada ya no está disponible.", 404)
+    return jsonify({"session": session_data, "session_id": latest.session_id}), 200
 
 
 @career_bp.route("/session/<session_id>", methods=["GET"])

@@ -933,3 +933,69 @@ La gráfica sigue usando exactamente los datos ya confirmados como válidos:
 ### Pendientes
 - Verificar en Render que con `AAPL`, `MSFT` o `UBI.PA` y rangos amplios la gráfica ya se dibuja realmente.
 - Si todo funciona, hacer una iteración final pequeña para retirar cualquier log temporal restante que ya no aporte valor.
+
+## Iteración 20 - Persistencia mínima del modo carrera por usuario
+
+### Objetivo
+Empezar la mejora prioritaria aprobada por el usuario, persistiendo el modo carrera por usuario autenticado con el mínimo alcance razonable: guardar el vínculo entre usuario y su última sesión de carrera para poder recuperarla de forma real desde backend, sin depender solo de `localStorage`.
+
+### Contexto
+Tras consolidar autenticación, Postgres e historial por usuario, la siguiente mejora funcional más valiosa era dar persistencia al modo carrera. Se decidió abrir una primera fase mínima y estable, sin reescribir todavía el motor de carrera ni migrar toda la lógica de snapshots globales. La meta de esta fase es que un usuario autenticado pueda recuperar su última sesión desde el backend de forma fiable.
+
+### Cambios aplicados
+- Añadido un nuevo modelo `CareerSessionLink` en `app/models.py` para vincular:
+  - usuario
+  - `session_id`
+  - metadatos básicos de la sesión
+  - timestamps de creación/actualización
+- Actualizado `app/__init__.py` para crear también la tabla `CareerSessionLink` al arrancar la app.
+- Creado `app/services/career_session_service.py` con utilidades para:
+  - guardar la sesión de carrera asociada a un usuario
+  - recuperar la última sesión guardada de ese usuario
+- Modificado `app/career.py` para:
+  - detectar `session["user_id"]`
+  - guardar el vínculo usuario-sesión cuando se crea una sesión de carrera nueva
+  - exponer `GET /api/career/session/latest` para devolver la última sesión del usuario autenticado
+- Modificado `app/static/app.js` para que el botón `Cargar última`:
+  - intente primero cargar la última sesión real desde backend
+  - use `localStorage` solo como fallback de compatibilidad
+
+### Qué resuelve esta fase
+- El modo carrera deja de depender exclusivamente de `localStorage` para recordar la última sesión.
+- Un usuario autenticado ya puede recuperar su última sesión desde el servidor, aunque cambie de navegador/dispositivo o pierda el storage local, siempre que la sesión siga existiendo en el almacén actual de carrera.
+- Se abre el camino a futuras fases de persistencia más profundas sin forzar todavía una reescritura arriesgada del motor.
+
+### Qué NO hace todavía esta fase
+- No migra el almacén principal del modo carrera a Postgres.
+- No persiste todavía cada snapshot o turno dentro de tablas relacionales propias.
+- No añade gestión de múltiples partidas con listado completo por usuario.
+- No toca ranking, reportes ni lógica de cálculo del modo carrera.
+- No cambia el comportamiento de invitados.
+
+### Decisiones tomadas
+- Mantener esta fase deliberadamente pequeña y estable.
+- No tocar la lógica central de `app/career.py` más allá del vínculo usuario-sesión y la recuperación de la última sesión.
+- Reutilizar el `session_id` actual como identidad principal, para no abrir todavía una migración grande del motor de carrera.
+- Mantener fallback a `localStorage` para no romper continuidad a corto plazo.
+
+### Riesgos / problemas detectados
+- La sesión de carrera sigue viviendo en el almacén actual del motor, así que si ese `session_id` deja de existir en el store principal, el vínculo del usuario no bastará por sí solo para reconstruirla.
+- Esta fase mejora mucho la continuidad del usuario autenticado, pero aún no equivale a una persistencia relacional completa del modo carrera.
+- Conviene validar en Render que la última sesión se recupera bien tras cerrar sesión, volver a entrar y usar el botón `Cargar última`.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `app/career.py`, `app/static/app.js`, `app/models.py` y `app/__init__.py` para encontrar el punto mínimo de intervención.
+- Confirmación de que el frontend recordaba `lastSessionId` solo en `localStorage` y que el backend aún no conocía la última sesión por usuario.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+
+### Pendientes
+- Validar en Render el flujo de usuario autenticado:
+  - crear sesión de carrera
+  - cerrar sesión
+  - volver a entrar
+  - pulsar `Cargar última`
+- Si esta fase queda estable, siguiente subfase recomendada:
+  - listado de sesiones de carrera por usuario
+  - elección manual de partida
+  - persistencia más profunda de snapshots/turnos en Postgres
