@@ -500,3 +500,54 @@ Tras introducir autenticación por email e historial por usuario, el usuario pid
   - bloqueo de historial en invitado
 - Decidir si más adelante otras secciones, como historial visual o botones de exportación, deberían adaptar aún mejor su copy al estado invitado.
 - Mantener fuera de alcance por ahora cualquier cambio en persistencia del modo carrera.
+
+## Iteración 12 - Rediseño visual de login y registro
+
+### Objetivo
+Elevar visualmente las pantallas de autenticación para que login y registro se sientan como parte coherente del mismo producto SaaS financiero, sin tocar la lógica de auth ni abrir funcionalidades nuevas.
+
+### Contexto
+La Iteración 11 dejó operativo el flujo de entrada con login como puerta principal y modo invitado, pero la interfaz de autenticación seguía viéndose pobre respecto al resto del producto: composición débil, campos poco integrados, jerarquía visual floja y un botón de invitado demasiado dominante. El usuario pidió dedicar una iteración exclusivamente a UI/UX de `login.html`, `register.html` y el CSS necesario.
+
+### Cambios aplicados
+- Rediseño completo de `app/templates/login.html` con una composición en dos bloques:
+  - panel introductorio con propuesta de valor y beneficios
+  - card de acceso más limpia y centrada con mejor jerarquía
+- Mejora del formulario de login:
+  - inputs a ancho completo
+  - labels más claros
+  - CTA principal más consistente
+  - separador visual para el acceso invitado
+  - acción secundaria de invitado más discreta
+  - enlace claro hacia creación de cuenta
+- Rediseño de `app/templates/register.html` con el mismo lenguaje visual que login para reforzar coherencia de producto.
+- Añadido microcopy mínimo para mejorar orientación sin recargar la pantalla.
+- Ampliación de `app/static/estilos.css` con un bloque específico de auth para:
+  - layout responsive de autenticación
+  - panel lateral introductorio
+  - card principal
+  - inputs y focus states
+  - alertas integradas en auth
+  - CTA principal y CTA secundaria de invitado
+  - enlaces de cambio entre login y registro
+  - comportamiento responsive en tablet y móvil
+
+### Decisiones tomadas
+- Mantener la experiencia en una card principal con un panel lateral editorial en lugar de un formulario desnudo, para acercarla al resto del producto.
+- Hacer que `Continuar como invitado` siga estando accesible, pero con menos peso visual que `Entrar`.
+- No tocar backend ni lógica de autenticación para que esta iteración sea puramente visual.
+- Reforzar continuidad visual entre login y registro para que ambas pantallas parezcan parte del mismo flujo y no dos páginas separadas sin sistema común.
+
+### Riesgos / problemas detectados
+- La validación realizada en esta iteración ha sido sintáctica; conviene revisar en navegador real el equilibrio visual final en móvil y escritorio.
+- El panel introductorio añade más presencia visual, así que podría requerir un ajuste fino posterior si en Render se percibe demasiado ancho en ciertos tamaños intermedios.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `login.html`, `register.html` y del CSS existente antes de aplicar cambios.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+
+### Pendientes
+- Verificar visualmente en Render el comportamiento responsive final de login y registro.
+- Si hace falta, hacer una iteración muy pequeña de pulido fino solo sobre spacing o microcopy de auth.
+- Mantener fuera de alcance cualquier cambio de lógica en autenticación, historial o modo carrera.

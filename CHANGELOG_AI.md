@@ -138,3 +138,14 @@
   - `app/templates/login.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 12, rediseño visual de login y registro
+- Archivos tocados:
+  - `app/templates/login.html`
+  - `app/templates/register.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
