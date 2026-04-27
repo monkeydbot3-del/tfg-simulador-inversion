@@ -204,11 +204,22 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `578c596`
 - Título: Iteración 18, diagnóstico instrumentado de gráfica y corrección real del modal overlay
 - Archivos tocados:
   - `app/templates/analisis.html`
   - `app/templates/historial.html`
+  - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 19, carga global de Chart.js y render robusto de la gráfica
+- Archivos tocados:
+  - `app/templates/base.html`
+  - `app/templates/career.html`
   - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

@@ -871,3 +871,65 @@ La causa estructural del modal descentrado era una colisión entre clases de pro
 - Probar en Render y leer la consola del navegador para confirmar el motivo exacto del fallback en un caso real.
 - Si los logs muestran una respuesta OHLC válida pero sin puntos parseados, ajustar el parser con el formato exacto observado.
 - Una vez confirmado el flujo estable, retirar la instrumentación temporal en una iteración de limpieza pequeña.
+
+## Iteración 19 - Carga global de Chart.js y render robusto de la gráfica
+
+### Objetivo
+Corregir específicamente el `chart-did-not-draw` confirmado por los logs reales, centrándose en la disponibilidad real de Chart.js, el momento de pintado del canvas y las condiciones mínimas de tamaño/visibilidad del contenedor.
+
+### Contexto
+El usuario aportó logs concluyentes: `/market/ohlc` devolvía datos, se recibían miles de puntos, el parser generaba `firstPoint` y `lastPoint`, y aun así el flujo acababa en `chart-did-not-draw`. Eso descartaba ya problemas de datos, endpoint, rango o parseo y apuntaba directamente al render de Chart.js/canvas.
+
+### Causa exacta detectada
+La causa principal era de disponibilidad de librería:
+- Chart.js solo se estaba cargando en `app/templates/career.html`
+- las pantallas de `Nuevo análisis` e `Historial` heredaban de `base.html`, donde Chart.js no se cargaba
+- por tanto, en esos contextos `typeof Chart === "undefined"` y el render devolvía `false`, aunque hubiera miles de puntos válidos listos para dibujar
+
+Además, se reforzó el flujo para evitar falsos negativos por timing o tamaño del canvas:
+- espera de un `requestAnimationFrame` antes de pintar
+- comprobación explícita de que el contenedor del canvas tiene tamaño real
+- captura explícita de errores al crear `new Chart(...)`
+
+### Cambios aplicados
+- Movida la carga de Chart.js a `app/templates/base.html` para que esté disponible globalmente en las pantallas que necesitan gráficas.
+- Eliminada la carga duplicada de Chart.js en `app/templates/career.html`.
+- Endurecido `renderAnalysisDetailChart(...)` en `app/static/app.js` para:
+  - registrar error claro si el canvas no existe
+  - registrar error claro si Chart.js no está cargado
+  - abortar si el contenedor del canvas no tiene tamaño real
+  - envolver `new Chart(...)` en `try/catch`
+  - hacer `resize()` tras crear la instancia
+- Añadida una espera con `requestAnimationFrame` antes de pintar para asegurar que el modal ya está visible y medible.
+- Reducidos los logs temporales más ruidosos y mantenidos los útiles para diagnóstico de fallo real.
+- Mejorado el fallback para diferenciar entre:
+  - Chart.js no disponible
+  - imposibilidad real de dibujar la gráfica
+
+### Qué datos usa ahora la gráfica
+La gráfica sigue usando exactamente los datos ya confirmados como válidos:
+- `ticker`
+- rango normalizado `start/end`
+- serie histórica OHLC desde `/market/ohlc/<ticker>`
+- `adj_close` como base
+- `importe_inicial` solo en `SIN_DCA` para reconstrucción de valor estimado
+
+### Decisiones tomadas
+- No tocar backend, endpoint, auth ni modo carrera.
+- Resolver el fallo donde realmente estaba, es decir, en la carga de la librería y en las condiciones de render del canvas.
+- Mantener solo los logs que siguen aportando valor si algo vuelve a fallar, reduciendo ruido innecesario.
+
+### Riesgos / problemas detectados
+- Cargar Chart.js globalmente añade ese recurso a más páginas, aunque es un coste razonable para simplificar coherencia y evitar errores de disponibilidad parcial.
+- Si apareciera un caso residual tras esto, lo más probable sería ya un problema de CSS/tamaño puntual del contenedor y no de datos ni parser.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de dónde se cargaba realmente Chart.js en los templates.
+- Revisión del render de la gráfica en `app/static/app.js` a la luz del log final `chart-did-not-draw`.
+- Confirmación de que la librería estaba cargada solo en `career.html` y no en el flujo de análisis/historial.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+
+### Pendientes
+- Verificar en Render que con `AAPL`, `MSFT` o `UBI.PA` y rangos amplios la gráfica ya se dibuja realmente.
+- Si todo funciona, hacer una iteración final pequeña para retirar cualquier log temporal restante que ya no aporte valor.

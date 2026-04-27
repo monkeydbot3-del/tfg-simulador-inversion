@@ -186,53 +186,77 @@ function destroyAnalysisDetailChart() {
 function renderAnalysisDetailChart(canvasOrId, rows, options = {}) {
   const canvas =
     typeof canvasOrId === "string" ? document.getElementById(canvasOrId) : canvasOrId;
-  if (!canvas || typeof Chart === "undefined") return false;
+  if (!canvas) {
+    console.error("[analysis-chart] canvas-not-found");
+    return false;
+  }
+  if (typeof Chart === "undefined") {
+    console.error("[analysis-chart] chartjs-unavailable");
+    return false;
+  }
   const validRows = Array.isArray(rows)
     ? rows.filter((row) => row?.date && Number.isFinite(Number(row?.value)))
     : [];
   if (!validRows.length) return false;
 
+  const parent = canvas.parentElement;
+  const rect = parent?.getBoundingClientRect?.();
+  if (parent && (!rect?.width || !rect?.height)) {
+    console.error("[analysis-chart] canvas-parent-has-no-size", {
+      width: rect?.width || 0,
+      height: rect?.height || 0,
+    });
+    return false;
+  }
+
   destroyAnalysisDetailChart();
 
-  analysisDetailChart = new Chart(canvas.getContext("2d"), {
-    type: "line",
-    data: {
-      labels: validRows.map((row) => row.date),
-      datasets: [
-        {
-          label: options.label || "Evolución",
-          data: validRows.map((row) => Number(row.value)),
-          borderColor: "#668A4C",
-          backgroundColor: "rgba(102, 138, 76, 0.16)",
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 3,
-          fill: true,
-          tension: 0.28,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { intersect: false, mode: "index" },
-      plugins: { legend: { display: false } },
-      scales: {
-        x: {
-          ticks: { maxTicksLimit: 6, color: "#6c7c63" },
-          grid: { display: false },
-        },
-        y: {
-          ticks: {
-            color: "#6c7c63",
-            callback: (value) => (options.currency ? fmtEur(value) : value),
+  try {
+    analysisDetailChart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: {
+        labels: validRows.map((row) => row.date),
+        datasets: [
+          {
+            label: options.label || "Evolución",
+            data: validRows.map((row) => Number(row.value)),
+            borderColor: "#668A4C",
+            backgroundColor: "rgba(102, 138, 76, 0.16)",
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            fill: true,
+            tension: 0.28,
           },
-          grid: { color: "rgba(148, 163, 184, 0.18)" },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: "index" },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 6, color: "#6c7c63" },
+            grid: { display: false },
+          },
+          y: {
+            ticks: {
+              color: "#6c7c63",
+              callback: (value) => (options.currency ? fmtEur(value) : value),
+            },
+            grid: { color: "rgba(148, 163, 184, 0.18)" },
+          },
         },
       },
-    },
-  });
-  return true;
+    });
+    analysisDetailChart.resize();
+    return true;
+  } catch (err) {
+    console.error("[analysis-chart] chart-create-failed", err);
+    analysisDetailChart = null;
+    return false;
+  }
 }
 
 function normalizeChartRange(start, end) {
@@ -254,12 +278,8 @@ async function fetchAnalysisChartSeries(ticker, start, end, mode, investedInitia
 
   console.debug("[analysis-chart] request", {
     ticker,
-    start,
-    end,
     normalizedStart: range.start,
     normalizedEnd: range.end,
-    mode,
-    investedInitial,
     url,
   });
 
@@ -269,7 +289,6 @@ async function fetchAnalysisChartSeries(ticker, start, end, mode, investedInitia
   }
 
   const rows = await jsonGet(url);
-  console.debug("[analysis-chart] response", rows);
 
   const rawRows = Array.isArray(rows)
     ? rows
@@ -398,6 +417,7 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     );
     const chartRows = Array.isArray(chartResult) ? chartResult : chartResult?.rows || [];
     const fallbackReason = Array.isArray(chartResult) ? null : chartResult?.reason || null;
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
     const drawn = renderAnalysisDetailChart(canvasEl, chartRows, {
       label:
         String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA"
@@ -407,7 +427,7 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     });
     if (!drawn) {
       console.debug("[analysis-chart] fallback-final", {
-        reason: fallbackReason || "chart-did-not-draw",
+        reason: fallbackReason || (typeof Chart === "undefined" ? "chartjs-unavailable" : "chart-did-not-draw"),
         ticker: ticker || data.ticker,
         start: safeStart,
         end: safeEnd,
@@ -415,7 +435,13 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
         firstPoint: chartRows[0] || null,
         lastPoint: chartRows[chartRows.length - 1] || null,
       });
-      if (fallbackEl) fallbackEl.classList.remove("hidden");
+      if (fallbackEl) {
+        fallbackEl.textContent =
+          typeof Chart === "undefined"
+            ? "No se ha podido cargar la librería de gráficas en esta página."
+            : "No se pudo dibujar la gráfica de este análisis.";
+        fallbackEl.classList.remove("hidden");
+      }
     }
   } catch (err) {
     console.debug("[analysis-chart] fallback-final", {
