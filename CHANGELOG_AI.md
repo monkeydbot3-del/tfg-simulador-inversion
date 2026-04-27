@@ -152,7 +152,7 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `c97ef48`
 - Título: Iteración 13, corrección del flujo sin DCA en nuevo análisis
 - Archivos tocados:
   - `app/templates/analisis.html`
