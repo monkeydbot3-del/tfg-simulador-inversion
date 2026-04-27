@@ -741,3 +741,61 @@ Tras corregir el render real de las gráficas y estabilizar el comportamiento de
 ### Pendientes
 - Verificar en Render el equilibrio visual final del modal en escritorio y móvil.
 - Si hiciera falta, dejar una última microiteración solo de spacing responsive, sin tocar lógica ni estructura.
+
+## Iteración 17 - Corrección de rango de gráfica y centrado del modal
+
+### Objetivo
+Corregir el bug funcional que seguía impidiendo ver la gráfica en análisis con datos válidos y rematar el comportamiento real del modal para que aparezca centrado y con un cierre visual más limpio.
+
+### Contexto
+Después de las iteraciones 14, 15 y 16, el usuario confirmó que el bloque de gráfica seguía mostrando el fallback de “No hay datos suficientes” incluso en casos donde sí debería existir serie histórica. Además, el modal seguía percibiéndose desplazado hacia un lateral y el botón X mantenía una presencia visual demasiado pesada. Se pidió un diagnóstico real de la causa, no solo un retoque estético.
+
+### Causa exacta detectada
+La causa real del mensaje falso de “No hay datos suficientes” estaba en el rango temporal que el frontend enviaba al endpoint histórico:
+- el detalle intentaba reconstruir la gráfica usando `start/end` procedentes del análisis o del backtest guardado
+- en varios casos, especialmente en historiales guardados, `end` podía quedar en una fecha futura o en un rango poco robusto para reconstrucción
+- al pedir `/market/ohlc/<ticker>` con ese rango, la serie devuelta podía quedar vacía o incompleta, aunque el ticker sí tuviera histórico suficiente en términos reales
+- como el frontend trataba ese resultado vacío como falta de datos del análisis, se activaba el fallback aunque el problema no era Chart.js ni la ausencia total de histórico, sino un rango mal normalizado antes del fetch
+
+### Cambios aplicados
+- Añadida en `app/static/app.js` una normalización explícita del rango para la gráfica:
+  - recorte de `end` a la fecha actual si viene en futuro
+  - saneado de formato a `YYYY-MM-DD`
+  - uso consistente del rango normalizado antes de pedir OHLC
+- Ajustado el flujo de `showBacktestSummary(...)` para usar ese rango normalizado también en el resumen visual y en la reconstrucción de la gráfica.
+- Mantenida la lógica de reconstrucción existente, pero evitando llamadas con fechas imposibles o poco fiables.
+- Reforzado el comportamiento del modal de resultados para que, al abrirse, fuerce `display: flex` y se comporte como overlay centrado real.
+- Ajustado el cierre del modal para limpiar también el `display` inline al cerrar.
+- Ajustado `app/static/estilos.css` para:
+  - asegurar overlay centrado con mejor comportamiento de overflow
+  - quitar el círculo/borde visual del botón X
+  - dejar una X simple, limpia y visible
+  - mantener el body del modal contenido sin empujes laterales extraños
+
+### Datos que usa ahora la gráfica
+- `ticker`
+- `start` normalizado
+- `end` normalizado y limitado a hoy si venía en futuro
+- OHLC histórico obtenido desde `/market/ohlc/<ticker>`
+- `adj_close` como base principal de la serie
+- en modo `SIN_DCA`, `importe_inicial` para reconstruir la evolución estimada del valor invertido
+
+### Decisiones tomadas
+- No tocar auth ni modo carrera.
+- No cambiar el motor de cálculo del análisis salvo el mínimo necesario para sanear el rango que se usa al reconstruir la gráfica.
+- Resolver el problema en el punto donde realmente se producía, que era el frontend al pedir la serie histórica, en vez de abrir una refactorización mayor del historial o de persistencia.
+
+### Riesgos / problemas detectados
+- Algunos registros antiguos sin `start` utilizable o con datos muy incompletos seguirán necesitando fallback, pero ahora el fallback debería reflejar casos reales y no falsos negativos por rango defectuoso.
+- Conviene validar en Render varios tickers y periodos para confirmar que el saneado del rango cubre bien los casos más frecuentes.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `app/routes.py`, `app/services/history_service.py` y `app/static/app.js` para localizar si el fallo estaba en persistencia, respuesta OHLC o parseo frontend.
+- Confirmación de que `/market/ohlc/<ticker>` devuelve lista plana de filas OHLC y que el problema principal no estaba en Chart.js sino en los rangos usados para pedir la serie.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+
+### Pendientes
+- Validar en Render la gráfica en análisis recientes y en detalle de historial.
+- Confirmar visualmente el centrado del modal en escritorio y móvil.
+- Si aparece algún caso residual concreto de ticker sin datos, revisar ese caso puntual antes de tocar más lógica.

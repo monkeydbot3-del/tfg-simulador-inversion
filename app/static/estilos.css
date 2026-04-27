@@ -1133,6 +1133,7 @@ mark.hl {
   background: rgba(15, 23, 42, 0.35);
   z-index: 60;
   padding: 16px;
+  overflow: auto;
 }
 
 #modalBacktest.hidden {
@@ -1157,19 +1158,16 @@ mark.hl {
   position: sticky;
   top: 0;
   margin-left: auto;
-  margin-right: 14px;
-  margin-top: 14px;
+  margin-right: 18px;
+  margin-top: 16px;
   z-index: 2;
-  width: 40px;
-  height: 40px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  font-size: 1.5rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 1.75rem;
   line-height: 1;
   cursor: pointer;
   color: var(--color-dark);
-  backdrop-filter: blur(10px);
 }
 
 #modalBacktest .modal__body {
@@ -1182,6 +1180,8 @@ mark.hl {
 
 #modalBacktest .modal__body--backtest {
   padding-top: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .backtest-summary-hero {

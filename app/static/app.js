@@ -235,10 +235,24 @@ function renderAnalysisDetailChart(canvasOrId, rows, options = {}) {
   return true;
 }
 
+function normalizeChartRange(start, end) {
+  const today = new Date().toISOString().slice(0, 10);
+  const safeStart = (start || "").slice(0, 10);
+  let safeEnd = (end || "").slice(0, 10) || today;
+
+  if (safeEnd > today) safeEnd = today;
+  if (!safeStart) return { start: "", end: safeEnd };
+  if (safeStart > safeEnd) {
+    return { start: safeStart, end: safeStart };
+  }
+  return { start: safeStart, end: safeEnd };
+}
+
 async function fetchAnalysisChartSeries(ticker, start, end, mode, investedInitial) {
-  if (!ticker || !start || !end) return [];
+  const range = normalizeChartRange(start, end);
+  if (!ticker || !range.start || !range.end) return [];
   const rows = await jsonGet(
-    `/market/ohlc/${encodeURIComponent(ticker)}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=1d`
+    `/market/ohlc/${encodeURIComponent(ticker)}?start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}&interval=1d`
   );
   const priceRows = Array.isArray(rows)
     ? rows
@@ -269,8 +283,9 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
   if (!modal) return;
 
   const data = summary || {};
-  const safeStart = start || data.start || "";
-  const safeEnd = end || data.end || safeStart;
+  const normalizedRange = normalizeChartRange(start || data.start || "", end || data.end || "");
+  const safeStart = normalizedRange.start;
+  const safeEnd = normalizedRange.end || safeStart;
   const notes = Array.isArray(data.notes) ? data.notes : [];
 
   const setText = (selector, text) => {
@@ -367,6 +382,7 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     if (rawLink) rawLink.href = `${base}&adjusted=false`;
 
     modal.classList.remove("hidden");
+    modal.style.display = "flex";
   }
 }
 
@@ -388,11 +404,13 @@ function setupBacktestModal() {
   const closeBtn = document.getElementById("modalBacktestClose");
   closeBtn?.addEventListener("click", () => {
     modal.classList.add("hidden");
+    modal.style.display = "none";
   });
 
   modal.addEventListener("click", (evt) => {
     if (evt.target === modal) {
       modal.classList.add("hidden");
+      modal.style.display = "none";
     }
   });
 

@@ -183,11 +183,21 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `10173d4`
 - Título: Iteración 16, pulido visual del modal de resultados
 - Archivos tocados:
   - `app/templates/analisis.html`
   - `app/templates/historial.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 17, corrección de rango de gráfica y centrado del modal
+- Archivos tocados:
+  - `app/static/app.js`
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
