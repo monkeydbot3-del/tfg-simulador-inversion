@@ -551,3 +551,47 @@ La Iteración 11 dejó operativo el flujo de entrada con login como puerta princ
 - Verificar visualmente en Render el comportamiento responsive final de login y registro.
 - Si hace falta, hacer una iteración muy pequeña de pulido fino solo sobre spacing o microcopy de auth.
 - Mantener fuera de alcance cualquier cambio de lógica en autenticación, historial o modo carrera.
+
+## Iteración 13 - Corrección del flujo sin DCA en nuevo análisis
+
+### Objetivo
+Arreglar el bug que impedía enviar correctamente un análisis sin DCA cuando el usuario seleccionaba una compra única y debía indicar la fecha de compra.
+
+### Contexto
+El usuario detectó que el flujo de `Nuevo análisis` fallaba al seleccionar `Sin DCA`: la app exigía `Fecha de compra`, pero el formulario no dejaba completar correctamente el envío o no estaba activando bien ese campo. Se pidió corregirlo con el mínimo cambio necesario, sin tocar la lógica de cálculo ni abrir cambios en auth, base de datos o modo carrera.
+
+### Cambios aplicados
+- Revisión del bloque `Sin DCA` en `app/templates/analisis.html`.
+- Mejora del bloque visual de compra única para dejar más claro el propósito del campo.
+- Añadido `name="inicio"` al input `#fechaCompra` para alinear mejor el formulario con el dato que espera el flujo.
+- Añadido helper text explicando que esa fecha se envía como inicio de la inversión en el modo sin DCA.
+- Corregido `app/static/app.js` en `bindAnalisisForm()` para que el cambio de modo entre DCA y Sin DCA actualice correctamente:
+  - `hidden`
+  - clase `hidden`
+  - `style.display`
+- Con ello, el bloque de compra única deja de quedarse oculto de forma inconsistente y el valor de `fechaCompra` puede introducirse y enviarse correctamente en el payload cuando `modo === "SIN_DCA"`.
+
+### Decisiones tomadas
+- Mantener intacta la lógica de cálculo y de validación salvo el mínimo ajuste de wiring frontend necesario.
+- No tocar backend porque el payload ya contemplaba `inicio` en modo sin DCA; el problema estaba en la activación/visibilidad real del campo en frontend.
+- Aprovechar el arreglo para dejar el bloque de compra única más coherente visualmente con la UI actual.
+
+### Riesgos / problemas detectados
+- El bug estaba en una combinación sutil entre estado visual y atributo `hidden`, así que conviene validar manualmente en navegador que los cambios de modo no dejan residuos visuales en otros navegadores.
+- Aunque el arreglo es mínimo, sigue dependiendo de la lógica JS de alternancia del formulario, por lo que merece una prueba real en Render tras desplegar.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `app/templates/analisis.html` y `app/static/app.js` para localizar el origen real del bug.
+- Búsqueda de referencias a `fechaCompra`, `inicio`, `Sin DCA` y al mensaje `Selecciona la fecha de compra`.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+- Revisión del diff final para confirmar que el alcance queda reducido a frontend/documentación.
+
+### Pendientes
+- Validar en Render el flujo real de `Nuevo análisis` en ambos modos:
+  - usuario autenticado
+  - invitado
+  - DCA
+  - sin DCA
+- Confirmar visualmente que el bloque de compra única aparece y desaparece correctamente al cambiar de modo.
+- Mantener fuera de alcance por ahora cualquier mejora gráfica adicional del análisis.

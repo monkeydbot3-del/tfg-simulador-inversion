@@ -800,8 +800,16 @@ function bindAnalisisForm() {
 
   const actualizarModo = () => {
     const isDca = modoDca?.checked ?? true;
-    if (formDca) formDca.style.display = isDca ? "" : "none";
-    if (formSinDca) formSinDca.style.display = isDca ? "none" : "";
+    if (formDca) {
+      formDca.hidden = !isDca;
+      formDca.classList.toggle("hidden", !isDca);
+      formDca.style.display = isDca ? "" : "none";
+    }
+    if (formSinDca) {
+      formSinDca.hidden = isDca;
+      formSinDca.classList.toggle("hidden", isDca);
+      formSinDca.style.display = isDca ? "none" : "";
+    }
   };
 
   modoDca?.addEventListener("change", actualizarModo);

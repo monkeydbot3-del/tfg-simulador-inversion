@@ -149,3 +149,13 @@
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 13, corrección del flujo sin DCA en nuevo análisis
+- Archivos tocados:
+  - `app/templates/analisis.html`
+  - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

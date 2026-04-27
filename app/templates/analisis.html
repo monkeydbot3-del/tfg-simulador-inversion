@@ -155,12 +155,16 @@
 
 <section id="form-sin-dca" class="card card--elevated hidden" hidden>
   <div class="card-section">
-    <p class="muted">
-      Sin aportaciones peri&oacute;dicas. Solo se considera el importe inicial.
-    </p>
-    <div class="field">
+    <div class="section-heading">
+      <div>
+        <h4>Compra única</h4>
+        <p class="muted">Indica la fecha de compra para calcular correctamente la inversión inicial sin aportaciones periódicas.</p>
+      </div>
+    </div>
+    <div class="field field--grow">
       <label for="fechaCompra" class="muted">Fecha de compra</label>
-      <input type="date" id="fechaCompra" />
+      <input type="date" id="fechaCompra" name="inicio" />
+      <p class="muted helper-text">Esta fecha se enviará como inicio de la inversión cuando selecciones el modo sin DCA.</p>
     </div>
   </div>
 </section>
