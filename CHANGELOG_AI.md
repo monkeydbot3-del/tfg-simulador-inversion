@@ -141,7 +141,7 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `2ac2daf`
 - Título: Iteración 12, rediseño visual de login y registro
 - Archivos tocados:
   - `app/templates/login.html`
