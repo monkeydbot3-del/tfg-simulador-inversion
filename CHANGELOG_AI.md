@@ -129,7 +129,7 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `9022cc2`
 - Título: Iteración 11, login como entrada principal y modo invitado
 - Archivos tocados:
   - `app/auth.py`
