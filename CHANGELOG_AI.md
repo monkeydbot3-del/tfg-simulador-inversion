@@ -173,10 +173,21 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `dfb74b5`
 - Título: Iteración 15, corrección de render de gráficas y modal de resultados
 - Archivos tocados:
   - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 16, pulido visual del modal de resultados
+- Archivos tocados:
+  - `app/templates/analisis.html`
+  - `app/templates/historial.html`
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

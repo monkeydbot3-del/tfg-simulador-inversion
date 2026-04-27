@@ -701,3 +701,43 @@ La gráfica no se veía por una combinación de dos problemas de implementación
   - historial > ver detalle
 - Confirmar que el cierre del modal se siente cómodo en móvil y escritorio.
 - Si aparece algún caso residual con ticker sin serie válida, mantener el fallback actual sin ampliar alcance funcional.
+
+## Iteración 16 - Pulido visual del modal de resultados
+
+### Objetivo
+Hacer un ajuste pequeño pero de impacto real sobre la presentación del resultado de análisis para que la lectura del resumen, las acciones y la gráfica se sientan más consistentes con el lenguaje visual general del producto.
+
+### Contexto
+Tras corregir el render real de las gráficas y estabilizar el comportamiento del modal, quedaba margen para un pulido final de la ficha de resultados. El usuario pidió hacerlo inmediatamente, manteniendo el alcance contenido y centrado solo en la experiencia visual del resultado y su equivalente en historial.
+
+### Cambios aplicados
+- Mejora de `app/templates/analisis.html` para introducir una cabecera editorial ligera dentro del modal de resultados.
+- Aplicación del mismo bloque de cabecera en `app/templates/historial.html` para mantener consistencia entre análisis nuevo e historial.
+- Añadido badge contextual `Resultado del análisis` para reforzar jerarquía visual.
+- Añadido microcopy breve bajo el título para orientar mejor al usuario sobre qué puede hacer en esa ficha.
+- Ajustado `app/static/estilos.css` para:
+  - dar mejor ritmo vertical al body del modal
+  - estilizar la nueva cabecera interna del resumen
+  - convertir la lista de métricas en tarjetas más limpias y legibles
+  - mejorar el espaciado entre resumen, acciones, observaciones y gráfica
+  - reforzar visualmente el encabezado del bloque de gráfica
+- Unificación del estilo efectivo de `.kv` en `#modalBacktest`, corrigiendo una definición tardía que estaba degradando parte del acabado visual del resumen.
+
+### Decisiones tomadas
+- Mantener la estructura funcional existente del modal para no reabrir riesgos de comportamiento.
+- Apostar por una mejora de jerarquía, espaciado y legibilidad en lugar de añadir elementos decorativos innecesarios.
+- Reutilizar el mismo lenguaje de badges, superficies suaves y copy breve que ya se viene consolidando en el resto del producto.
+
+### Riesgos / problemas detectados
+- Es un cambio puramente visual, así que el riesgo funcional es bajo.
+- Aun así, conviene revisar en Render cómo se percibe la densidad de las tarjetas del resumen en pantallas estrechas.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `analisis.html`, `historial.html` y `estilos.css` para localizar el punto mínimo de intervención.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+- Revisión del diff final para asegurar que el alcance queda limitado a templates, CSS y documentación.
+
+### Pendientes
+- Verificar en Render el equilibrio visual final del modal en escritorio y móvil.
+- Si hiciera falta, dejar una última microiteración solo de spacing responsive, sin tocar lógica ni estructura.

@@ -203,9 +203,13 @@
 
 <div id="modalBacktest" class="modal hidden">
   <div class="modal__content">
-    <button class="modal__close" id="modalBacktestClose">&times;</button>
-    <h3 id="mb_titulo">Resumen de la inversi&oacute;n</h3>
-    <div class="modal__body">
+    <button class="modal__close" id="modalBacktestClose" aria-label="Cerrar">&times;</button>
+    <div class="modal__body modal__body--backtest">
+      <div class="backtest-summary-hero">
+        <span class="badge badge-soft">Resultado del análisis</span>
+        <h3 id="mb_titulo">Resumen de la inversi&oacute;n</h3>
+        <p class="muted">Consulta el rendimiento del periodo, descarga los datos y revisa la evolución histórica asociada.</p>
+      </div>
       <ul class="kv">
         <li><strong>Ticker:</strong> <span id="mb_ticker"></span></li>
         <li><strong>Periodo:</strong> <span id="mb_periodo"></span></li>
