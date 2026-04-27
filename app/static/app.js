@@ -183,8 +183,9 @@ function destroyAnalysisDetailChart() {
   }
 }
 
-function renderAnalysisDetailChart(canvasId, rows, options = {}) {
-  const canvas = document.getElementById(canvasId);
+function renderAnalysisDetailChart(canvasOrId, rows, options = {}) {
+  const canvas =
+    typeof canvasOrId === "string" ? document.getElementById(canvasOrId) : canvasOrId;
   if (!canvas || typeof Chart === "undefined") return false;
   const validRows = Array.isArray(rows)
     ? rows.filter((row) => row?.date && Number.isFinite(Number(row?.value)))
@@ -319,9 +320,9 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
         <span class="muted">Visualización histórica asociada al análisis</span>
       </div>
       <div class="analysis-detail-chart__canvas-wrap">
-        <canvas id="analysis-detail-chart-canvas"></canvas>
+        <canvas></canvas>
       </div>
-      <div class="analysis-detail-chart__fallback hidden" id="analysis-detail-chart-fallback">
+      <div class="analysis-detail-chart__fallback hidden">
         No hay datos suficientes para mostrar la gráfica de este análisis.
       </div>`;
     const bodyTarget = options.inlineTarget
@@ -330,7 +331,8 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     bodyTarget?.appendChild(chartWrap);
   }
 
-  const fallbackEl = document.getElementById("analysis-detail-chart-fallback");
+  const canvasEl = chartWrap.querySelector("canvas");
+  const fallbackEl = chartWrap.querySelector(".analysis-detail-chart__fallback");
   if (fallbackEl) fallbackEl.classList.add("hidden");
 
   try {
@@ -341,7 +343,7 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
       options.mode || data.modo,
       Number(options.investedInitial ?? data.invested ?? 0)
     );
-    const drawn = renderAnalysisDetailChart("analysis-detail-chart-canvas", chartRows, {
+    const drawn = renderAnalysisDetailChart(canvasEl, chartRows, {
       label:
         String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA"
           ? "Valor estimado de la inversión"

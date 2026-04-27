@@ -719,10 +719,17 @@ textarea {
 .analysis-detail-chart__canvas-wrap {
   position: relative;
   min-height: 260px;
+  height: 260px;
   border-radius: 18px;
   background: #f8faf6;
   border: 1px solid rgba(148, 163, 184, 0.16);
   padding: 12px;
+}
+
+.analysis-detail-chart__canvas-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 
 .analysis-detail-chart__fallback {
@@ -730,6 +737,29 @@ textarea {
   border-radius: 14px;
   background: rgba(148, 163, 184, 0.12);
   color: var(--muted);
+}
+
+#modal .modal {
+  width: min(920px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+}
+
+#modal .modal__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+#modal .modal__body {
+  overflow-y: auto;
+  padding: 20px 24px 24px;
 }
 
 .table-wrapper {
@@ -1107,32 +1137,43 @@ mark.hl {
 
 #modalBacktest .modal__content {
   background: #fff;
-  border-radius: 18px;
-  width: min(720px, 100%);
-  padding: 24px;
+  border-radius: 22px;
+  width: min(860px, 100%);
+  max-height: 90vh;
+  padding: 0;
   position: relative;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 0;
+  overflow: hidden;
 }
 
 #modalBacktest .modal__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  border: none;
-  background: transparent;
-  font-size: 1.6rem;
+  position: sticky;
+  top: 0;
+  margin-left: auto;
+  margin-right: 14px;
+  margin-top: 14px;
+  z-index: 2;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
   color: var(--color-dark);
+  backdrop-filter: blur(10px);
 }
 
 #modalBacktest .modal__body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  padding: 0 24px 24px;
 }
 
 #career-events-modal {

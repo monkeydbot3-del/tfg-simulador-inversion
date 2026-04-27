@@ -649,3 +649,55 @@ Tras corregir el flujo de compra única sin DCA, el siguiente paso pedido por el
   - análisis recientes con backtest
   - análisis antiguos con datos parciales
 - Si hace falta, hacer un pequeño pulido posterior del modal de detalle para compactar mejor la densidad visual en móvil.
+
+## Iteración 15 - Corrección de render de gráficas y modal de resultados
+
+### Objetivo
+Corregir la iteración anterior para que la gráfica se renderice realmente tanto en nuevo análisis como en historial, y para que el modal de resultados tenga un comportamiento visual estable, centrado y usable en escritorio y responsive.
+
+### Contexto
+Tras publicar la Iteración 14, el usuario detectó dos fallos claros: la gráfica no llegaba a dibujarse aunque el bloque visual sí aparecía, y el modal de resultados quedaba mal resuelto a nivel de tamaño, posición, cierre y scroll. Se pidió una corrección contenida, sin tocar autenticación ni modo carrera, centrada únicamente en gráficas y modal.
+
+### Causa exacta detectada
+La gráfica no se veía por una combinación de dos problemas de implementación en frontend:
+- el render reutilizaba un `canvas` localizado por `id` global (`analysis-detail-chart-canvas`) y un fallback también localizado por `id` global, pero ahora el flujo tenía más de un posible host o modal para detalle, lo que hacía frágil la selección del nodo real donde dibujar
+- el contenedor visual de la gráfica tenía `min-height`, pero no una altura efectiva garantizada del `canvas`, así que Chart.js podía inicializarse sobre un lienzo sin tamaño renderizable suficiente y dejar un hueco vacío
+
+### Cambios aplicados
+- Ajustado `app/static/app.js` para que el render de la gráfica ya no dependa de un `id` global fijo de canvas.
+- El chart ahora se dibuja contra el `canvas` real encontrado dentro del bloque visual concreto que se acaba de crear en cada modal o detalle.
+- El fallback de ausencia de datos también deja de depender de un `id` global y pasa a resolverse de forma local dentro del mismo bloque de gráfica.
+- Se mantiene el flujo de reconstrucción de datos históricos ya implementado en la iteración previa, pero con un render más robusto y menos acoplado al DOM global.
+- Ajustado `app/static/estilos.css` para dar una altura real al contenedor de gráfica y forzar que el `canvas` ocupe correctamente todo el espacio disponible.
+- Corregido el modal de resultados (`#modalBacktest`) para que:
+  - aparezca centrado
+  - use un ancho máximo más razonable
+  - tenga `max-height: 90vh`
+  - tenga scroll interno en el body
+  - mantenga visible y accesible el botón de cierre
+  - no desborde visualmente el viewport en contenido largo
+- Ajustado también el modal de detalle reutilizado en historial para que el contenido largo tenga scroll interno y una estructura más estable.
+
+### Decisiones tomadas
+- No tocar backend ni endpoints porque los datos ya llegaban de forma suficiente para la reconstrucción en la mayoría de casos; el fallo principal estaba en el render del DOM y en el sizing del canvas/modal.
+- Mantener la solución simple y contenida, reforzando selección por nodo real en lugar de abrir un refactor de componentes o estado global.
+- Homogeneizar el comportamiento de los modales de resultado y detalle para evitar una UX inconsistente entre análisis nuevo e historial.
+
+### Riesgos / problemas detectados
+- Aunque el render ahora es bastante más robusto, sigue dependiendo de que el endpoint histórico devuelva filas válidas para el ticker y rango elegidos.
+- Los análisis antiguos con datos incompletos seguirán mostrando fallback, pero ya no deberían dejar un hueco vacío ambiguo.
+- Conviene validar en Render tamaños intermedios de pantalla por si hace falta un último ajuste fino de spacing en móvil pequeño.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión del wiring de render de Chart.js en `app/static/app.js`.
+- Revisión del CSS de modal y del host visual de gráfica en `app/static/estilos.css`.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+- Revisión del diff final para confirmar que el alcance queda limitado a gráficas, modal y documentación.
+
+### Pendientes
+- Verificar en Render el render real de la gráfica en:
+  - nuevo análisis
+  - historial > ver detalle
+- Confirmar que el cierre del modal se siente cómodo en móvil y escritorio.
+- Si aparece algún caso residual con ticker sin serie válida, mantener el fallback actual sin ampliar alcance funcional.

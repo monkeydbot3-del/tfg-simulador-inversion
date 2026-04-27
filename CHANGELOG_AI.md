@@ -162,10 +162,20 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `4716e48`
 - Título: Iteración 14, gráficas en análisis y detalle de historial
 - Archivos tocados:
   - `app/templates/historial.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 15, corrección de render de gráficas y modal de resultados
+- Archivos tocados:
   - `app/static/app.js`
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
