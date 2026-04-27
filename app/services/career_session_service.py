@@ -39,3 +39,14 @@ def get_latest_career_session_for_user(user_id):
         .order_by(CareerSessionLink.updated_at.desc(), CareerSessionLink.created_at.desc())
         .first()
     )
+
+
+def list_career_sessions_for_user(user_id, limit=12):
+    query = (
+        CareerSessionLink.select()
+        .where(CareerSessionLink.user == user_id)
+        .order_by(CareerSessionLink.updated_at.desc(), CareerSessionLink.created_at.desc())
+    )
+    if limit:
+        query = query.limit(limit)
+    return list(query)

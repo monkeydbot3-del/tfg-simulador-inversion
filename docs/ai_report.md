@@ -999,3 +999,67 @@ Tras consolidar autenticación, Postgres e historial por usuario, la siguiente m
   - listado de sesiones de carrera por usuario
   - elección manual de partida
   - persistencia más profunda de snapshots/turnos en Postgres
+
+## Iteración 21 - Listado de sesiones de carrera por usuario
+
+### Objetivo
+Dar el siguiente paso natural tras la fase 1 de persistencia: permitir que el usuario autenticado vea varias sesiones recientes de modo carrera y pueda reabrir una concreta desde la propia interfaz, en lugar de depender solo del concepto de “última sesión”.
+
+### Contexto
+La Iteración 20 ya permitía guardar y recuperar la última sesión de carrera por usuario autenticado. El siguiente avance lógico y de mayor valor UX era exponer un listado mínimo de sesiones recientes para que el usuario pudiera reabrir una partida concreta, manteniendo todavía un alcance contenido y sin reescribir el motor ni migrar snapshots a Postgres.
+
+### Cambios aplicados
+- Ampliado `app/services/career_session_service.py` con una utilidad para listar sesiones de carrera de un usuario autenticado, ordenadas por actualización reciente.
+- Añadido en `app/career.py` el endpoint:
+  - `GET /api/career/sessions`
+- Este endpoint devuelve hasta 12 sesiones recientes del usuario con metadatos ligeros:
+  - `session_id`
+  - `player`
+  - `difficulty`
+  - `period.start`
+  - `period.end`
+  - timestamps
+- Ampliado `app/templates/career.html` con un bloque visual de “Tus sesiones” dentro del panel inicial del modo carrera.
+- Ampliado `app/static/app.js` para:
+  - cargar automáticamente las sesiones guardadas del usuario autenticado
+  - renderizar tarjetas simples de sesión guardada
+  - permitir reabrir una sesión concreta al pulsarla
+  - refrescar el listado al crear una nueva sesión
+- Ampliado `app/static/estilos.css` para integrar visualmente este listado con el dashboard actual del modo carrera.
+
+### Qué resuelve esta fase
+- El usuario autenticado ya no depende solo de “la última sesión”.
+- Ahora puede ver varias sesiones recientes y abrir una concreta desde la UI.
+- Mejora mucho la sensación de continuidad del modo carrera sin exigir todavía una persistencia relacional completa del motor.
+
+### Qué NO hace todavía esta fase
+- No añade eliminación/renombrado de sesiones.
+- No ofrece filtros avanzados ni paginación real.
+- No migra snapshots o turnos a tablas relacionales.
+- No toca el ranking ni el informe del modo carrera.
+- No cambia el comportamiento de invitados.
+
+### Decisiones tomadas
+- Mantener el listado pequeño y reciente, limitado a 12 sesiones, para no sobrecargar la UI ni abrir paginación aún.
+- Reutilizar la estructura actual del dashboard de modo carrera en lugar de crear una pantalla nueva separada.
+- Mantener la lógica principal del motor intacta, limitando los cambios a enlace usuario-sesiones + selección visual.
+
+### Riesgos / problemas detectados
+- Aunque el usuario vea varias sesiones, estas siguen dependiendo de que el `session_id` siga existiendo en el store actual del motor.
+- Puede hacer falta más adelante una distinción visual entre sesiones activas, cerradas o incompletas.
+- Si el número de sesiones crece mucho, habrá que abrir una fase posterior con listado más rico o paginado.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `career_session_service.py`, `career.py`, `career.html`, `app.js` y `estilos.css` para localizar el punto mínimo de intervención.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py`, `app/career.py`, `app/models.py` y `app/services/career_session_service.py`.
+- Revisión del diff final para asegurar que el alcance queda limitado a persistencia de sesiones y UI asociada.
+
+### Pendientes
+- Validar en Render el flujo completo:
+  - crear varias sesiones autenticado
+  - verlas listadas en “Tus sesiones”
+  - reabrir una concreta
+- Si esta fase queda estable, siguiente subfase recomendada:
+  - acciones sobre sesiones (renombrar o archivar)
+  - persistencia profunda de turnos/snapshots en Postgres

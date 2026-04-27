@@ -1617,6 +1617,62 @@ mark.hl {
   overflow: auto;
 }
 
+.career-saved-sessions {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: #f8faf6;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.career-saved-sessions__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.career-saved-sessions__head .muted {
+  margin: 0;
+}
+
+.career-saved-sessions__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.career-saved-session-card {
+  text-align: left;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.career-saved-session-card:hover {
+  border-color: rgba(102, 138, 76, 0.32);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.career-saved-session-card strong {
+  color: var(--color-dark);
+}
+
+.career-saved-session-card span,
+.career-saved-session-card code {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
 #modalBacktest .kv {
   list-style: none;
   padding: 0;

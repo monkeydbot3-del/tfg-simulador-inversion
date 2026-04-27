@@ -23,6 +23,7 @@ from werkzeug.exceptions import BadRequest, NotFound
 
 from .services.career_session_service import (
     get_latest_career_session_for_user,
+    list_career_sessions_for_user,
     save_career_session_for_user,
 )
 
@@ -2356,6 +2357,29 @@ def _generate_session_id() -> str:
         candidate = f"car_{secrets.token_hex(3)}"
         if candidate not in sessions:
             return candidate
+
+
+@career_bp.route("/sessions", methods=["GET"])
+def list_sessions_status():
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error("Debes iniciar sesión para consultar tus sesiones guardadas.", 401)
+    items = list_career_sessions_for_user(current_user_id, limit=12)
+    payload = [
+        {
+            "session_id": item.session_id,
+            "player": item.player,
+            "difficulty": item.difficulty,
+            "period": {
+                "start": item.period_start,
+                "end": item.period_end,
+            },
+            "updated_at": item.updated_at.isoformat() + "Z",
+            "created_at": item.created_at.isoformat() + "Z",
+        }
+        for item in items
+    ]
+    return jsonify({"sessions": payload}), 200
 
 
 @career_bp.route("/session/latest", methods=["GET"])

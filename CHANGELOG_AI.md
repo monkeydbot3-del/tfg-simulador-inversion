@@ -226,7 +226,7 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `540c7cb`
 - Título: Iteración 20, persistencia mínima del modo carrera por usuario
 - Archivos tocados:
   - `app/__init__.py`
@@ -234,5 +234,18 @@
   - `app/career.py`
   - `app/services/career_session_service.py`
   - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 21, listado de sesiones de carrera por usuario
+- Archivos tocados:
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `app/templates/career.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

@@ -1866,6 +1866,17 @@ function initCareerPage() {
     });
   });
 
+  const savedSessionsList = document.getElementById("career-saved-sessions-list");
+  savedSessionsList?.addEventListener("click", (ev) => {
+    const target = ev.target instanceof Element ? ev.target.closest("[data-career-session-load]") : null;
+    if (!target) return;
+    const sessionId = target.getAttribute("data-career-session-load");
+    if (!sessionId) return;
+    handleCareerLoadSession(sessionId).catch((err) => {
+      mostrarToastError(err?.message || "No se pudo cargar la sesión guardada.");
+    });
+  });
+
   const turnsBody = document.getElementById("career-turns-body");
   turnsBody?.addEventListener("click", (ev) => {
     const target = ev.target instanceof Element ? ev.target : null;
@@ -1889,6 +1900,7 @@ function initCareerPage() {
   ensureCareerAllocRows();
   updateCareerAllocSummary();
   refreshCareerRanking();
+  refreshCareerSavedSessions();
 
   const storedSessionId = prefs.lastSessionId;
   if (storedSessionId) {
@@ -2210,11 +2222,49 @@ function handleCareerCreate() {
       state.career.bench = bench;
       saveCareerPrefs({ bench, lastSessionId: data.session_id });
       handleCareerLoadSession(data.session_id);
+      refreshCareerSavedSessions();
     })
     .catch((err) => {
       mostrarToastError(err?.message || "No se pudo crear la sesión.");
     })
     .finally(() => careerSetLoading(btn, false));
+}
+
+function renderCareerSavedSessions(items = []) {
+  const wrap = document.getElementById("career-saved-sessions");
+  const list = document.getElementById("career-saved-sessions-list");
+  if (!wrap || !list) return;
+  if (!Array.isArray(items) || !items.length) {
+    wrap.classList.add("hidden");
+    list.innerHTML = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+  list.innerHTML = items
+    .map((item) => {
+      const sessionId = item?.session_id || "";
+      const difficulty = item?.difficulty || "—";
+      const period = item?.period || {};
+      const periodLabel = period.start && period.end ? `${period.start} → ${period.end}` : "Periodo no disponible";
+      const player = item?.player || "Sesión guardada";
+      return `
+        <button type="button" class="career-saved-session-card" data-career-session-load="${sessionId}">
+          <strong>${player}</strong>
+          <span>${difficulty}</span>
+          <span>${periodLabel}</span>
+          <code>${sessionId}</code>
+        </button>`;
+    })
+    .join("");
+}
+
+async function refreshCareerSavedSessions() {
+  try {
+    const data = await jsonGet("/api/career/sessions");
+    renderCareerSavedSessions(data?.sessions || []);
+  } catch {
+    renderCareerSavedSessions([]);
+  }
 }
 
 function handleCareerLoadLast() {
