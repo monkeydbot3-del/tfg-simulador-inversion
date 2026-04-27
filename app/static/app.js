@@ -27,6 +27,7 @@ const pctFmt = new Intl.NumberFormat("es-ES", {
   maximumFractionDigits: 2,
 });
 const ND = "\u2014";
+let analysisDetailChart = null;
 
 const fmtPct = (value) => {
   const num = Number(value);
@@ -175,8 +176,95 @@ function careerConfirm(message, options = {}) {
   });
 }
 
-function showBacktestSummary(ticker, start, end, summary) {
-  const modal = document.getElementById("modalBacktest");
+function destroyAnalysisDetailChart() {
+  if (analysisDetailChart) {
+    analysisDetailChart.destroy();
+    analysisDetailChart = null;
+  }
+}
+
+function renderAnalysisDetailChart(canvasId, rows, options = {}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || typeof Chart === "undefined") return false;
+  const validRows = Array.isArray(rows)
+    ? rows.filter((row) => row?.date && Number.isFinite(Number(row?.value)))
+    : [];
+  if (!validRows.length) return false;
+
+  destroyAnalysisDetailChart();
+
+  analysisDetailChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: validRows.map((row) => row.date),
+      datasets: [
+        {
+          label: options.label || "Evolución",
+          data: validRows.map((row) => Number(row.value)),
+          borderColor: "#668A4C",
+          backgroundColor: "rgba(102, 138, 76, 0.16)",
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          fill: true,
+          tension: 0.28,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: "index" },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { maxTicksLimit: 6, color: "#6c7c63" },
+          grid: { display: false },
+        },
+        y: {
+          ticks: {
+            color: "#6c7c63",
+            callback: (value) => (options.currency ? fmtEur(value) : value),
+          },
+          grid: { color: "rgba(148, 163, 184, 0.18)" },
+        },
+      },
+    },
+  });
+  return true;
+}
+
+async function fetchAnalysisChartSeries(ticker, start, end, mode, investedInitial) {
+  if (!ticker || !start || !end) return [];
+  const rows = await jsonGet(
+    `/market/ohlc/${encodeURIComponent(ticker)}?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&interval=1d`
+  );
+  const priceRows = Array.isArray(rows)
+    ? rows
+        .map((row) => ({
+          date: row.date,
+          value: Number(row.adj_close ?? row.close),
+        }))
+        .filter((row) => row.date && Number.isFinite(row.value))
+    : [];
+
+  if (String(mode || "").toUpperCase() === "SIN_DCA" && investedInitial > 0 && priceRows.length) {
+    const first = priceRows[0]?.value;
+    if (Number.isFinite(first) && first > 0) {
+      return priceRows.map((row) => ({
+        date: row.date,
+        value: investedInitial * (row.value / first),
+      }));
+    }
+  }
+
+  return priceRows;
+}
+
+async function showBacktestSummary(ticker, start, end, summary, options = {}) {
+  const modal = options.inlineTarget
+    ? document.querySelector(options.inlineTarget)
+    : document.getElementById("modalBacktest");
   if (!modal) return;
 
   const data = summary || {};
@@ -221,16 +309,63 @@ function showBacktestSummary(ticker, start, end, summary) {
       : "";
   }
 
-  const csvEnd = safeEnd || new Date().toISOString().slice(0, 10);
-  const base = `/market/ohlc_csv?ticker=${encodeURIComponent(
-    ticker || data.ticker || ""
-  )}&start=${encodeURIComponent(safeStart)}&end=${encodeURIComponent(csvEnd)}`;
-  const adjLink = document.getElementById("mb_csv_adj");
-  if (adjLink) adjLink.href = `${base}&adjusted=true`;
-  const rawLink = document.getElementById("mb_csv_raw");
-  if (rawLink) rawLink.href = `${base}&adjusted=false`;
+  let chartWrap = modal.querySelector(".analysis-detail-chart");
+  if (!chartWrap) {
+    chartWrap = document.createElement("div");
+    chartWrap.className = "analysis-detail-chart";
+    chartWrap.innerHTML = `
+      <div class="analysis-detail-chart__header">
+        <strong>Evolución del periodo</strong>
+        <span class="muted">Visualización histórica asociada al análisis</span>
+      </div>
+      <div class="analysis-detail-chart__canvas-wrap">
+        <canvas id="analysis-detail-chart-canvas"></canvas>
+      </div>
+      <div class="analysis-detail-chart__fallback hidden" id="analysis-detail-chart-fallback">
+        No hay datos suficientes para mostrar la gráfica de este análisis.
+      </div>`;
+    const bodyTarget = options.inlineTarget
+      ? modal
+      : modal.querySelector(".modal__body");
+    bodyTarget?.appendChild(chartWrap);
+  }
 
-  modal.classList.remove("hidden");
+  const fallbackEl = document.getElementById("analysis-detail-chart-fallback");
+  if (fallbackEl) fallbackEl.classList.add("hidden");
+
+  try {
+    const chartRows = await fetchAnalysisChartSeries(
+      ticker || data.ticker,
+      safeStart,
+      safeEnd,
+      options.mode || data.modo,
+      Number(options.investedInitial ?? data.invested ?? 0)
+    );
+    const drawn = renderAnalysisDetailChart("analysis-detail-chart-canvas", chartRows, {
+      label:
+        String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA"
+          ? "Valor estimado de la inversión"
+          : "Precio ajustado",
+      currency: String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA",
+    });
+    if (!drawn && fallbackEl) fallbackEl.classList.remove("hidden");
+  } catch (err) {
+    destroyAnalysisDetailChart();
+    if (fallbackEl) fallbackEl.classList.remove("hidden");
+  }
+
+  if (!options.inlineTarget) {
+    const csvEnd = safeEnd || new Date().toISOString().slice(0, 10);
+    const base = `/market/ohlc_csv?ticker=${encodeURIComponent(
+      ticker || data.ticker || ""
+    )}&start=${encodeURIComponent(safeStart)}&end=${encodeURIComponent(csvEnd)}`;
+    const adjLink = document.getElementById("mb_csv_adj");
+    if (adjLink) adjLink.href = `${base}&adjusted=true`;
+    const rawLink = document.getElementById("mb_csv_raw");
+    if (rawLink) rawLink.href = `${base}&adjusted=false`;
+
+    modal.classList.remove("hidden");
+  }
 }
 
 function fixMojibake(str) {
@@ -882,8 +1017,12 @@ function bindAnalisisForm() {
 
         const modalStart = merged.start || summaryStart;
         const modalEnd = merged.end || summaryEnd;
+        merged.modo = payload.modo;
 
-        showBacktestSummary(payload.ticker, modalStart, modalEnd, merged);
+        showBacktestSummary(payload.ticker, modalStart, modalEnd, merged, {
+          mode: payload.modo,
+          investedInitial: payload.importe_inicial,
+        });
       }
 
       try {
@@ -951,7 +1090,7 @@ async function loadHistorial() {
       const importeCell = [fmtEur(h.importe_inicial), pnlChip].filter(Boolean).join(" ");
       const resumenText = (h.resumen || "").replace(/\n/g, " ");
       const obsData = JSON.stringify(h.observaciones || []).replaceAll("'", "&apos;");
-      const detalleDisabled = bt ? "" : 'disabled title=\"Sin datos de backtest\"';
+      const detalleDisabled = "";
 
       return `
         <tr>
@@ -996,16 +1135,21 @@ async function loadHistorial() {
   });
 
   document.querySelectorAll("#his-tbody .his-ver").forEach((btn) => {
-    if (btn.disabled) return;
     const idx = Number(btn.getAttribute("data-index"));
     if (!Number.isFinite(idx)) return;
     const item = itemsSorted[idx];
-    const bt = item?.backtest;
-    if (!bt) return;
-    btn.addEventListener("click", () => {
+    const bt = item?.backtest || {};
+    btn.addEventListener("click", async () => {
       const start = bt.start || item?.inicio || (item?.timestamp || "").slice(0, 10);
-      const end = bt.end || bt.hasta || bt.fin || start;
-      showBacktestSummary(item?.ticker || bt.ticker, start, end, bt);
+      const end = bt.end || bt.hasta || bt.fin || item?.fin || start;
+      const merged = {
+        ...bt,
+        ticker: item?.ticker || bt.ticker,
+        invested: bt.invested ?? item?.importe_inicial,
+        modo: item?.modo,
+        notes: Array.isArray(bt?.notes) ? bt.notes : [],
+      };
+      await openObservacionesModal({ ...item, backtest: merged });
     });
   });
 
@@ -1166,16 +1310,97 @@ let _lastFocused = null;
  * Abre el modal de observaciones con la lista dada.
  * @param {Array} observaciones
  */
-function openObservacionesModal(observaciones) {
+function renderAnalysisDetailContent(item) {
+  const bt = item?.backtest || null;
+  const resumen = (item?.resumen || "Sin resumen disponible").replace(/\n/g, " ");
+  const observaciones = renderObsChips(item?.observaciones || []);
+  const start = bt?.start || item?.inicio || (item?.timestamp || "").slice(0, 10) || ND;
+  const end = bt?.end || bt?.fin || item?.fin || start;
+
+  return `
+    <div class="analysis-detail-sheet">
+      <div class="analysis-detail-sheet__hero">
+        <div>
+          <p class="eyebrow">Detalle guardado</p>
+          <h3>${item?.ticker || "Análisis"}</h3>
+          <p class="muted">${resumen}</p>
+        </div>
+        <span class="badge badge-soft">${item?.modo === "DCA" ? "DCA" : "Compra única"}</span>
+      </div>
+
+      <div class="analysis-detail-grid">
+        <div class="analysis-detail-card">
+          <strong>Datos del análisis</strong>
+          <ul class="kv">
+            <li><strong>Fecha:</strong> <span>${fmtDate(item?.timestamp)}</span></li>
+            <li><strong>Importe inicial:</strong> <span>${fmtEur(item?.importe_inicial)}</span></li>
+            <li><strong>Horizonte:</strong> <span>${item?.horizonte_anios ?? ND} años</span></li>
+            <li><strong>Periodo:</strong> <span>${start} → ${end}</span></li>
+            <li><strong>Puntuación:</strong> <span>${item?.puntuacion ?? ND}</span></li>
+          </ul>
+        </div>
+        <div class="analysis-detail-card">
+          <strong>Resumen de inversión</strong>
+          <ul class="kv">
+            <li><strong>Modo:</strong> <span>${item?.modo === "DCA" ? "Aportaciones periódicas" : "Inversión única"}</span></li>
+            <li><strong>Valor final:</strong> <span>${fmtEur(bt?.final_value)}</span></li>
+            <li><strong>PnL (%):</strong> <span>${fmtPct(bt?.pnl_pct)}</span></li>
+            <li><strong>Precio actual:</strong> <span>${fmtEur(bt?.now_price)}</span></li>
+            <li><strong>Dividendos:</strong> <span>${bt ? (bt.has_dividends ? "Sí" : "No") : ND}</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="analysis-detail-card">
+        <strong>Observaciones</strong>
+        <div class="analysis-detail-observations">${observaciones}</div>
+      </div>
+
+      <div class="analysis-detail-chart-host"></div>
+      ${bt ? "" : '<div class="analysis-detail-card analysis-detail-card--muted">Este análisis se guardó sin datos completos de backtest. Se muestra el detalle disponible y, si se puede, se intentará reconstruir la gráfica con el ticker y el periodo.</div>'}
+    </div>`;
+}
+
+async function hydrateAnalysisDetailChart(item) {
+  const host = document.querySelector(".analysis-detail-chart-host");
+  if (!host || !item) return;
+  const bt = item?.backtest || {};
+  const start = bt.start || item?.inicio || (item?.timestamp || "").slice(0, 10);
+  const end = bt.end || bt.hasta || bt.fin || item?.fin || start;
+  const merged = {
+    ...bt,
+    ticker: item?.ticker || bt.ticker,
+    invested: bt.invested ?? item?.importe_inicial,
+    modo: item?.modo,
+    notes: Array.isArray(bt?.notes) ? bt.notes : [],
+  };
+  await showBacktestSummary(item?.ticker || bt.ticker, start, end, merged, {
+    mode: item?.modo,
+    investedInitial: Number(item?.importe_inicial || 0),
+    inlineTarget: ".analysis-detail-chart-host",
+  });
+}
+
+async function openObservacionesModal(observaciones) {
   const mb = document.getElementById("modal");
   const body = document.getElementById("modal-body");
 
-  body.innerHTML = renderObsChips(observaciones);
+  const isDetailItem = observaciones && !Array.isArray(observaciones) && typeof observaciones === "object";
+  body.innerHTML = isDetailItem ? renderAnalysisDetailContent(observaciones) : renderObsChips(observaciones);
 
   _lastFocused = document.activeElement;
   mb.style.display = "flex";
   mb.setAttribute("aria-hidden", "false");
   document.getElementById("modal-close").focus();
+
+  if (isDetailItem) {
+    hydrateAnalysisDetailChart(observaciones).catch(() => {
+      const host = document.querySelector(".analysis-detail-chart-host");
+      if (host) {
+        host.innerHTML = '<div class="analysis-detail-chart__fallback">No se pudo reconstruir la gráfica de este análisis.</div>';
+      }
+    });
+  }
 
   const onKey = (e) => {
     if (e.key === "Escape") closeObservacionesModal();

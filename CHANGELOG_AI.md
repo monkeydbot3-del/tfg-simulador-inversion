@@ -159,3 +159,14 @@
   - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 14, gráficas en análisis y detalle de historial
+- Archivos tocados:
+  - `app/templates/historial.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

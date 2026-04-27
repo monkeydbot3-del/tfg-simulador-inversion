@@ -595,3 +595,57 @@ El usuario detectó que el flujo de `Nuevo análisis` fallaba al seleccionar `Si
   - sin DCA
 - Confirmar visualmente que el bloque de compra única aparece y desaparece correctamente al cambiar de modo.
 - Mantener fuera de alcance por ahora cualquier mejora gráfica adicional del análisis.
+
+## Iteración 14 - Gráficas en análisis y detalle de historial
+
+### Objetivo
+Añadir una visualización gráfica contenida a los resultados del análisis y reutilizarla también en el detalle del historial, manteniendo compatibilidad con registros antiguos y sin tocar autenticación ni modo carrera.
+
+### Contexto
+Tras corregir el flujo de compra única sin DCA, el siguiente paso pedido por el usuario fue enriquecer la lectura del análisis con una gráfica útil y mostrar ese mismo recurso al abrir el detalle desde historial. La implementación debía ser contenida, sin refactor grande y con fallback elegante para registros antiguos que no tuvieran datos completos de backtest.
+
+### Cambios aplicados
+- Revisión del flujo actual de `Nuevo análisis`, historial y modal de detalle.
+- Mejora del modal de historial en `app/templates/historial.html` para orientarlo a detalle completo del análisis.
+- Ampliación de `app/static/app.js` para:
+  - crear una gráfica lineal reutilizable con Chart.js
+  - reconstruir series desde `/market/ohlc/<ticker>` usando datos históricos del periodo
+  - mostrar en modo `SIN_DCA` una evolución estimada del valor de la inversión durante el periodo
+  - mostrar en otros casos la evolución del precio ajustado durante el rango analizado
+- Integración de la gráfica en el resultado mostrado justo tras un análisis nuevo, reutilizando el detalle enriquecido del resumen/backtest.
+- Mejora del botón `Ver detalle` en historial para que deje de depender exclusivamente de tener `backtest` completo guardado y abra una ficha más rica con:
+  - datos completos del análisis
+  - resumen de inversión
+  - observaciones
+  - gráfica si se puede reconstruir
+- Añadido fallback elegante para registros antiguos o incompletos:
+  - si faltan datos suficientes, se muestra un mensaje claro en lugar de romper el detalle
+- Ampliación de `app/static/estilos.css` con estilos específicos para:
+  - ficha de detalle del análisis
+  - grid de datos y resumen
+  - host de gráfica
+  - fallback visual de ausencia de datos
+
+### Decisiones tomadas
+- Reutilizar Chart.js ya presente en el proyecto en lugar de añadir una librería nueva.
+- No tocar el backend principal ni la lógica del simulador más allá de aprovechar endpoints históricos ya disponibles.
+- Priorizar una gráfica lineal simple, clara y académicamente defendible antes que una visualización más ambiciosa.
+- Mantener compatibilidad con registros previos mediante reconstrucción por ticker y fechas cuando sea posible.
+
+### Riesgos / problemas detectados
+- La gráfica depende de disponibilidad de datos históricos del ticker para el rango analizado, así que algunos registros antiguos pueden no reconstruirse completamente.
+- Para registros sin backtest o con fechas incompletas, el detalle puede quedarse en modo resumen + fallback, aunque de forma controlada.
+- La validación de esta iteración ha sido sintáctica; conviene comprobar visualmente en Render tanto la apertura del detalle como el render real de la gráfica.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `historial.html`, `app/static/app.js` y de los endpoints históricos disponibles en `app/routes.py`.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre `run.py`, `app/__init__.py`, `app/routes.py`, `app/auth.py` y `app/career.py`.
+- Revisión del diff para asegurar que el alcance queda contenido en frontend/documentación y no invade auth ni modo carrera.
+
+### Pendientes
+- Validar en Render que la gráfica se ve correctamente al terminar un análisis nuevo.
+- Validar que `Ver detalle` en historial muestra bien:
+  - análisis recientes con backtest
+  - análisis antiguos con datos parciales
+- Si hace falta, hacer un pequeño pulido posterior del modal de detalle para compactar mejor la densidad visual en móvil.
