@@ -33,6 +33,8 @@ bp = Blueprint("main", __name__)
 # ----------------------
 @bp.get("/")
 def home():
+    if not _current_user_id() and not session.get("guest"):
+        return redirect(url_for("auth.login_page"))
     return render_template("home.html", active="home", nav_mode="landing")
 
 
@@ -60,6 +62,8 @@ def analisis_page():
 
 @bp.get("/historial")
 def historial_page():
+    if _is_guest_user():
+        return redirect(url_for("main.home"))
     if not _current_user_id():
         return redirect(url_for("auth.login_page"))
     return render_template("historial.html", active="historial", nav_mode="practice")
@@ -494,6 +498,10 @@ def _current_user_id():
     return user.id if user else None
 
 
+def _is_guest_user():
+    return bool(session.get("guest"))
+
+
 def _registrar_analisis(datos):
     errores = _validar_payload(datos)
     if errores:
@@ -543,7 +551,7 @@ def _registrar_analisis(datos):
     registro = _sanear_registro(registro)
 
     user_id = _current_user_id()
-    if user_id:
+    if user_id and not _is_guest_user():
         save_analysis_for_user(
             user_id=user_id,
             ticker=registro.get("ticker"),
@@ -612,6 +620,8 @@ def listar_analisis():
       - ?page, ?per_page
     """
     user_id = _current_user_id()
+    if _is_guest_user():
+        return jsonify({"error": "El modo invitado no dispone de historial guardado."}), 403
     if not user_id:
         return jsonify({"error": "Debes iniciar sesión para consultar tu historial."}), 401
 
@@ -634,6 +644,8 @@ def exportar_analisis_csv():
     Acepta los mismos filtros que GET /analisis: ?ticker, ?desde, ?hasta
     """
     user_id = _current_user_id()
+    if _is_guest_user():
+        return jsonify({"error": "El modo invitado no permite exportar historial."}), 403
     if not user_id:
         return jsonify({"error": "Debes iniciar sesión para exportar tu historial."}), 401
 

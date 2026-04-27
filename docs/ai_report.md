@@ -434,3 +434,69 @@ Tras cerrar la especificación ejecutable, el usuario aprobó pasar a implementa
 - Confirmar el funcionamiento real en Render con `DATABASE_URL` y `SECRET_KEY` reales.
 - Si esta fase queda estable, documentar el comportamiento exacto del historial cuando el usuario no está autenticado.
 - En una iteración posterior, decidir si se aborda ya la persistencia del modo carrera por usuario.
+
+## Iteración 11 - Login como entrada principal y modo invitado
+
+### Objetivo
+Cambiar el flujo de entrada de la app para que la autenticación sea la puerta principal, permitiendo a la vez un acceso controlado como invitado sin persistencia ni escritura en base de datos.
+
+### Contexto
+Tras introducir autenticación por email e historial por usuario, el usuario pidió ajustar el onboarding real de la app: la home debía dejar de ser pública por defecto y pasar a redirigir a login cuando no existe sesión autenticada. Además, se pidió incorporar un modo invitado ligero, útil para probar la app sin cuenta y sin tocar la lógica del simulador ni romper rutas existentes.
+
+### Cambios aplicados
+- Modificado `app/routes.py` para que `/`:
+  - redirija a `/login` si no existe `session["user_id"]` ni `session["guest"]`
+  - muestre la home normal si hay usuario autenticado o sesión de invitado
+- Añadido helper `_is_guest_user()` para distinguir el acceso invitado del autenticado sin tocar la lógica central del simulador.
+- Ajustado el guardado de análisis para que:
+  - siga guardando en Postgres si hay usuario autenticado
+  - no guarde nada si la sesión es de invitado
+- Ajustado historial y exportación CSV para que el modo invitado no pueda acceder a persistencia:
+  - historial HTML redirige fuera del flujo protegido
+  - endpoints devuelven error controlado para invitado
+- Modificado `app/auth.py` para:
+  - evitar que `/login` se muestre si ya existe sesión autenticada o invitada
+  - redirigir a home tras login
+  - añadir `POST /continuar-invitado`, que crea `session["guest"] = True`
+- Modificado `app/templates/login.html` para:
+  - mostrar feedback flash básico
+  - añadir botón `Continuar como invitado`
+  - explicar que en modo invitado no se guarda historial ni se escribe en base de datos
+- Modificado `app/templates/base.html` para:
+  - mostrar badge `Modo invitado` en navegación
+  - permitir logout también en sesión invitada
+
+### Decisiones tomadas
+- Mantener el modo invitado estrictamente en sesión, sin persistencia.
+- No permitir historial ni exportación CSV en modo invitado para mantener coherencia con el objetivo de no escribir en base de datos.
+- No tocar la lógica del simulador ni abrir cambios en `career.py`.
+- Reutilizar la home ya existente para la experiencia de invitado, evitando crear una segunda shell de entrada innecesaria.
+
+### Riesgos / problemas detectados
+- El modo invitado introduce ahora dos estados de acceso diferentes, así que convendrá validar bien en Render el comportamiento de navegación entre login, home, historial y logout.
+- El historial redirige o bloquea según el tipo de sesión, por lo que puede requerir un pequeño pulido posterior de microcopy si se quiere hacerlo todavía más claro para usuario final.
+- La validación realizada sigue siendo sintáctica; falta comprobar el flujo real en navegador y con entorno de despliegue real.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de `app/auth.py`, `app/routes.py`, `app/templates/base.html` y `app/templates/login.html` antes de aplicar cambios.
+- Comprobación de sintaxis con `python3 -m py_compile` sobre:
+  - `run.py`
+  - `app/__init__.py`
+  - `app/routes.py`
+  - `app/auth.py`
+  - `app/career.py`
+  - `app/db.py`
+  - `app/models.py`
+  - `app/services/auth_service.py`
+  - `app/services/history_service.py`
+
+### Pendientes
+- Validar el flujo real en Render o localmente con base de datos activa:
+  - acceso a `/`
+  - login
+  - continuar como invitado
+  - logout
+  - bloqueo de historial en invitado
+- Decidir si más adelante otras secciones, como historial visual o botones de exportación, deberían adaptar aún mejor su copy al estado invitado.
+- Mantener fuera de alcance por ahora cualquier cambio en persistencia del modo carrera.

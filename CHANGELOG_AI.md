@@ -126,3 +126,15 @@
   - `requirements.txt`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 11, login como entrada principal y modo invitado
+- Archivos tocados:
+  - `app/auth.py`
+  - `app/routes.py`
+  - `app/templates/base.html`
+  - `app/templates/login.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

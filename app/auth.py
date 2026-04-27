@@ -41,6 +41,8 @@ def register_submit():
 
 @auth_bp.get("/login")
 def login_page():
+    if session.get("user_id") or session.get("guest"):
+        return redirect(url_for("main.home"))
     return render_template("login.html", active="login", nav_mode="practice")
 
 
@@ -56,7 +58,15 @@ def login_submit():
     session.clear()
     session["user_id"] = user.id
     flash("Has iniciado sesión correctamente.", "success")
-    return redirect(url_for("main.historial_page"))
+    return redirect(url_for("main.home"))
+
+
+@auth_bp.post("/continuar-invitado")
+def continue_as_guest():
+    session.clear()
+    session["guest"] = True
+    flash("Has entrado en modo invitado. Tus análisis no se guardarán.", "success")
+    return redirect(url_for("main.home"))
 
 
 @auth_bp.post("/logout")

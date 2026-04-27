@@ -9,6 +9,7 @@
 </head>
 {% set _nav_mode = nav_mode or 'practice' %}
 {% set _user_id = session.get('user_id') %}
+{% set _is_guest = session.get('guest') %}
 <body data-nav-mode="{{ _nav_mode }}">
   <div class="app-shell">
   <header class="top-nav">
@@ -29,7 +30,10 @@
       <a class="nav-link {% if active == 'aprende' %}active{% endif %}" href="{{ url_for('main.aprende_page') }}">Aprender</a>
       <a class="nav-link {% if active == 'historial' %}active{% endif %}" href="{{ url_for('main.historial_page') }}">Historial</a>
       <a class="nav-link {% if active == 'career' %}active{% endif %}" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
-      {% if _user_id %}
+      {% if _user_id or _is_guest %}
+      {% if _is_guest %}
+      <span class="badge badge-soft">Modo invitado</span>
+      {% endif %}
       <form method="post" action="{{ url_for('auth.logout_submit') }}" class="nav-inline-form">
         <button type="submit" class="btn btn-secondary">Cerrar sesión</button>
       </form>
