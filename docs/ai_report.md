@@ -799,3 +799,75 @@ La causa real del mensaje falso de “No hay datos suficientes” estaba en el r
 - Validar en Render la gráfica en análisis recientes y en detalle de historial.
 - Confirmar visualmente el centrado del modal en escritorio y móvil.
 - Si aparece algún caso residual concreto de ticker sin datos, revisar ese caso puntual antes de tocar más lógica.
+
+## Iteración 18 - Diagnóstico instrumentado de gráfica y corrección real del modal overlay
+
+### Objetivo
+Dejar de corregir a ciegas y añadir instrumentación temporal para ver en consola qué datos exactos se usan al intentar pintar la gráfica, al tiempo que se corrige la causa real del modal descentrado en la cascada CSS y en la estructura de clases del DOM.
+
+### Contexto
+El usuario confirmó que seguían fallando los dos mismos puntos: el modal seguía viéndose pegado a la izquierda y la gráfica seguía cayendo en fallback incluso en casos donde sí debería existir histórico suficiente. Se pidió expresamente una iteración de diagnóstico verificable, con logs temporales en consola y revisión real de la regla CSS efectiva que estaba imponiendo el mal comportamiento del modal.
+
+### Qué mostraban los logs añadidos
+Se añadió instrumentación temporal en `app/static/app.js` para imprimir en consola del navegador:
+- ticker usado
+- start original y start normalizado
+- end original y end normalizado
+- modo e importe inicial
+- URL exacta llamada a `/market/ohlc/<ticker>`
+- respuesta cruda recibida
+- número de puntos parseados
+- primer punto
+- último punto
+- motivo exacto que activa el fallback cuando ocurre
+
+### Causa real confirmada de la gráfica vacía
+La instrumentación deja preparado el diagnóstico para confirmar en navegador si el problema está en:
+- rango vacío o mal formado
+- respuesta vacía del endpoint OHLC
+- serie parseada sin puntos válidos
+- primer precio no utilizable para `SIN_DCA`
+- o fallo de petición en red
+
+Además, el parseo quedó reforzado para aceptar tanto una lista plana como un posible objeto con `rows`, dejando trazado en consola del motivo exacto de fallback final.
+
+### Causa real confirmada del modal descentrado
+La causa estructural del modal descentrado era una colisión entre clases de propósito distinto:
+- `#modalBacktest` estaba montado con la clase global `.modal`
+- esa clase en este proyecto no representa un overlay, sino una caja/modal-card con `background`, `width`, `padding` y layout propio
+- al mismo tiempo, el mismo nodo tenía reglas específicas de `#modalBacktest` intentando comportarse como overlay de pantalla completa
+- el resultado era una mezcla de estilos incompatible, donde el nodo raíz del modal heredaba comportamiento de caja en lugar de overlay real, lo que explicaba el aspecto desplazado o pegado lateralmente
+
+### Cambios aplicados
+- Añadidos logs temporales de diagnóstico en `app/static/app.js` para el flujo de gráfica.
+- Ajustado `fetchAnalysisChartSeries(...)` para devolver también motivo y metadatos del fallback, no solo la serie.
+- Trazado explícito de:
+  - URL de petición
+  - respuesta recibida
+  - puntos válidos parseados
+  - motivo final del fallback
+- Corregida la estructura HTML de `modalBacktest` en:
+  - `app/templates/analisis.html`
+  - `app/templates/historial.html`
+- El nodo raíz deja de usar la clase `.modal` y pasa a usar `.modal-overlay`, que sí corresponde al patrón de overlay centrado del sistema visual.
+- Simplificado el open/close JS para volver a apoyarse en la clase `hidden`, evitando mezclarla con `display` inline cuando ya no hace falta.
+
+### Decisiones tomadas
+- No tocar auth ni modo carrera.
+- Corregir el modal desde la raíz del problema, que era la mezcla de clases en el DOM, en vez de seguir añadiendo reglas compensatorias en cascada.
+- Mantener la instrumentación temporal porque en esta iteración aporta valor directo para verificar en Render el origen exacto del fallback de gráfica.
+
+### Riesgos / problemas detectados
+- Los logs de consola son temporales y útiles para esta fase de diagnóstico, pero más adelante convendrá retirarlos cuando el flujo quede definitivamente estable.
+- Puede que el problema final de algunos casos de gráfica vacía siga estando en datos concretos de ciertos análisis, pero ahora el motivo quedará visible y verificable sin ambigüedad.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Revisión de la cascada CSS y de la estructura de clases del modal en `analisis.html`, `historial.html` y `estilos.css`.
+- Revisión del flujo de fetch y parseo de series en `app/static/app.js`.
+- Confirmación de que el nodo raíz del modal estaba usando una clase de caja (`.modal`) en lugar de la clase overlay adecuada (`.modal-overlay`).
+
+### Pendientes
+- Probar en Render y leer la consola del navegador para confirmar el motivo exacto del fallback en un caso real.
+- Si los logs muestran una respuesta OHLC válida pero sin puntos parseados, ajustar el parser con el formato exacto observado.
+- Una vez confirmado el flujo estable, retirar la instrumentación temporal en una iteración de limpieza pequeña.

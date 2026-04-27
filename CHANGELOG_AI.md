@@ -194,10 +194,21 @@
 
 ## 2026-04-27
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e81a7a8`
 - Título: Iteración 17, corrección de rango de gráfica y centrado del modal
 - Archivos tocados:
   - `app/static/app.js`
   - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-27
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 18, diagnóstico instrumentado de gráfica y corrección real del modal overlay
+- Archivos tocados:
+  - `app/templates/analisis.html`
+  - `app/templates/historial.html`
+  - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

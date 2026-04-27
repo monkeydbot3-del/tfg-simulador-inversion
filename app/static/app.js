@@ -250,30 +250,68 @@ function normalizeChartRange(start, end) {
 
 async function fetchAnalysisChartSeries(ticker, start, end, mode, investedInitial) {
   const range = normalizeChartRange(start, end);
-  if (!ticker || !range.start || !range.end) return [];
-  const rows = await jsonGet(
-    `/market/ohlc/${encodeURIComponent(ticker)}?start=${encodeURIComponent(range.start)}&end=${encodeURIComponent(range.end)}&interval=1d`
-  );
-  const priceRows = Array.isArray(rows)
-    ? rows
-        .map((row) => ({
-          date: row.date,
-          value: Number(row.adj_close ?? row.close),
-        }))
-        .filter((row) => row.date && Number.isFinite(row.value))
-    : [];
+  const url = `/market/ohlc/${encodeURIComponent(ticker || "")}?start=${encodeURIComponent(range.start || "")}&end=${encodeURIComponent(range.end || "")}&interval=1d`;
 
-  if (String(mode || "").toUpperCase() === "SIN_DCA" && investedInitial > 0 && priceRows.length) {
-    const first = priceRows[0]?.value;
-    if (Number.isFinite(first) && first > 0) {
-      return priceRows.map((row) => ({
-        date: row.date,
-        value: investedInitial * (row.value / first),
-      }));
-    }
+  console.debug("[analysis-chart] request", {
+    ticker,
+    start,
+    end,
+    normalizedStart: range.start,
+    normalizedEnd: range.end,
+    mode,
+    investedInitial,
+    url,
+  });
+
+  if (!ticker || !range.start || !range.end) {
+    console.debug("[analysis-chart] fallback-reason", "missing-range-or-ticker");
+    return { rows: [], reason: "missing-range-or-ticker", meta: { ticker, range, url } };
   }
 
-  return priceRows;
+  const rows = await jsonGet(url);
+  console.debug("[analysis-chart] response", rows);
+
+  const rawRows = Array.isArray(rows)
+    ? rows
+    : Array.isArray(rows?.rows)
+    ? rows.rows
+    : [];
+
+  const priceRows = rawRows
+    .map((row) => ({
+      date: row?.date,
+      value: Number(row?.adj_close ?? row?.close),
+    }))
+    .filter((row) => row.date && Number.isFinite(row.value));
+
+  console.debug("[analysis-chart] parsed", {
+    points: priceRows.length,
+    firstPoint: priceRows[0] || null,
+    lastPoint: priceRows[priceRows.length - 1] || null,
+  });
+
+  if (!priceRows.length) {
+    console.debug("[analysis-chart] fallback-reason", "empty-price-rows");
+    return { rows: [], reason: "empty-price-rows", meta: { ticker, range, url, rawRows } };
+  }
+
+  if (String(mode || "").toUpperCase() === "SIN_DCA" && investedInitial > 0) {
+    const first = priceRows[0]?.value;
+    if (Number.isFinite(first) && first > 0) {
+      return {
+        rows: priceRows.map((row) => ({
+          date: row.date,
+          value: investedInitial * (row.value / first),
+        })),
+        reason: null,
+        meta: { ticker, range, url },
+      };
+    }
+    console.debug("[analysis-chart] fallback-reason", "invalid-first-price-for-sin-dca");
+    return { rows: [], reason: "invalid-first-price-for-sin-dca", meta: { ticker, range, url, first } };
+  }
+
+  return { rows: priceRows, reason: null, meta: { ticker, range, url } };
 }
 
 async function showBacktestSummary(ticker, start, end, summary, options = {}) {
@@ -351,13 +389,15 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
   if (fallbackEl) fallbackEl.classList.add("hidden");
 
   try {
-    const chartRows = await fetchAnalysisChartSeries(
+    const chartResult = await fetchAnalysisChartSeries(
       ticker || data.ticker,
       safeStart,
       safeEnd,
       options.mode || data.modo,
       Number(options.investedInitial ?? data.invested ?? 0)
     );
+    const chartRows = Array.isArray(chartResult) ? chartResult : chartResult?.rows || [];
+    const fallbackReason = Array.isArray(chartResult) ? null : chartResult?.reason || null;
     const drawn = renderAnalysisDetailChart(canvasEl, chartRows, {
       label:
         String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA"
@@ -365,8 +405,26 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
           : "Precio ajustado",
       currency: String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA",
     });
-    if (!drawn && fallbackEl) fallbackEl.classList.remove("hidden");
+    if (!drawn) {
+      console.debug("[analysis-chart] fallback-final", {
+        reason: fallbackReason || "chart-did-not-draw",
+        ticker: ticker || data.ticker,
+        start: safeStart,
+        end: safeEnd,
+        points: chartRows.length,
+        firstPoint: chartRows[0] || null,
+        lastPoint: chartRows[chartRows.length - 1] || null,
+      });
+      if (fallbackEl) fallbackEl.classList.remove("hidden");
+    }
   } catch (err) {
+    console.debug("[analysis-chart] fallback-final", {
+      reason: "request-error",
+      message: err?.message || String(err),
+      ticker: ticker || data.ticker,
+      start: safeStart,
+      end: safeEnd,
+    });
     destroyAnalysisDetailChart();
     if (fallbackEl) fallbackEl.classList.remove("hidden");
   }
@@ -382,7 +440,6 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     if (rawLink) rawLink.href = `${base}&adjusted=false`;
 
     modal.classList.remove("hidden");
-    modal.style.display = "flex";
   }
 }
 
@@ -404,13 +461,11 @@ function setupBacktestModal() {
   const closeBtn = document.getElementById("modalBacktestClose");
   closeBtn?.addEventListener("click", () => {
     modal.classList.add("hidden");
-    modal.style.display = "none";
   });
 
   modal.addEventListener("click", (evt) => {
     if (evt.target === modal) {
       modal.classList.add("hidden");
-      modal.style.display = "none";
     }
   });
 
