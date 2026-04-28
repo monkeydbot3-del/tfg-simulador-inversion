@@ -2250,6 +2250,20 @@ def _user_can_access_store_session(user_id: int | None, session_id: str) -> bool
     return any(item.session_id == session_id for item in items)
 
 
+def _current_user_owns_persisted_session(user_id: int | None, session_id: str) -> bool:
+    if not user_id or not session_id:
+        return False
+    return get_persisted_career_session_for_user(user_id, session_id) is not None
+
+
+def _user_can_access_any_session(user_id: int | None, session_id: str) -> bool:
+    if not user_id or not session_id:
+        return False
+    return _current_user_owns_persisted_session(user_id, session_id) or _user_can_access_store_session(
+        user_id, session_id
+    )
+
+
 @career_bp.route("/session", methods=["POST"])
 def create_session():
     payload = request.get_json(silent=True) or {}
@@ -2437,7 +2451,7 @@ def session_status(session_id: str):
         persisted_payload = deserialize_career_session(persisted)
         if persisted_payload:
             return jsonify({"session": persisted_payload, "source": "postgres"}), 200
-        if not _user_can_access_store_session(current_user_id, session_id):
+        if not _user_can_access_any_session(current_user_id, session_id):
             return _json_error("No tienes acceso a esta sesión de carrera.", 404)
     session = _get_session(session_id)
     if not session:
@@ -2462,8 +2476,10 @@ def save_session_snapshot():
     payload = request.get_json(silent=True) or {}
     session_payload = payload.get("session") or {}
     session_id = str(session_payload.get("session_id") or "").strip()
-    if session_id and not _user_can_access_store_session(current_user_id, session_id):
-        return _json_error("No tienes acceso a esta sesión de carrera.", 404)
+    if session_id and not _user_can_access_any_session(current_user_id, session_id):
+        store_session = _get_session(session_id)
+        if not store_session:
+            return _json_error("No tienes acceso a esta sesión de carrera.", 404)
     try:
         record = upsert_career_session_state(current_user_id, session_payload)
     except ValueError as exc:
@@ -2487,7 +2503,7 @@ def close_turn():
         return _json_error("turn_n debe ser un entero.", 400)
 
     current_user_id = _current_user_id()
-    if current_user_id and not _user_can_access_store_session(current_user_id, str(session_id)):
+    if current_user_id and not _user_can_access_any_session(current_user_id, str(session_id)):
         return _json_error("No tienes acceso a esta sesión de carrera.", 404)
 
     session = _get_session(session_id)

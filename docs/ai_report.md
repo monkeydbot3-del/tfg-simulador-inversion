@@ -1219,3 +1219,76 @@ La Iteración 22 introdujo `CareerSession`, `CareerTurn` y la priorización de P
   - sesión antigua existente solo en store anterior
   - sesión autenticada sin snapshot persistido válido
   - comprobación de que un usuario no puede cargar una sesión ajena por `session_id`
+
+## Iteración 24 - Validación real orientada a Render y microfixes de persistencia de carrera
+
+### Objetivo
+Aproximar la validación real de producción en Render, verificar que el flujo persistente del modo carrera no tiene bloqueos obvios y aplicar solo microcorrecciones seguras detectadas durante la revisión final.
+
+### Contexto
+La Iteración 22 introdujo persistencia profunda en Postgres y la Iteración 23 endureció acceso y tolerancia a snapshots corruptos. En esta fase el foco es comprobar la preparación real para Render y detectar microfallos de producción, sin abrir funcionalidad nueva ni rediseñar el motor.
+
+### Pruebas realizadas
+- Relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- Revisión específica de:
+  - Iteración 22
+  - Iteración 23
+  - `app/models.py`
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `app/static/app.js`
+  - `app/__init__.py`
+- Comprobación sintáctica con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Auditoría de preparación para Render desde el propio repo:
+  - no se encontró `render.yaml`
+  - no se encontró `.env` local
+  - no aparece en el repo una URL pública de Render para automatizar llamadas HTTP reales desde este entorno
+
+### Comportamiento observado en Render
+- No ha sido posible ejecutar validación funcional directa contra Render desde este entorno porque no hay URL pública de despliegue ni acceso explícito a logs de Render dentro del repo o del contexto actual.
+- Sí se ha podido validar que el código de arranque sigue siendo coherente con Render:
+  - `SECRET_KEY` obligatoria
+  - inicialización de base de datos vía `DATABASE_URL`
+  - creación segura de tablas `CareerSession` y `CareerTurn`
+  - arranque sin errores sintácticos
+
+### Errores encontrados
+- Se detectó una fragilidad adicional en `POST /api/career/session/save`: tras el hardening previo, una sesión autenticada nueva podía quedar bloqueada si aún no existía vínculo previo y el control de acceso solo consultaba enlaces ya guardados.
+- Esto podía afectar a escenarios de persistencia temprana o a recuperaciones parciales en producción.
+
+### Correcciones aplicadas
+- Refinado el control de acceso en `app/career.py` para distinguir mejor entre:
+  - sesiones persistidas en Postgres del propio usuario
+  - sesiones heredadas del store JSON con vínculo legítimo
+- Añadido helper para comprobar propiedad de sesión persistida y helper combinado para validar acceso por cualquiera de las dos vías permitidas.
+- Ajustado `POST /api/career/session/save` para permitir persistir sesiones válidas del propio flujo actual sin abrir acceso indebido a sesiones ajenas.
+- Ajustado `GET /api/career/session/<session_id>` y `POST /api/career/turn` para usar la comprobación combinada más robusta.
+
+### Archivos tocados
+- `app/career.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Riesgos pendientes
+- Sigue pendiente la validación funcional real contra el despliegue Render con navegador y Postgres vivos.
+- La app mantiene doble fuente de verdad entre store JSON y Postgres.
+- Sin URL pública ni logs accesibles desde aquí no se puede certificar aún el comportamiento exacto del despliegue tras recargar navegador, reanudar última sesión o usar `Tus sesiones` en producción.
+
+### Siguientes pasos recomendados
+- Validar manualmente en Render con usuario autenticado real:
+  - login
+  - crear sesión de carrera
+  - cerrar al menos dos turnos
+  - recargar navegador entre pasos
+  - reanudar última sesión
+  - abrir sesiones desde `Tus sesiones`
+- Validar manualmente modo invitado:
+  - crear sesión
+  - avanzar turnos
+  - confirmar ausencia de errores visuales o bloqueos
+- Si aparece cualquier microfallo real en Render, abrir una iteración exclusivamente correctiva sobre ese comportamiento concreto.
