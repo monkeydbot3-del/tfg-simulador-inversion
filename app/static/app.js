@@ -1687,6 +1687,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 const CAREER_MAX_ASSETS = 10;
 const CAREER_STORAGE_KEY = "career:preferences";
+const CAREER_IDENTITY_KEY = "career:identity";
 const CAREER_PALETTE = [
   "#1d4ed8",
   "#34d399",
@@ -1747,7 +1748,16 @@ if (typeof Chart !== "undefined") {
   careerTurnPluginRegistered = true;
 }
 
-function loadCareerPrefs() {
+function getCareerIdentity() {
+  const body = document.body;
+  const userId = body?.dataset?.userId || "";
+  const isGuest = String(body?.dataset?.isGuest || "false") === "true";
+  if (userId) return `user:${userId}`;
+  if (isGuest) return "guest";
+  return "anon";
+}
+
+function readAllCareerPrefs() {
   try {
     const raw = localStorage.getItem(CAREER_STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
@@ -1756,17 +1766,63 @@ function loadCareerPrefs() {
   }
 }
 
-function saveCareerPrefs(partial) {
-  const current = loadCareerPrefs();
-  const next = { ...current, ...partial };
+function writeAllCareerPrefs(payload) {
   try {
-    localStorage.setItem(CAREER_STORAGE_KEY, JSON.stringify(next));
+    localStorage.setItem(CAREER_STORAGE_KEY, JSON.stringify(payload || {}));
   } catch (err) {
     console.warn("No se pudo persistir carrera:", err);
   }
 }
 
+function resetCareerClientState() {
+  careerState.sessionId = null;
+  careerState.sessionData = null;
+  careerState.report = null;
+  careerState.turnsForDetail = [];
+  careerState.latestSeriesTickers = [];
+  if (careerState.charts?.series) {
+    careerState.charts.series.destroy();
+    careerState.charts.series = null;
+  }
+  if (careerState.charts?.equity) {
+    careerState.charts.equity.destroy();
+    careerState.charts.equity = null;
+  }
+}
+
+function loadCareerPrefs() {
+  const identity = getCareerIdentity();
+  const all = readAllCareerPrefs();
+  return all?.[identity] || {};
+}
+
+function saveCareerPrefs(partial) {
+  const identity = getCareerIdentity();
+  const all = readAllCareerPrefs();
+  const current = all?.[identity] || {};
+  const next = { ...current, ...partial };
+  all[identity] = next;
+  writeAllCareerPrefs(all);
+}
+
+function syncCareerIdentity() {
+  const identity = getCareerIdentity();
+  let previous = null;
+  try {
+    previous = localStorage.getItem(CAREER_IDENTITY_KEY);
+  } catch {
+    previous = null;
+  }
+  if (previous !== identity) {
+    resetCareerClientState();
+    try {
+      localStorage.setItem(CAREER_IDENTITY_KEY, identity);
+    } catch {}
+  }
+}
+
 function initCareerPage() {
+  syncCareerIdentity();
   const prefs = loadCareerPrefs();
   if (prefs.bench) {
     careerState.bench = prefs.bench;
@@ -2268,6 +2324,19 @@ async function refreshCareerSavedSessions() {
 }
 
 function handleCareerLoadLast() {
+  const isGuest = String(document.body?.dataset?.isGuest || "false") === "true";
+  if (isGuest) {
+    const prefs = loadCareerPrefs();
+    if (!prefs.lastSessionId) {
+      mostrarToastError("No hay sesión previa almacenada para el modo invitado.");
+      return;
+    }
+    handleCareerLoadSession(prefs.lastSessionId).catch((err) => {
+      mostrarToastError(err?.message || "No se pudo cargar la sesión de invitado.");
+    });
+    return;
+  }
+
   jsonGet("/api/career/session/latest")
     .then((data) => {
       if (data?.session) {
@@ -2284,16 +2353,7 @@ function handleCareerLoadLast() {
       throw new Error("No hay sesión previa guardada.");
     })
     .catch(async (err) => {
-      const prefs = loadCareerPrefs();
-      if (!prefs.lastSessionId) {
-        mostrarToastError(err?.message || "No hay sesión previa almacenada.");
-        return;
-      }
-      try {
-        await handleCareerLoadSession(prefs.lastSessionId);
-      } catch (fallbackErr) {
-        mostrarToastError(fallbackErr?.message || err?.message || "No se pudo cargar la sesión.");
-      }
+      mostrarToastError(err?.message || "No se pudo cargar tu última sesión guardada.");
     });
 }
 

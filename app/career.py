@@ -2240,6 +2240,10 @@ def _current_user_id() -> int | None:
         return None
 
 
+def _is_guest_user() -> bool:
+    return bool(session.get("guest")) and not bool(session.get("user_id"))
+
+
 def _user_can_access_store_session(user_id: int | None, session_id: str) -> bool:
     if not user_id:
         return False
@@ -2262,6 +2266,19 @@ def _user_can_access_any_session(user_id: int | None, session_id: str) -> bool:
     return _current_user_owns_persisted_session(user_id, session_id) or _user_can_access_store_session(
         user_id, session_id
     )
+
+
+def _resolve_session_for_request(session_id: str) -> dict[str, Any] | None:
+    current_user_id = _current_user_id()
+    if current_user_id:
+        persisted = get_persisted_career_session_for_user(current_user_id, session_id)
+        persisted_payload = deserialize_career_session(persisted)
+        if persisted_payload:
+            return persisted_payload
+        if not _user_can_access_any_session(current_user_id, session_id):
+            return None
+        return _get_session(session_id)
+    return _get_session(session_id)
 
 
 @career_bp.route("/session", methods=["POST"])
@@ -2425,7 +2442,7 @@ def list_sessions_status():
 @career_bp.route("/session/latest", methods=["GET"])
 def latest_session_status():
     current_user_id = _current_user_id()
-    if not current_user_id:
+    if not current_user_id or _is_guest_user():
         return _json_error("Debes iniciar sesión para cargar tu última sesión guardada.", 401)
 
     latest_persisted = get_latest_persisted_career_session_for_user(current_user_id)
@@ -2453,10 +2470,10 @@ def session_status(session_id: str):
             return jsonify({"session": persisted_payload, "source": "postgres"}), 200
         if not _user_can_access_any_session(current_user_id, session_id):
             return _json_error("No tienes acceso a esta sesión de carrera.", 404)
-    session = _get_session(session_id)
-    if not session:
+    session_payload = _resolve_session_for_request(session_id)
+    if not session_payload:
         raise NotFound("Sesión no encontrada.")
-    return jsonify({"session": session, "source": "store"}), 200
+    return jsonify({"session": session_payload, "source": "store"}), 200
 
 
 @career_bp.route("/session/<session_id>/turns", methods=["GET"])
@@ -2897,7 +2914,7 @@ def normalized_series():
 
 @career_bp.route("/series/<session_id>", methods=["GET"])
 def session_series(session_id: str):
-    session = _get_session(session_id)
+    session = _resolve_session_for_request(session_id)
     if not session:
         raise NotFound("Sesión no encontrada.")
     _ensure_session_defaults(session)
@@ -2971,7 +2988,7 @@ def session_series(session_id: str):
 
 @career_bp.route("/report/<session_id>", methods=["GET"])
 def session_report(session_id: str):
-    session = _get_session(session_id)
+    session = _resolve_session_for_request(session_id)
     if not session:
         raise NotFound("Sesión no encontrada.")
     _ensure_session_defaults(session)
@@ -3003,6 +3020,11 @@ def session_report(session_id: str):
             exc.code if isinstance(exc, BadRequest) and hasattr(exc, "code") else 400
         )
         return _json_error(message, status_code)
+    except Exception as exc:
+        return _json_error(
+            f"No se pudo generar el informe final de la sesión: {str(exc)}",
+            500,
+        )
 
     report_payload["benchmark"]["ticker"] = bench_ticker
     return jsonify(report_payload), 200

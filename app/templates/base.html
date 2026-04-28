@@ -10,7 +10,7 @@
 {% set _nav_mode = nav_mode or 'practice' %}
 {% set _user_id = session.get('user_id') %}
 {% set _is_guest = session.get('guest') %}
-<body data-nav-mode="{{ _nav_mode }}">
+<body data-nav-mode="{{ _nav_mode }}" data-user-id="{{ _user_id or '' }}" data-is-guest="{{ 'true' if _is_guest else 'false' }}">
   <div class="app-shell">
   <header class="top-nav">
     <div class="brand">

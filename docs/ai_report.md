@@ -1292,3 +1292,83 @@ La Iteración 22 introdujo persistencia profunda en Postgres y la Iteración 23 
   - avanzar turnos
   - confirmar ausencia de errores visuales o bloqueos
 - Si aparece cualquier microfallo real en Render, abrir una iteración exclusivamente correctiva sobre ese comportamiento concreto.
+
+## Iteración 25 - Aislamiento de sesiones invitado/usuario y reparación del informe final de carrera
+
+### Objetivo
+Corregir dos incidencias reales detectadas en Render: la fuga de estado entre invitado y usuario autenticado, y el error 500 al generar el informe final tras simular todos los turnos.
+
+### Bugs detectados
+#### Bug 1 - Fuga de estado entre invitado y usuario autenticado
+Al usar modo invitado y después autenticarse con una cuenta real, el frontend podía reutilizar el `lastSessionId` y otras preferencias de carrera guardadas en `localStorage` sin separación por identidad. Eso hacía que la UI heredase la carrera del invitado al entrar como usuario autenticado.
+
+#### Bug 2 - Error 500 en informe final tras autoplay
+Tras `Simular todos los turnos`, el endpoint `GET /api/career/report/<session_id>?bench=%5EGSPC&include_series=true` podía resolver la sesión solo desde el store JSON principal con `_get_session(session_id)`. Cuando la sesión válida estaba persistida y actualizada en Postgres, el informe podía trabajar con un estado desfasado o no compatible y acabar fallando al construir el reporte final.
+
+### Causa raíz
+- **Bug 1:** preferencias de carrera en cliente (`lastSessionId`, benchmark, tickers, jugador) guardadas bajo una sola clave global de `localStorage`, sin namespacing por identidad (`guest` frente a `user:<id>`), y sin reset explícito al cambiar de identidad.
+- **Bug 2:** el informe final y algunas rutas auxiliares seguían resolviendo sesión directamente desde el store antiguo, en vez de priorizar la sesión persistida del usuario autenticado. Eso rompía la coherencia tras autoplay completo cuando el snapshot bueno estaba en Postgres.
+
+### Solución aplicada
+- En `app/templates/base.html` se expone al frontend la identidad actual mediante atributos `data-user-id` y `data-is-guest`.
+- En `app/static/app.js`:
+  - se introduce namespacing de preferencias de carrera por identidad
+  - se añade sincronización de identidad (`guest`, `user:<id>`, `anon`)
+  - se resetea el estado cliente de carrera cuando cambia la identidad
+  - `Reanudar última sesión` deja de usar fallback cruzado para usuario autenticado y solo consulta backend para sesiones propias; el invitado conserva su propio flujo aislado
+- En `app/career.py`:
+  - se añade `_is_guest_user()`
+  - se añade `_resolve_session_for_request(session_id)` para priorizar sesión persistida en Postgres del usuario autenticado y usar fallback controlado al store antiguo
+  - `GET /api/career/report/<session_id>` y `GET /api/career/series/<session_id>` dejan de depender solo de `_get_session(session_id)`
+  - `GET /api/career/session/latest` se endurece para no tratar invitado como usuario con última sesión persistida
+  - se añade respuesta controlada también para excepciones no previstas al generar el informe final
+
+### Archivos tocados
+- `app/templates/base.html`
+- `app/static/app.js`
+- `app/career.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md`
+- Auditoría específica de:
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `app/static/app.js`
+  - `app/models.py`
+  - `app/auth.py`
+  - `app/templates/base.html`
+  - `app/templates/career.html`
+- Validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Reproducción analítica de la causa del bug 1 a partir del uso de `localStorage`
+- Reproducción analítica de la causa del bug 2 a partir de la diferencia entre sesión persistida y resolución de informe desde store antiguo
+
+### Riesgos pendientes
+- Sigue existiendo convivencia entre store JSON y Postgres, aunque ya se ha corregido la resolución de informe y series para usuario autenticado.
+- Falta confirmar en Render con el flujo real que el informe final ya no devuelve 500 tras autoplay completo.
+- Falta verificar manualmente que no queda ningún otro punto del frontend usando preferencias de carrera sin respetar el namespace por identidad.
+
+### Qué probar manualmente en Render
+#### Caso A - Aislamiento invitado/usuario
+- entrar como invitado
+- crear carrera
+- avanzar uno o varios turnos
+- cerrar sesión
+- iniciar sesión con usuario registrado
+- comprobar que NO aparece la carrera del invitado
+- pulsar `Reanudar última sesión` y verificar que solo actúa sobre sesiones propias del usuario autenticado
+
+#### Caso B - Informe final tras simular todos los turnos
+- iniciar carrera con usuario autenticado
+- usar `Simular todos los turnos`
+- generar informe final
+- comprobar que `GET /api/career/report/<session_id>?bench=%5EGSPC&include_series=true` ya no devuelve 500
+- comprobar que aparecen puntuación, cards Portfolio/Benchmark/Tracking y gráfico final
+
+#### Caso C - Invitado
+- entrar en modo invitado
+- crear carrera
+- simular turnos o cerrar algunos manualmente
+- comprobar que el flujo no se rompe y que no intenta mezclar estado con usuarios autenticados
