@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from peewee import AutoField, BooleanField, CharField, DateTimeField, ForeignKeyField, Model, TextField
+from peewee import AutoField, BooleanField, CharField, DateTimeField, ForeignKeyField, IntegerField, Model, TextField
 
 from .db import db_proxy
 
@@ -39,3 +39,33 @@ class CareerSessionLink(BaseModel):
     period_end = CharField(max_length=10, null=True)
     created_at = DateTimeField(default=datetime.utcnow, index=True)
     updated_at = DateTimeField(default=datetime.utcnow, index=True)
+
+
+class CareerSession(BaseModel):
+    id = AutoField()
+    user = ForeignKeyField(User, backref="career_session_records", on_delete="CASCADE")
+    session_id = CharField(max_length=40, unique=True, index=True)
+    status = CharField(max_length=24, default="active")
+    display_name = CharField(max_length=120, null=True)
+    period_start = CharField(max_length=10, null=True)
+    period_end = CharField(max_length=10, null=True)
+    current_turn = IntegerField(default=1)
+    total_turns = IntegerField(default=0)
+    latest_snapshot_json = TextField()
+    metadata_json = TextField(null=True)
+    created_at = DateTimeField(default=datetime.utcnow, index=True)
+    updated_at = DateTimeField(default=datetime.utcnow, index=True)
+
+
+class CareerTurn(BaseModel):
+    id = AutoField()
+    career_session = ForeignKeyField(CareerSession, backref="turns", on_delete="CASCADE")
+    turn_index = IntegerField(index=True)
+    decision_json = TextField()
+    snapshot_json = TextField()
+    result_json = TextField(null=True)
+    created_at = DateTimeField(default=datetime.utcnow, index=True)
+    updated_at = DateTimeField(default=datetime.utcnow, index=True)
+
+    class Meta:
+        indexes = ((('career_session', 'turn_index'), True),)

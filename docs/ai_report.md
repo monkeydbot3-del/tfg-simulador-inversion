@@ -1063,3 +1063,87 @@ La Iteración 20 ya permitía guardar y recuperar la última sesión de carrera 
 - Si esta fase queda estable, siguiente subfase recomendada:
   - acciones sobre sesiones (renombrar o archivar)
   - persistencia profunda de turnos/snapshots en Postgres
+
+## Iteración 22 - Persistencia profunda de sesiones y turnos de carrera en Postgres
+
+### Objetivo
+Dar el salto desde la persistencia ligera basada en enlace usuario-sesión hacia una persistencia real del progreso del modo carrera en Postgres, guardando la sesión completa, el snapshot más reciente y los turnos cerrados por usuario autenticado.
+
+### Contexto
+Las Iteraciones 20 y 21 ya resolvían continuidad básica: última sesión y listado reciente. Pero el motor todavía dependía del store JSON principal para reconstruir la partida. Esta iteración introduce una capa persistente paralela en Postgres para que el modo carrera conserve mejor el estado real de la partida sin romper compatibilidad con el sistema actual ni con invitados.
+
+### Archivos tocados
+- `app/models.py`
+- `app/__init__.py`
+- `app/career.py`
+- `app/services/career_session_service.py`
+- `app/static/app.js`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Cambios aplicados
+- Añadido modelo `CareerSession` para persistir por usuario:
+  - `session_id`
+  - `status`
+  - `display_name`
+  - `period_start`
+  - `period_end`
+  - `current_turn`
+  - `total_turns`
+  - `latest_snapshot_json`
+  - `metadata_json`
+  - timestamps
+- Añadido modelo `CareerTurn` para persistir por sesión:
+  - `turn_index`
+  - `decision_json`
+  - `snapshot_json`
+  - `result_json`
+  - timestamps
+- Actualizado `app/__init__.py` para crear también las nuevas tablas en arranque.
+- Ampliado `app/services/career_session_service.py` con helpers para:
+  - serializar/deserializar snapshots
+  - upsert de sesión persistida
+  - guardar turnos cerrados
+  - recuperar sesión persistida por usuario
+  - recuperar última sesión persistida
+  - listar turnos persistidos de una sesión
+- Ampliado `app/career.py` para que:
+  - al crear sesión autenticada, guarde también el estado completo en Postgres
+  - al actualizar sesión, intente persistir el snapshot más reciente en paralelo al store existente
+  - `GET /api/career/session/latest` priorice Postgres y haga fallback al store actual
+  - `GET /api/career/session/<session_id>` priorice Postgres para usuario autenticado y mantenga fallback al store
+  - `POST /api/career/turn` guarde decisión, snapshot y resultado del turno en Postgres para usuario autenticado
+- Añadidos endpoints nuevos:
+  - `POST /api/career/session/save`
+  - `GET /api/career/session/<session_id>/turns`
+- Ajustado `app/static/app.js` para:
+  - cargar directamente la sesión devuelta por `GET /api/career/session/latest` cuando ya llega hidratada desde backend
+  - indicar mejor si una sesión se carga desde Postgres
+  - no bloquear la UX si la persistencia profunda falla, mostrando aviso y manteniendo el store actual como continuidad
+
+### Decisiones técnicas
+- Se ha evitado JSONField para mantener compatibilidad simple con la infraestructura actual y se ha usado `TextField` con JSON serializado de forma controlada.
+- La persistencia profunda se ha añadido en paralelo al sistema actual, no como sustitución inmediata.
+- Se mantiene la regla de oro de esta fase: para usuario autenticado, persistir más; para invitado, no escribir en Postgres.
+- `GET /api/career/session/latest` y `GET /api/career/session/<session_id>` priorizan Postgres pero conservan fallback al store JSON para no romper sesiones antiguas o incompletas.
+
+### Riesgos o limitaciones
+- La persistencia profunda ya guarda snapshots y turnos, pero el resto del motor todavía sigue escribiendo también en el store actual, así que aún existe doble fuente de verdad.
+- No se ha hecho todavía migración de sesiones antiguas desde JSON a Postgres.
+- No se expone aún una vista rica de historial de turnos en UI, aunque el backend ya puede devolverlos.
+- Si el payload de sesión crece mucho, `latest_snapshot_json` podría requerir más adelante una estrategia más granular.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de empezar.
+- Auditoría del estado actual de modelos, rutas de carrera, frontend de carrera y endpoints `GET /api/career/session/latest` y `GET /api/career/sessions`.
+- Revisión del flujo de creación, carga y cierre de turnos para insertar persistencia sin reescribir el motor.
+- Pendiente ejecución final de comprobación sintáctica y validación manual en Render tras cerrar la iteración.
+
+### Siguientes pasos recomendados
+- Validar en Render la secuencia real autenticada:
+  - crear sesión
+  - cerrar varios turnos
+  - recargar navegador
+  - reanudar desde Postgres
+- Exponer en UI una vista de historial interno de turnos por sesión si aporta valor al TFG.
+- Empezar una fase posterior de convergencia para que el store principal del modo carrera dependa cada vez menos del JSON local.

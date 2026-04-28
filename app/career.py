@@ -22,9 +22,15 @@ from flask import Blueprint, jsonify, make_response, request, session
 from werkzeug.exceptions import BadRequest, NotFound
 
 from .services.career_session_service import (
+    deserialize_career_session,
     get_latest_career_session_for_user,
+    get_latest_persisted_career_session_for_user,
+    get_persisted_career_session_for_user,
     list_career_sessions_for_user,
+    list_persisted_career_turns_for_user,
     save_career_session_for_user,
+    save_career_turn_state,
+    upsert_career_session_state,
 )
 
 try:
@@ -756,6 +762,12 @@ def _get_session(session_id: str) -> dict[str, Any] | None:
 
 def _update_session(session: dict[str, Any]) -> None:
     _persist_session(session)
+    current_user_id = _current_user_id()
+    if current_user_id:
+        try:
+            upsert_career_session_state(current_user_id, session)
+        except Exception:
+            pass
 
 
 def _seed_from_player(player: str) -> int:
@@ -2337,6 +2349,10 @@ def create_session():
     current_user_id = _current_user_id()
     if current_user_id:
         save_career_session_for_user(current_user_id, session_id, session)
+        try:
+            upsert_career_session_state(current_user_id, session)
+        except Exception:
+            pass
 
     next_turn = turns[0] if turns else None
     response_payload = {
@@ -2387,6 +2403,13 @@ def latest_session_status():
     current_user_id = _current_user_id()
     if not current_user_id:
         return _json_error("Debes iniciar sesión para cargar tu última sesión guardada.", 401)
+
+    latest_persisted = get_latest_persisted_career_session_for_user(current_user_id)
+    if latest_persisted:
+        session_data = deserialize_career_session(latest_persisted)
+        if session_data:
+            return jsonify({"session": session_data, "session_id": latest_persisted.session_id}), 200
+
     latest = get_latest_career_session_for_user(current_user_id)
     if not latest:
         return _json_error("No tienes sesiones de carrera guardadas todavía.", 404)
@@ -2398,10 +2421,41 @@ def latest_session_status():
 
 @career_bp.route("/session/<session_id>", methods=["GET"])
 def session_status(session_id: str):
+    current_user_id = _current_user_id()
+    if current_user_id:
+        persisted = get_persisted_career_session_for_user(current_user_id, session_id)
+        persisted_payload = deserialize_career_session(persisted)
+        if persisted_payload:
+            return jsonify({"session": persisted_payload, "source": "postgres"}), 200
     session = _get_session(session_id)
     if not session:
         raise NotFound("Sesión no encontrada.")
-    return jsonify({"session": session}), 200
+    return jsonify({"session": session, "source": "store"}), 200
+
+
+@career_bp.route("/session/<session_id>/turns", methods=["GET"])
+def session_turns_status(session_id: str):
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error("Debes iniciar sesión para consultar los turnos persistidos.", 401)
+    turns = list_persisted_career_turns_for_user(current_user_id, session_id)
+    return jsonify({"session_id": session_id, "turns": turns}), 200
+
+
+@career_bp.route("/session/save", methods=["POST"])
+def save_session_snapshot():
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error("Debes iniciar sesión para guardar la sesión en Postgres.", 401)
+    payload = request.get_json(silent=True) or {}
+    session_payload = payload.get("session") or {}
+    try:
+        record = upsert_career_session_state(current_user_id, session_payload)
+    except ValueError as exc:
+        return _json_error(str(exc), 400)
+    except Exception:
+        return _json_error("No se pudo guardar la sesión de carrera en Postgres.", 500)
+    return jsonify({"ok": True, "session_id": record.session_id, "updated_at": record.updated_at.isoformat() + "Z"}), 200
 
 
 @career_bp.route("/turn", methods=["POST"])
@@ -2742,9 +2796,8 @@ def close_turn():
     )
 
     session.setdefault("completed_turns", []).append(snapshot)
-    session.setdefault("decisions", []).append(
-        {"turn_n": turn_n, "alloc": deepcopy(clean_alloc), "use_dca": use_dca}
-    )
+    decision_payload = {"turn_n": turn_n, "alloc": deepcopy(clean_alloc), "use_dca": use_dca}
+    session.setdefault("decisions", []).append(decision_payload)
 
     next_turn = _next_pending_turn(session)
     if not next_turn:
@@ -2752,10 +2805,31 @@ def close_turn():
 
     _update_session(session)
 
+    current_user_id = _current_user_id()
+    persistence = {"saved": False, "backend": "store"}
+    if current_user_id:
+        try:
+            save_career_turn_state(
+                current_user_id,
+                session,
+                turn_n,
+                decision_payload=decision_payload,
+                snapshot_payload=snapshot,
+                result_payload={
+                    "cum_return": session["cum_return"],
+                    "next_turn": next_turn if next_turn else None,
+                    "closed": bool(session.get("closed")),
+                },
+            )
+            persistence = {"saved": True, "backend": "postgres"}
+        except Exception:
+            persistence = {"saved": False, "backend": "store", "warning": "No se pudo persistir el turno en Postgres."}
+
     response_payload = {
         "snapshot": snapshot,
         "cum_return": session["cum_return"],
         "next_turn": next_turn if next_turn else None,
+        "persistence": persistence,
     }
     return jsonify(response_payload), 200
 

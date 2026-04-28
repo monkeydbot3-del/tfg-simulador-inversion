@@ -2270,6 +2270,14 @@ async function refreshCareerSavedSessions() {
 function handleCareerLoadLast() {
   jsonGet("/api/career/session/latest")
     .then((data) => {
+      if (data?.session) {
+        careerState.sessionId = data.session_id || data.session?.session_id || careerState.sessionId;
+        careerState.sessionData = data.session;
+        if (careerState.sessionId) saveCareerPrefs({ lastSessionId: careerState.sessionId });
+        renderCareerSession(data.session);
+        updateCareerAllocSummary();
+        return data.session;
+      }
       if (data?.session_id) {
         return handleCareerLoadSession(data.session_id, { silent: true });
       }
@@ -2297,7 +2305,7 @@ async function handleCareerLoadSession(sessionId, opts = {}) {
   renderCareerSession(data.session);
   updateCareerAllocSummary();
   if (!opts.silent) {
-    mostrarToastOk("Sesión cargada.");
+    mostrarToastOk(data?.source === "postgres" ? "Sesión cargada desde Postgres." : "Sesión cargada.");
   }
   return data.session;
 }
@@ -2578,8 +2586,12 @@ function handleCareerCloseTurn() {
       }
       mostrarToastOk("Turno cerrado.");
       const snapshot = data?.snapshot;
+      const persistence = data?.persistence || null;
       const nextAlloc = buildNextAllocFromSnapshot(snapshot);
       showCareerEventsModal(snapshot);
+      if (persistence && persistence.saved === false && persistence.warning) {
+        mostrarToastError(persistence.warning);
+      }
       handleCareerLoadSession(careerState.sessionId).then(() => {
         if (nextAlloc.length) {
           resetCareerAllocRows(nextAlloc);
@@ -2667,6 +2679,9 @@ async function handleCareerAutoPlay() {
         rememberCareerAllocTickers();
       }
 
+      if (data?.persistence && data.persistence.saved === false && data.persistence.warning) {
+        mostrarToastError(data.persistence.warning);
+      }
       await handleCareerLoadSession(careerState.sessionId, { silent: true });
     }
 
