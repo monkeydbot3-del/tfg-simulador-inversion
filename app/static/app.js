@@ -2592,17 +2592,22 @@ function handleCareerCloseTurn() {
       if (persistence && persistence.saved === false && persistence.warning) {
         mostrarToastError(persistence.warning);
       }
-      handleCareerLoadSession(careerState.sessionId).then(() => {
-        if (nextAlloc.length) {
-          resetCareerAllocRows(nextAlloc);
-          updateCareerAllocSummary();
-          rememberCareerAllocTickers();
-        }
-      renderCareerReport({ includeSeries: false });
-      loadCareerSeries();
-    });
-    return data;
-  })
+      handleCareerLoadSession(careerState.sessionId)
+        .then(() => {
+          if (nextAlloc.length) {
+            resetCareerAllocRows(nextAlloc);
+            updateCareerAllocSummary();
+            rememberCareerAllocTickers();
+          }
+          renderCareerReport({ includeSeries: false });
+          loadCareerSeries();
+        })
+        .catch((err) => {
+          console.error("Error recargando sesión de carrera:", err);
+          mostrarToastError(err?.message || "El turno se cerró, pero no se pudo recargar la sesión.");
+        });
+      return data;
+    })
     .catch((err) => {
       mostrarToastError(err?.message || "No se pudo cerrar el turno.");
     })

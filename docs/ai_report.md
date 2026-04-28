@@ -1147,3 +1147,75 @@ Las Iteraciones 20 y 21 ya resolvían continuidad básica: última sesión y lis
   - reanudar desde Postgres
 - Exponer en UI una vista de historial interno de turnos por sesión si aporta valor al TFG.
 - Empezar una fase posterior de convergencia para que el store principal del modo carrera dependa cada vez menos del JSON local.
+
+## Iteración 23 - Validación y hardening de persistencia profunda del modo carrera
+
+### Objetivo
+Comprobar que la Fase 3 de persistencia profunda del modo carrera no tiene grietas obvias de robustez y endurecer los puntos más frágiles sin abrir una funcionalidad nueva grande.
+
+### Contexto
+La Iteración 22 introdujo `CareerSession`, `CareerTurn` y la priorización de Postgres para reanudar sesiones. Esta iteración se centra en validar los caminos principales, revisar respuestas de los endpoints y corregir riesgos de acceso indebido o de payloads persistidos corruptos/incompletos.
+
+### Comprobaciones realizadas
+- Relectura obligatoria de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md`.
+- Revisión específica de:
+  - `app/models.py`
+  - `app/__init__.py`
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `app/static/app.js`
+- Validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Revisión de consistencia de los endpoints:
+  - `GET /api/career/session/latest`
+  - `GET /api/career/sessions`
+  - `GET /api/career/session/<session_id>`
+  - `POST /api/career/session/save`
+  - `POST /api/career/turn`
+  - `GET /api/career/session/<session_id>/turns`
+
+### Errores encontrados
+- El fallback al store JSON en `GET /api/career/session/<session_id>` podía permitir cargar por `session_id` una sesión no vinculada al usuario autenticado si seguía existiendo en el store anterior.
+- `POST /api/career/turn` y `POST /api/career/session/save` necesitaban una comprobación más estricta de acceso por usuario cuando trabajan con sesiones heredadas del store.
+- La deserialización de `latest_snapshot_json` era tolerante a JSON corrupto, pero no validaba que el payload recuperado tuviera una estructura mínima válida de sesión.
+- En frontend, tras cerrar turno, si fallaba la recarga posterior de sesión, la UI podía quedar sin feedback claro pese a haberse cerrado el turno.
+
+### Correcciones aplicadas
+- Añadido validador de payload persistido en `app/services/career_session_service.py` para exigir una estructura mínima antes de aceptar o rehidratar una sesión.
+- `deserialize_career_session(...)` ahora descarta snapshots vacíos, corruptos o estructuralmente incompletos y fuerza fallback limpio.
+- `upsert_career_session_state(...)` ahora valida el payload antes de persistirlo.
+- Añadido control auxiliar en `app/career.py` para verificar que una sesión del store JSON pertenece realmente al usuario autenticado antes de permitir:
+  - `GET /api/career/session/<session_id>`
+  - `POST /api/career/session/save`
+  - `POST /api/career/turn`
+- Ajustado `app/static/app.js` para capturar de forma explícita errores al recargar la sesión después de cerrar turno y mostrar feedback sin romper la continuidad de la partida.
+
+### Archivos tocados
+- `app/career.py`
+- `app/services/career_session_service.py`
+- `app/static/app.js`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Riesgos pendientes
+- Sigue existiendo doble fuente de verdad entre Postgres y el store JSON del motor.
+- No se ha ejecutado todavía validación funcional real en Render sobre la secuencia completa autenticada y en modo invitado.
+- No hay aún una estrategia de migración automática de sesiones antiguas desde el store a Postgres.
+- Falta comprobar con datos reales si hay algún caso de recarga parcial donde el snapshot persistido sea válido pero desfasado respecto al store anterior.
+
+### Pruebas recomendadas en Render
+- Usuario autenticado:
+  - crear sesión nueva
+  - cerrar uno o varios turnos
+  - recargar navegador
+  - usar `Reanudar última sesión`
+  - abrir una sesión concreta desde `Tus sesiones`
+  - comprobar que el progreso reaparece correctamente
+- Usuario invitado:
+  - crear sesión
+  - avanzar turnos
+  - verificar que no hay errores por persistencia en Postgres
+- Casos de robustez:
+  - sesión antigua existente solo en store anterior
+  - sesión autenticada sin snapshot persistido válido
+  - comprobación de que un usuario no puede cargar una sesión ajena por `session_id`

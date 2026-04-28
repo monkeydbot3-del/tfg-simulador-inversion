@@ -252,11 +252,22 @@
 
 ## 2026-04-28
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `dea8eac`
 - Título: Iteración 22, persistencia profunda de sesiones y turnos de carrera en Postgres
 - Archivos tocados:
   - `app/models.py`
   - `app/__init__.py`
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-28
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 23, validación y hardening de persistencia profunda del modo carrera
+- Archivos tocados:
   - `app/career.py`
   - `app/services/career_session_service.py`
   - `app/static/app.js`

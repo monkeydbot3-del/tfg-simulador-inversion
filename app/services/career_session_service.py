@@ -20,6 +20,15 @@ def _json_loads(payload: str | None, fallback: Any = None) -> Any:
         return fallback
 
 
+def _is_valid_session_payload(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    session_id = str(payload.get("session_id") or "").strip()
+    period = payload.get("period") or {}
+    turns = payload.get("turns") or []
+    return bool(session_id and isinstance(period, dict) and isinstance(turns, list))
+
+
 def save_career_session_for_user(user_id, session_id, session_payload):
     session_payload = session_payload or {}
     period = session_payload.get("period") or {}
@@ -71,6 +80,8 @@ def list_career_sessions_for_user(user_id, limit=12):
 
 def upsert_career_session_state(user_id: int, session_payload: dict[str, Any]) -> CareerSession:
     session_payload = session_payload or {}
+    if not _is_valid_session_payload(session_payload):
+        raise ValueError("La sesión de carrera no tiene un payload válido para persistencia.")
     session_id = str(session_payload.get("session_id") or "").strip()
     if not session_id:
         raise ValueError("session_id es obligatorio para persistir la sesión de carrera.")
@@ -175,7 +186,10 @@ def get_latest_persisted_career_session_for_user(user_id: int) -> CareerSession 
 def deserialize_career_session(record: CareerSession | None) -> dict[str, Any] | None:
     if not record:
         return None
-    return _json_loads(record.latest_snapshot_json, fallback=None)
+    payload = _json_loads(record.latest_snapshot_json, fallback=None)
+    if not _is_valid_session_payload(payload):
+        return None
+    return payload
 
 
 def list_persisted_career_turns_for_user(user_id: int, session_id: str) -> list[dict[str, Any]]:
