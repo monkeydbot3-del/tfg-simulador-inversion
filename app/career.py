@@ -100,6 +100,9 @@ BASE_START_DATE = date(2000, 1, 3)
 MAX_ASSETS = 10
 PORTFOLIO_SCOPE = "portfolio"
 CASH_TICKERS = {"CASH", "CASH:USD"}
+THEORETICAL_MAX_TICKERS = 5
+THEORETICAL_MAX_POINTS = 260
+THEORETICAL_MAX_COMBINATIONS = 24
 
 
 def _is_cash(ticker: str) -> bool:
@@ -931,20 +934,42 @@ def _build_normalized_series_map(
 def _series_list_to_series(series_list: list[list[str, float]]) -> pd.Series:
     if not series_list:
         return pd.Series(dtype=float)
-    records: list[tuple[pd.Timestamp, float]] = []
+
+    raw_dates: list[Any] = []
+    raw_values: list[float] = []
     for entry in series_list:
-        if not entry or entry[1] is None:
+        if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+            continue
+        raw_date = entry[0]
+        raw_value = entry[1]
+        if raw_value is None:
             continue
         try:
-            ts = pd.to_datetime(entry[0])
-            value = float(entry[1])
-        except (TypeError, ValueError):
+            value = float(raw_value)
+        except (TypeError, ValueError, OverflowError):
             continue
-        records.append((ts, value))
-    if not records:
+        if not math.isfinite(value):
+            continue
+        raw_dates.append(raw_date)
+        raw_values.append(value)
+
+    if not raw_dates:
         return pd.Series(dtype=float)
-    idx, values = zip(*records)
-    return pd.Series(values, index=pd.DatetimeIndex(idx)).sort_index()
+
+    dates = pd.to_datetime(raw_dates, errors="coerce")
+    valid_mask = ~pd.isna(dates)
+    if not valid_mask.any():
+        return pd.Series(dtype=float)
+
+    clean_dates = dates[valid_mask]
+    clean_values = [raw_values[idx] for idx, is_valid in enumerate(valid_mask) if is_valid]
+    if not clean_values:
+        return pd.Series(dtype=float)
+
+    series = pd.Series(clean_values, index=pd.DatetimeIndex(clean_dates)).sort_index()
+    series = pd.to_numeric(series, errors="coerce")
+    series = series.replace([math.inf, -math.inf], pd.NA).dropna()
+    return series.astype("float32") if not series.empty else pd.Series(dtype=float)
 
 
 def _pd_series_to_list(series: pd.Series) -> list[list[str, float]]:
@@ -1217,16 +1242,43 @@ def _portfolio_equity_series(
     return series.sort_index()
 
 
+def _downsample_series(series: pd.Series, max_points: int = THEORETICAL_MAX_POINTS) -> pd.Series:
+    if series.empty or max_points <= 0 or len(series) <= max_points:
+        return series
+    if max_points == 1:
+        return series.iloc[[0]]
+    step = max((len(series) - 1) / (max_points - 1), 1)
+    positions = sorted({min(len(series) - 1, int(round(step * idx))) for idx in range(max_points)})
+    return series.iloc[positions]
+
+
+def _build_series_cache(
+    normalized_map: dict[str, list[list[str, float]]],
+    max_points: int | None = None,
+) -> dict[str, pd.Series]:
+    cache: dict[str, pd.Series] = {}
+    for ticker, series_list in normalized_map.items():
+        series = _series_list_to_series(series_list)
+        if max_points is not None and not series.empty:
+            series = _downsample_series(series, max_points=max_points)
+        cache[ticker] = series
+    return cache
+
+
 def _combine_normalized_series(
     tickers: list[str],
     weights: list[float],
-    normalized_map: dict[str, list[list[str, float]]],
+    normalized_map: dict[str, list[list[str, float]]] | None = None,
+    series_cache: dict[str, pd.Series] | None = None,
 ) -> pd.Series:
     if not tickers or not weights:
         return pd.Series(dtype=float)
     data: dict[str, pd.Series] = {}
     for ticker in tickers:
-        series = _series_list_to_series(normalized_map.get(ticker, []))
+        if series_cache is not None:
+            series = series_cache.get(ticker, pd.Series(dtype=float))
+        else:
+            series = _series_list_to_series((normalized_map or {}).get(ticker, []))
         if series.empty:
             return pd.Series(dtype=float)
         data[ticker] = series
@@ -1236,12 +1288,13 @@ def _combine_normalized_series(
     df = df.ffill().bfill()
     weights_by_ticker = pd.Series(weights, index=tickers)
     combined = df.mul(weights_by_ticker, axis=1).sum(axis=1)
+    combined = pd.to_numeric(combined, errors="coerce").replace([math.inf, -math.inf], pd.NA).dropna()
     if combined.empty:
         return combined
     first_value = combined.iloc[0]
     if first_value != 0:
         combined = combined / first_value * 100.0
-    return combined
+    return combined.astype("float32") if not combined.empty else combined
 
 
 def _equal_weights(count: int) -> list[float]:
@@ -1437,14 +1490,15 @@ def _compute_theoretical_summary(
 ) -> dict[str, Any]:
     universe_candidates = _collect_session_universe(session)
     if not universe_candidates:
-        raise BadRequest("El universo de la sesiÃ³n estÃ¡ vacÃ­o.")
+        raise BadRequest("El universo de la sesión está vacío.")
 
     normalized_map = _build_normalized_series_map(universe_candidates, start_d, end_d)
+    full_series_cache = _build_series_cache(normalized_map, max_points=THEORETICAL_MAX_POINTS)
 
     ticker_metrics: dict[str, dict[str, float]] = {}
     filtered_tickers: list[str] = []
     for ticker in universe_candidates:
-        series_pd = _series_list_to_series(normalized_map.get(ticker, []))
+        series_pd = full_series_cache.get(ticker, pd.Series(dtype=float))
         if series_pd.empty:
             continue
         metrics, _ = _compute_metrics_from_base100(series_pd)
@@ -1461,21 +1515,30 @@ def _compute_theoretical_summary(
         reverse=True,
     )
 
-    limit = 5
-    use_greedy = original_count > limit
-    if len(ranked_by_cagr) > limit:
-        ranked_by_cagr = ranked_by_cagr[:limit]
+    use_greedy = original_count > THEORETICAL_MAX_TICKERS
+    if len(ranked_by_cagr) > THEORETICAL_MAX_TICKERS:
+        ranked_by_cagr = ranked_by_cagr[:THEORETICAL_MAX_TICKERS]
 
     tickers_eval = ranked_by_cagr
     if not tickers_eval:
         raise BadRequest("No hay tickers elegibles tras aplicar filtros.")
+
+    combos_count = 0
+    if kmax >= 2:
+        combos_count += math.comb(len(tickers_eval), 2) if len(tickers_eval) >= 2 else 0
+    if kmax >= 3:
+        combos_count += math.comb(len(tickers_eval), 3) if len(tickers_eval) >= 3 else 0
+    if combos_count > THEORETICAL_MAX_COMBINATIONS:
+        use_greedy = True
+
+    series_cache = {ticker: full_series_cache.get(ticker, pd.Series(dtype=float)) for ticker in tickers_eval}
 
     results: dict[str, dict[str, Any]] = {}
     method_map: dict[str, str] = {}
 
     if len(tickers_eval) >= 1:
         best_ticker = ranked_by_cagr[0]
-        series_pd = _series_list_to_series(normalized_map.get(best_ticker, []))
+        series_pd = series_cache.get(best_ticker, pd.Series(dtype=float))
         metrics = ticker_metrics[best_ticker]
         results["k1"] = {
             "tickers": [best_ticker],
@@ -1487,6 +1550,7 @@ def _compute_theoretical_summary(
                 "max_drawdown": metrics["max_drawdown"],
             },
         }
+        method_map["k1"] = "single"
 
     def _record_best_combination(label: str, combo_result: dict[str, Any]) -> None:
         payload = combo_result.copy()
@@ -1500,7 +1564,7 @@ def _compute_theoretical_summary(
             for candidate in tickers_eval:
                 if candidate == base_ticker:
                     continue
-                combo = _evaluate_combo_result([base_ticker, candidate], normalized_map)
+                combo = _evaluate_combo_result([base_ticker, candidate], normalized_map, series_cache=series_cache)
                 if not combo:
                     continue
                 if (
@@ -1508,8 +1572,7 @@ def _compute_theoretical_summary(
                     or combo["cagr"] > best_combo["cagr"]
                     or (
                         combo["cagr"] == best_combo["cagr"]
-                        and combo["metrics"]["total_return"]
-                        > best_combo["metrics"]["total_return"]
+                        and combo["metrics"]["total_return"] > best_combo["metrics"]["total_return"]
                     )
                 ):
                     best_combo = combo
@@ -1519,7 +1582,7 @@ def _compute_theoretical_summary(
         else:
             best_combo = None
             for combo in combinations(tickers_eval, 2):
-                combo_result = _evaluate_combo_result(list(combo), normalized_map)
+                combo_result = _evaluate_combo_result(list(combo), normalized_map, series_cache=series_cache)
                 if not combo_result:
                     continue
                 if (
@@ -1527,8 +1590,7 @@ def _compute_theoretical_summary(
                     or combo_result["cagr"] > best_combo["cagr"]
                     or (
                         combo_result["cagr"] == best_combo["cagr"]
-                        and combo_result["metrics"]["total_return"]
-                        > best_combo["metrics"]["total_return"]
+                        and combo_result["metrics"]["total_return"] > best_combo["metrics"]["total_return"]
                     )
                 ):
                     best_combo = combo_result
@@ -1541,7 +1603,7 @@ def _compute_theoretical_summary(
             base_combo = results.get("k2")
             if not base_combo and len(tickers_eval) >= 2:
                 tentative = tickers_eval[:2]
-                base_combo = _evaluate_combo_result(tentative, normalized_map)
+                base_combo = _evaluate_combo_result(tentative, normalized_map, series_cache=series_cache)
                 if base_combo:
                     _record_best_combination("k2", base_combo)
                     method_map["k2"] = "greedy"
@@ -1553,7 +1615,7 @@ def _compute_theoretical_summary(
                 combo_tickers = list(base_tickers) + [candidate]
                 if len(combo_tickers) != 3:
                     continue
-                combo_result = _evaluate_combo_result(combo_tickers, normalized_map)
+                combo_result = _evaluate_combo_result(combo_tickers, normalized_map, series_cache=series_cache)
                 if not combo_result:
                     continue
                 if (
@@ -1561,8 +1623,7 @@ def _compute_theoretical_summary(
                     or combo_result["cagr"] > best_triple["cagr"]
                     or (
                         combo_result["cagr"] == best_triple["cagr"]
-                        and combo_result["metrics"]["total_return"]
-                        > best_triple["metrics"]["total_return"]
+                        and combo_result["metrics"]["total_return"] > best_triple["metrics"]["total_return"]
                     )
                 ):
                     best_triple = combo_result
@@ -1572,7 +1633,7 @@ def _compute_theoretical_summary(
         else:
             best_combo = None
             for combo in combinations(tickers_eval, 3):
-                combo_result = _evaluate_combo_result(list(combo), normalized_map)
+                combo_result = _evaluate_combo_result(list(combo), normalized_map, series_cache=series_cache)
                 if not combo_result:
                     continue
                 if (
@@ -1580,8 +1641,7 @@ def _compute_theoretical_summary(
                     or combo_result["cagr"] > best_combo["cagr"]
                     or (
                         combo_result["cagr"] == best_combo["cagr"]
-                        and combo_result["metrics"]["total_return"]
-                        > best_combo["metrics"]["total_return"]
+                        and combo_result["metrics"]["total_return"] > best_combo["metrics"]["total_return"]
                     )
                 ):
                     best_combo = combo_result
@@ -1596,6 +1656,9 @@ def _compute_theoretical_summary(
         "normalized_map": normalized_map,
         "ticker_metrics": ticker_metrics,
         "use_greedy": use_greedy,
+        "series_cache_built": True,
+        "combinations_evaluated_scope": combos_count,
+        "downsample_points": THEORETICAL_MAX_POINTS,
     }
 
 
@@ -1631,7 +1694,7 @@ def _generate_report_payload(
         method_map = theoretical_summary["method"]
         universe_evaluated = theoretical_summary["universe"]
         theoretical_error: str | None = None
-    except BadRequest as exc:
+    except (BadRequest, NoHistoricalDataError, MemoryError, ValueError, TypeError) as exc:
         theoretical_summary = None
         theoretical_top = {}
         method_map = {}
@@ -1639,7 +1702,7 @@ def _generate_report_payload(
         normalized_map = _build_normalized_series_map(
             _collect_session_universe(session), start_d, end_d
         )
-        theoretical_error = getattr(exc, "description", str(exc))
+        theoretical_error = getattr(exc, "description", None) or getattr(exc, "message", str(exc))
 
     normalized_map_with_bench = dict(normalized_map)
     normalized_map_with_bench[bench_ticker] = _pd_series_to_list(bench_series_pd)
@@ -3431,9 +3494,15 @@ def session_benchmark(session_id: str):
 def _evaluate_combo_result(
     tickers: list[str],
     normalized_map: dict[str, list[list[str, float]]],
+    series_cache: dict[str, pd.Series] | None = None,
 ) -> dict[str, Any] | None:
     weights = _equal_weights(len(tickers))
-    combined_series = _combine_normalized_series(tickers, weights, normalized_map)
+    combined_series = _combine_normalized_series(
+        tickers,
+        weights,
+        normalized_map,
+        series_cache=series_cache,
+    )
     if combined_series.empty:
         return None
     metrics = _compute_basic_metrics(combined_series)

@@ -1513,3 +1513,170 @@ Además, si el problema era un valor no serializable o no finito, el saneado deb
 - reanudar sesión persistida
 - generar informe final
 - confirmar que no hay 500
+
+## Iteración 27 - Optimización del resumen teórico del informe final
+
+### Objetivo
+Aplicar una corrección definitiva basada en el traceback real de Render para eliminar el 500 del informe final tras `Simular todos los turnos`, sin rehacer el modo carrera ni ocultar el error.
+
+### Traceback real recibido
+Render reportó el fallo en esta cadena:
+- `session_report(...)`
+- `_generate_report_payload(...)`
+- `_compute_theoretical_summary(...)`
+- `_evaluate_combo_result(...)`
+- `_combine_normalized_series(...)`
+- `_series_list_to_series(...)`
+- `pd.to_datetime(entry[0])`
+
+Además, el worker terminaba con:
+- `SystemExit: 1`
+- `Worker exiting`
+- `Worker was sent SIGKILL! Perhaps out of memory?`
+
+### Causa raíz confirmada
+La causa real del 500 **no era principalmente `jsonify`** ni la resolución Postgres/store.
+
+El problema estaba en el **coste computacional repetitivo del resumen teórico** dentro del informe final:
+- `_compute_theoretical_summary(...)` evaluaba combinaciones de tickers
+- para cada combinación llamaba a `_evaluate_combo_result(...)`
+- `_evaluate_combo_result(...)` llamaba a `_combine_normalized_series(...)`
+- `_combine_normalized_series(...)` volvía a ejecutar `_series_list_to_series(...)` ticker por ticker
+- `_series_list_to_series(...)` volvía a hacer conversiones `pd.to_datetime(...)` y recreaba Series de pandas repetidamente
+
+Eso provocaba una explosión de coste por:
+- número de tickers evaluados
+- número de combinaciones
+- longitud de cada serie histórica
+- recreación repetida de pandas Series y DataFrames dentro de bucles combinatorios
+
+### Confirmación sobre memoria / timeout / coste combinatorio
+Conclusión técnica:
+- **sí estaba relacionado con consumo de recursos del worker**
+- **la raíz concreta era coste combinatorio + recalculado repetido**, no simplemente un bug de datos aislado
+- el `SIGKILL` de Render encaja con exceso de CPU/memoria derivado de ese patrón
+
+### Problema concreto en complejidad
+Antes de esta iteración, la misma serie de un ticker podía convertirse muchas veces dentro del mismo informe.
+
+Ejemplo conceptual:
+- si hay 5 tickers evaluados
+- k=2 y k=3
+- se exploran varias combinaciones
+- cada combinación reconstruía series para sus tickers
+- cada reconstrucción volvía a ejecutar `pd.to_datetime(...)` sobre todos los puntos
+
+El coste crecía de forma combinatoria por número de combos y casi lineal por longitud de serie en cada reconstrucción. Ese patrón era muy mala combinación para Render.
+
+### Solución aplicada
+#### 1. Cache por request de series ya convertidas
+En `app/career.py` se añadió:
+- `_build_series_cache(...)`
+
+Ahora, dentro de `_compute_theoretical_summary(...)`:
+- se construye una cache `ticker -> pd.Series` una sola vez
+- `_evaluate_combo_result(...)` reutiliza esa cache
+- `_combine_normalized_series(...)` deja de reconvertir las mismas listas una y otra vez
+
+#### 2. Downsampling seguro para el bloque teórico
+Se añadió:
+- `_downsample_series(...)`
+
+El resumen teórico ya no necesita trabajar con toda la resolución histórica para evaluar combinaciones. Se limita a una versión reducida de las series para ese bloque analítico.
+
+Límite introducido:
+- `THEORETICAL_MAX_POINTS = 260`
+
+Esto reduce coste sin afectar al informe base ni a las series principales mostradas al usuario.
+
+#### 3. Límite explícito de universo y combinaciones
+Se añadieron guardas:
+- `THEORETICAL_MAX_TICKERS = 5`
+- `THEORETICAL_MAX_COMBINATIONS = 24`
+
+Si el universo o el número de combinaciones potenciales crece demasiado:
+- se fuerza modo `greedy`
+- se evita bruteforce innecesario
+
+#### 4. Endurecimiento de `_series_list_to_series(...)`
+Ahora la función:
+- acepta entradas inválidas sin romper
+- usa `pd.to_datetime(..., errors="coerce")`
+- descarta fechas inválidas
+- descarta `None`, `NaN`, `inf`, `-inf`
+- devuelve serie vacía controlada si no queda contenido válido
+- convierte a `float32` para contener mejor memoria
+
+#### 5. Fallback parcial del resumen teórico
+`_generate_report_payload(...)` ya no deja caer todo el informe si falla el bloque teórico por:
+- `BadRequest`
+- `NoHistoricalDataError`
+- `MemoryError`
+- `ValueError`
+- `TypeError`
+
+En ese caso:
+- el informe principal sigue generándose
+- `theoretical` queda vacío o parcial
+- se añade warning controlado en `warnings`
+- no se bloquean score, portfolio, benchmark ni tracking
+
+### Qué NO se tocó
+- no se rediseñó el modo carrera
+- no se eliminó el store antiguo
+- no se hizo refactor grande de arquitectura
+- no se ocultó el error devolviendo datos falsos
+
+### Archivos tocados
+- `app/career.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- Revisión específica de:
+  - `app/career.py`
+  - `_generate_report_payload(...)`
+  - `_compute_theoretical_summary(...)`
+  - `_evaluate_combo_result(...)`
+  - `_combine_normalized_series(...)`
+  - `_series_list_to_series(...)`
+  - `GET /api/career/report/<session_id>`
+  - `GET /api/career/series/<session_id>`
+- Validación sintáctica prevista con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Verificación lógica del nuevo flujo:
+  - cache por request para series ya convertidas
+  - degradación controlada del bloque teórico
+  - conservación del informe base aunque falle el resumen teórico
+
+### Qué debes probar ahora en Render
+#### Caso A - informe completo con autoplay
+- usuario autenticado
+- crear carrera
+- usar `Simular todos los turnos`
+- generar informe con `include_series=true`
+- confirmar que ya no hay 500
+- confirmar que aparecen score, cards y gráfico
+
+#### Caso B - informe base
+- probar `GET /api/career/report/<session_id>?bench=%5EGSPC&include_series=false`
+- confirmar que responde bien
+
+#### Caso C - endpoint de series
+- probar `GET /api/career/series/<session_id>`
+- confirmar que las series siguen funcionando por separado
+
+#### Caso D - degradación parcial controlada
+- si el resumen teórico no puede calcularse completo, confirmar que:
+  - el informe principal sigue saliendo
+  - aparece warning en payload
+  - no hay 500
+
+### Riesgos pendientes
+- Aunque el coste principal se ha reducido de forma importante, Render sigue siendo un entorno contenido. Si aparece un caso extremo, podría ser necesario bajar todavía más el límite de puntos o combinaciones para el bloque teórico.
+- Falta la validación final real en Render para certificar que el worker ya no muere con autoplay completo.

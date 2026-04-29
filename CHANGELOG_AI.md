@@ -296,8 +296,17 @@
 
 ## 2026-04-29
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `46abcf7`
 - Título: Iteración 26, diagnóstico real y saneado de serialización del informe final tras autoplay
+- Archivos tocados:
+  - `app/career.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-29
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 27, optimización del resumen teórico del informe final
 - Archivos tocados:
   - `app/career.py`
   - `CHANGELOG_AI.md`
