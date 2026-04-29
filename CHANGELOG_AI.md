@@ -305,9 +305,19 @@
 
 ## 2026-04-29
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `6227e4a`
 - Título: Iteración 27, optimización del resumen teórico del informe final
 - Archivos tocados:
   - `app/career.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-29
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 28, mejora visual del layout de sesiones guardadas en modo carrera
+- Archivos tocados:
+  - `app/templates/career.html`
+  - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

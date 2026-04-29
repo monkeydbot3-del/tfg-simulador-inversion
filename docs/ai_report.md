@@ -1680,3 +1680,70 @@ En ese caso:
 ### Riesgos pendientes
 - Aunque el coste principal se ha reducido de forma importante, Render sigue siendo un entorno contenido. Si aparece un caso extremo, podría ser necesario bajar todavía más el límite de puntos o combinaciones para el bloque teórico.
 - Falta la validación final real en Render para certificar que el worker ya no muere con autoplay completo.
+
+## Iteración 28 - Mejora visual del layout de sesiones guardadas en modo carrera
+
+### Objetivo
+Corregir un problema puramente visual del layout inicial del modo carrera: la columna de acciones se estiraba artificialmente cuando crecían las sesiones guardadas de la columna derecha.
+
+### Validación positiva previa del informe final en Render
+Se deja registrada la validación positiva del bug anterior tras desplegar el commit `6227e4a`:
+- informe final probado en Render
+- usuario autenticado
+- partida con 5 activos y 4 turnos
+- probado `Simular todos los turnos`
+- probado `Generar informe`
+- ya no apareció el error 500 en `/api/career/report/...include_series=true`
+- se mostraron correctamente score, cards de Portfolio/Benchmark/Tracking y gráfico final
+
+Conclusión: el bug del informe final queda cerrado a nivel funcional, pendiente solo de futuras pruebas de estrés con partidas más largas.
+
+### Causa visual del problema
+La causa del problema era estructural de layout:
+- el bloque de formulario/acciones y el bloque `Tus sesiones` estaban dentro de la misma card y del mismo flujo vertical
+- al crecer la zona de sesiones guardadas, toda la card aumentaba de altura
+- visualmente eso empujaba hacia abajo la zona de acciones, dejando demasiado aire entre `Crear sesión` y `Reanudar última sesión`
+
+No era un problema de lógica ni de datos, sino de composición del layout inicial.
+
+### Solución aplicada
+#### En `app/templates/career.html`
+- se separó el arranque del modo carrera en un shell de dos columnas independiente
+- la card principal del formulario quedó a la izquierda
+- el panel `Tus sesiones` pasó a un `aside` propio a la derecha
+- los botones `Crear sesión` y `Reanudar última sesión` se agruparon en una pequeña card de acciones más compacta
+
+#### En `app/static/estilos.css`
+- se añadió `career-setup-shell` con grid de dos columnas
+- se forzó `align-items: start` para que la altura de la columna derecha no estire la izquierda
+- la card izquierda se deja con `height: fit-content`
+- el panel derecho de sesiones guardadas recibe `max-height` y `overflow-y: auto`
+- se mantiene comportamiento responsive: por debajo de `980px` vuelve a una sola columna y se elimina la limitación de altura del panel derecho
+- en móvil, la zona de acciones sigue apilándose correctamente
+
+### Archivos tocados
+- `app/templates/career.html`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- Revisión del layout del modo carrera en:
+  - `app/templates/career.html`
+  - `app/static/estilos.css`
+- Comprobaciones previstas para esta iteración:
+  - el panel izquierdo ya no debe alargarse por el crecimiento de `Tus sesiones`
+  - `Crear sesión` y `Reanudar última sesión` deben quedar visualmente cerca
+  - `Tus sesiones` debe seguir mostrando elementos sin romper el layout
+  - responsive básico correcto en tablet y móvil
+
+### Qué debes comprobar en Render
+- que el panel izquierdo ya no aumenta de altura al crecer `Tus sesiones`
+- que `Crear sesión` y `Reanudar última sesión` quedan agrupados y bien colocados
+- que `Tus sesiones` puede crecer sin arrastrar la otra columna
+- que en móvil o ancho estrecho el bloque vuelve a una sola columna sin romperse

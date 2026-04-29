@@ -1250,6 +1250,42 @@ mark.hl {
   gap: 24px;
 }
 
+.career-setup-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.career-card--setup-form,
+.career-card--saved {
+  align-self: start;
+}
+
+.career-card--setup-form {
+  height: fit-content;
+}
+
+.career-setup-actions-card {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: #f8faf6;
+}
+
+.career-action-bar {
+  align-items: center;
+  gap: 12px;
+}
+
+.career-card--saved {
+  margin-top: 0;
+  max-height: 560px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .career-session-header {
   display: flex;
   flex-wrap: wrap;
@@ -1618,7 +1654,7 @@ mark.hl {
 }
 
 .career-saved-sessions {
-  margin-top: 18px;
+  margin-top: 0;
   padding: 16px 18px;
   border-radius: 18px;
   border: 1px solid rgba(148, 163, 184, 0.16);
@@ -1736,6 +1772,17 @@ mark.hl {
   }
 }
 
+@media (max-width: 980px) {
+  .career-setup-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .career-card--saved {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
 @media (max-width: 720px) {
   .top-nav {
     padding: 10px 16px;
@@ -1755,6 +1802,14 @@ mark.hl {
   .actions-row {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .career-action-bar {
+    align-items: stretch;
+  }
+
+  .career-setup-actions-card {
+    padding: 14px;
   }
 
   .actions-row__left {

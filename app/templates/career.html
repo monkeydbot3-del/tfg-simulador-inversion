@@ -34,19 +34,20 @@
 
 <div id="career-app" class="career-layout career-layout--dashboard">
 
-  <section class="card card--elevated career-card career-card--setup">
+  <section class="career-setup-shell">
+    <article class="card card--elevated career-card career-card--setup career-card--setup-form">
 
-    <div class="card-section">
+      <div class="card-section">
 
-      <div class="career-section-heading">
-        <div>
-          <span class="career-step-badge">Paso 1</span>
-          <h2>Crear nueva sesión</h2>
-          <p class="muted">Configura el jugador, la dificultad y el periodo antes de empezar a asignar cartera.</p>
+        <div class="career-section-heading">
+          <div>
+            <span class="career-step-badge">Paso 1</span>
+            <h2>Crear nueva sesión</h2>
+            <p class="muted">Configura el jugador, la dificultad y el periodo antes de empezar a asignar cartera.</p>
+          </div>
         </div>
-      </div>
 
-      <div class="form-grid">
+        <div class="form-grid">
 
         <label class="field">
 
@@ -167,32 +168,35 @@
         </div>
 
 
-      <div class="actions-row actions-row--panel career-action-bar">
+        <div class="career-setup-actions-card">
+          <div class="actions-row actions-row--panel career-action-bar">
 
-        <button id="career-create-btn" class="btn btn-primary btn-large" type="button">
+            <button id="career-create-btn" class="btn btn-primary btn-large" type="button">
 
-          Crear sesión
+              Crear sesión
 
-        </button>
+            </button>
 
-        <button id="career-load-last-btn" class="btn btn-ghost" type="button">
+            <button id="career-load-last-btn" class="btn btn-ghost" type="button">
 
-          Reanudar última sesión
+              Reanudar última sesión
 
-        </button>
+            </button>
 
-      </div>
-
-      <div id="career-saved-sessions" class="career-saved-sessions hidden" aria-live="polite">
-        <div class="career-saved-sessions__head">
-          <span class="career-subtle-badge">Tus sesiones</span>
-          <p class="muted">Si has iniciado sesión, aquí podrás reabrir sesiones recientes de modo carrera.</p>
+          </div>
         </div>
-        <div id="career-saved-sessions-list" class="career-saved-sessions__list"></div>
+
       </div>
 
-    </div>
+    </article>
 
+    <aside id="career-saved-sessions" class="career-saved-sessions career-card career-card--saved hidden" aria-live="polite">
+      <div class="career-saved-sessions__head">
+        <span class="career-subtle-badge">Tus sesiones</span>
+        <p class="muted">Si has iniciado sesión, aquí podrás reabrir sesiones recientes de modo carrera.</p>
+      </div>
+      <div id="career-saved-sessions-list" class="career-saved-sessions__list"></div>
+    </aside>
   </section>
 
 
