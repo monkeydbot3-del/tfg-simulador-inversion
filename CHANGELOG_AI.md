@@ -285,11 +285,20 @@
 
 ## 2026-04-28
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
-- Título: Iteración 25, aislamiento de sesiones invitado/usuario y reparación del informe final de carrera
+- Commit: `f9b4454`
+- Título: Iteración 25, aislamiento de sesiones invitado/usuario y reparación inicial del informe final de carrera
 - Archivos tocados:
   - `app/templates/base.html`
   - `app/static/app.js`
+  - `app/career.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-29
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 26, diagnóstico real y saneado de serialización del informe final tras autoplay
+- Archivos tocados:
   - `app/career.py`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

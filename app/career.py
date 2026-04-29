@@ -18,7 +18,7 @@ from statistics import StatisticsError, mean
 from typing import Any, Iterable
 
 import pandas as pd
-from flask import Blueprint, jsonify, make_response, request, session
+from flask import Blueprint, current_app, jsonify, make_response, request, session
 from werkzeug.exceptions import BadRequest, NotFound
 
 from .services.career_session_service import (
@@ -2190,6 +2190,36 @@ def _json_error(message: str, status: int):
     return jsonify({"error": message}), status
 
 
+def _safe_json_value(value: Any) -> Any:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, (date, datetime, pd.Timestamp)):
+        try:
+            return value.isoformat()
+        except Exception:
+            return str(value)
+    if isinstance(value, dict):
+        return {str(key): _safe_json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_safe_json_value(item) for item in value]
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    if hasattr(value, "item"):
+        try:
+            return _safe_json_value(value.item())
+        except Exception:
+            pass
+    try:
+        return float(value)
+    except (TypeError, ValueError, OverflowError):
+        return str(value)
+
+
 def _ensure_session_defaults(session: dict[str, Any]) -> None:
     turns_list = session.get("turns") or []
     turns_total = (
@@ -3004,6 +3034,16 @@ def session_report(session_id: str):
         status_code = exc.code if hasattr(exc, "code") else 400
         return _json_error(message, status_code)
 
+    current_app.logger.info(
+        "career.report.start session_id=%s include_series=%s bench=%s turns_closed=%s turns_total=%s closed=%s",
+        session_id,
+        include_series,
+        bench_ticker,
+        len(session.get("completed_turns") or []),
+        len(session.get("turns") or []),
+        bool(session.get("closed")),
+    )
+
     try:
         report_payload, _ = _generate_report_payload(
             session,
@@ -3014,20 +3054,61 @@ def session_report(session_id: str):
             start_iso,
             end_iso,
         )
+        current_app.logger.info(
+            "career.report.payload_ready session_id=%s include_series=%s portfolio_points=%s bench_points=%s warnings=%s",
+            session_id,
+            include_series,
+            len((report_payload.get("portfolio_equity") or {}).get("series") or []),
+            len((report_payload.get("benchmark") or {}).get("series") or []),
+            len(report_payload.get("warnings") or []),
+        )
     except (BadRequest, NoHistoricalDataError) as exc:
         message = getattr(exc, "description", None) or getattr(exc, "message", str(exc))
         status_code = (
             exc.code if isinstance(exc, BadRequest) and hasattr(exc, "code") else 400
         )
+        current_app.logger.warning(
+            "career.report.domain_error session_id=%s include_series=%s status=%s error=%s",
+            session_id,
+            include_series,
+            status_code,
+            message,
+        )
         return _json_error(message, status_code)
     except Exception as exc:
+        current_app.logger.exception(
+            "career.report.unexpected_error session_id=%s include_series=%s bench=%s",
+            session_id,
+            include_series,
+            bench_ticker,
+        )
         return _json_error(
             f"No se pudo generar el informe final de la sesión: {str(exc)}",
             500,
         )
 
     report_payload["benchmark"]["ticker"] = bench_ticker
-    return jsonify(report_payload), 200
+    safe_payload = _safe_json_value(report_payload)
+
+    try:
+        response = jsonify(safe_payload)
+        current_app.logger.info(
+            "career.report.success session_id=%s include_series=%s",
+            session_id,
+            include_series,
+        )
+        return response, 200
+    except Exception as exc:
+        current_app.logger.exception(
+            "career.report.jsonify_error session_id=%s include_series=%s bench=%s",
+            session_id,
+            include_series,
+            bench_ticker,
+        )
+        return _json_error(
+            f"No se pudo serializar el informe final de la sesión: {str(exc)}",
+            500,
+        )
 
 
 @career_bp.route("/ranking", methods=["POST"])

@@ -1372,3 +1372,144 @@ Tras `Simular todos los turnos`, el endpoint `GET /api/career/report/<session_id
 - crear carrera
 - simular turnos o cerrar algunos manualmente
 - comprobar que el flujo no se rompe y que no intenta mezclar estado con usuarios autenticados
+
+## Iteración 26 - Diagnóstico real y saneado de serialización del informe final tras autoplay
+
+### Objetivo
+Encontrar la causa exacta del 500 real en `GET /api/career/report/<session_id>` tras `Simular todos los turnos`, sin añadir funcionalidad nueva ni hacer refactor grande del motor.
+
+### Error observado en Render
+Tras la Iteración 25, el flujo seguía fallando en producción con:
+- `GET /api/career/report/car_5f23a8?bench=%5EGSPC&include_series=true -> 500`
+- toast rojo con el mismo endpoint
+- informe final visible pero incompleto:
+  - puntuación `— / 10`
+  - cards de Portfolio / Benchmark / Tracking vacías
+
+### Hipótesis investigadas
+Se revisaron explícitamente estas posibilidades:
+- error previo a resolver sesión por seguir leyendo del store antiguo
+- error específico de `include_series=true`
+- estado inconsistente tras autoplay completo
+- snapshot persistido incompleto en Postgres
+- payload excesivo por series históricas
+- error de benchmark
+- error de serialización JSON por tipos no seguros o valores no finitos
+- problema real de caché/memoria/store del servidor
+
+### Hallazgo técnico principal
+La resolución de sesión ya estaba priorizando Postgres correctamente en `report/series/session`, así que el foco dejó de estar en el acceso a la sesión.
+
+El punto más sospechoso y ahora instrumentado queda en el propio endpoint de informe:
+1. resolver sesión
+2. construir `report_payload` con métricas, warnings, turnos y, si procede, series
+3. serializar con `jsonify(report_payload)`
+
+Dado el síntoma observado, el problema ya no encaja bien con un fallo temprano de acceso a sesión, sino con un fallo en la fase final de construcción o serialización del payload, especialmente tras autoplay completo e `include_series=true`.
+
+### Causa raíz más probable tras el diagnóstico
+La hipótesis ahora más fuerte, respaldada por la estructura del código, es:
+- el endpoint genera un `report_payload` con datos mixtos procedentes de pandas, snapshots y métricas
+- tras autoplay completo pueden colarse valores no JSON-safe o no finitos (`NaN`, `inf`, `Timestamp`, tipos numpy/pandas o equivalentes)
+- el fallo se produciría al serializar o al dejar pasar esos valores hasta la respuesta final, especialmente cuando `include_series=true` amplía el payload
+
+Todavía no puedo afirmar el traceback exacto de Render porque no tengo acceso directo a esos logs desde aquí. Para no seguir corrigiendo a ciegas, esta iteración deja logging controlado y separa claramente:
+- fallo de dominio al generar el informe
+- fallo inesperado en generación del payload
+- fallo específico en serialización final (`jsonify`)
+
+### Si era o no un problema de caché/memoria/store
+Conclusión de esta iteración:
+- **no hay evidencia suficiente de que el 500 venga de caché o memoria del servidor como causa principal**
+- **tampoco encaja ya como causa principal una mala resolución de store/Postgres**, porque esa parte quedó corregida en la Iteración 25
+- la sospecha dominante pasa a ser **serialización o payload no seguro tras autoplay**, no limpieza de caché del store
+
+### Solución aplicada en esta iteración
+#### En `app/career.py`
+- se añadió `current_app` para logging controlado en servidor
+- se añadió `_safe_json_value(...)` para normalizar recursivamente el payload antes de `jsonify`
+- el saneado convierte o neutraliza valores problemáticos como:
+  - `NaN`
+  - `inf`
+  - `-inf`
+  - `Timestamp` / fechas no triviales
+  - tipos numpy/pandas con `.item()`
+  - estructuras anidadas mixtas
+- se añadió trazabilidad de fases en `GET /api/career/report/<session_id>`:
+  - `career.report.start`
+  - `career.report.payload_ready`
+  - `career.report.domain_error`
+  - `career.report.unexpected_error`
+  - `career.report.jsonify_error`
+  - `career.report.success`
+- se separó explícitamente:
+  - error al generar el informe
+  - error al serializar el informe
+
+### Qué permite confirmar esta instrumentación
+Con esta iteración, en Render ya debería quedar claro si el fallo real estaba:
+- antes de `_generate_report_payload(...)`
+- dentro de `_generate_report_payload(...)`
+- o exactamente en la serialización final del JSON
+
+Además, si el problema era un valor no serializable o no finito, el saneado debería evitar el 500 sin tocar la lógica del simulador.
+
+### Archivos tocados
+- `app/career.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- Revisión específica de:
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `app/static/app.js`
+  - `app/models.py`
+  - flujo de autoplay en `handleCareerAutoPlay()`
+  - flujo de cierre de turno en `POST /api/career/turn`
+  - endpoint `GET /api/career/report/<session_id>`
+  - endpoint `GET /api/career/series/<session_id>`
+- Validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Limitaciones de esta iteración
+- No tengo acceso real directo a logs de Render desde este entorno, así que no puedo pegar todavía el traceback real de producción.
+- La iteración deja el sistema listo para que el próximo intento en Render confirme el punto exacto de fallo con logs concluyentes.
+
+### Riesgos pendientes
+- Si el problema no era serialización sino cálculo interno de una métrica concreta, el logging nuevo debería revelarlo, pero aún falta confirmación desde Render.
+- Si Render estuviera fallando por volumen de payload únicamente, el saneado no sería suficiente por sí solo, aunque esta hipótesis ahora parece menos fuerte que la de serialización/tipos.
+
+### Qué probar ahora en Render
+#### Caso A - informe con series
+- usuario autenticado
+- crear carrera
+- usar `Simular todos los turnos`
+- generar informe con `include_series=true`
+- comprobar si desaparece el 500
+- si sigue fallando, revisar logs de Render buscando:
+  - `career.report.start`
+  - `career.report.payload_ready`
+  - `career.report.unexpected_error`
+  - `career.report.jsonify_error`
+
+#### Caso B - informe base sin series
+- mismo flujo, pero probar `include_series=false`
+- confirmar si el informe base responde bien
+- eso ayuda a decidir si el problema depende del tamaño/series o no
+
+#### Caso C - endpoint de series
+- probar `GET /api/career/series/<session_id>`
+- comprobar si series funciona por separado
+- si series funciona y report falla, el problema queda concentrado en la construcción/serialización del payload final del informe
+
+#### Caso D - sesión reanudada
+- recargar navegador
+- reanudar sesión persistida
+- generar informe final
+- confirmar que no hay 500
