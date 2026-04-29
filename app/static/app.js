@@ -1576,6 +1576,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const hasAnalisis = Boolean(document.getElementById("btn-enviar-propuesta"));
   const hasHistorial = Boolean(document.getElementById("his-tbody"));
   const hasCareer = Boolean(document.getElementById("career-app"));
+  const hasReadinessQuiz = Boolean(document.getElementById("readiness-quiz-app"));
 
   const hasBacktestModal = Boolean(document.getElementById("modalBacktest"));
   if (hasBacktestModal) {
@@ -1679,6 +1680,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (hasCareer) {
     initCareerPage();
   }
+  if (hasReadinessQuiz) {
+    initReadinessQuiz();
+  }
 });
 
 /* ============================================================================
@@ -1688,6 +1692,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 const CAREER_MAX_ASSETS = 10;
 const CAREER_STORAGE_KEY = "career:preferences";
 const CAREER_IDENTITY_KEY = "career:identity";
+const READINESS_STORAGE_KEY = "readiness:quiz";
 const CAREER_PALETTE = [
   "#1d4ed8",
   "#34d399",
@@ -1757,6 +1762,28 @@ function getCareerIdentity() {
   return "anon";
 }
 
+function loadReadinessLocalState() {
+  try {
+    const raw = localStorage.getItem(READINESS_STORAGE_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    return all?.[getCareerIdentity()] || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveReadinessLocalState(partial) {
+  try {
+    const raw = localStorage.getItem(READINESS_STORAGE_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    const identity = getCareerIdentity();
+    all[identity] = { ...(all[identity] || {}), ...(partial || {}) };
+    localStorage.setItem(READINESS_STORAGE_KEY, JSON.stringify(all));
+  } catch (err) {
+    console.warn("No se pudo guardar estado del test:", err);
+  }
+}
+
 function readAllCareerPrefs() {
   try {
     const raw = localStorage.getItem(CAREER_STORAGE_KEY);
@@ -1819,6 +1846,186 @@ function syncCareerIdentity() {
       localStorage.setItem(CAREER_IDENTITY_KEY, identity);
     } catch {}
   }
+}
+
+const readinessState = {
+  questions: [],
+  answers: [],
+  currentIndex: 0,
+  status: null,
+  submitted: false,
+  result: null,
+};
+
+async function fetchReadinessStatus() {
+  try {
+    const data = await jsonGet("/api/readiness/status");
+    readinessState.status = data;
+    if (!data.user_authenticated) {
+      const localState = loadReadinessLocalState();
+      if (typeof localState.passed === "boolean" && !data.passed) {
+        readinessState.status = { ...data, ...localState };
+      }
+    }
+    return readinessState.status;
+  } catch (err) {
+    console.warn("No se pudo cargar el estado del test:", err);
+    return null;
+  }
+}
+
+function renderReadinessStatus(status) {
+  const chip = document.getElementById("readiness-status-chip");
+  const stateEl = document.getElementById("readiness-current-state");
+  if (!chip || !stateEl || !status) return;
+  chip.textContent = status.passed ? "Aprobado" : "Pendiente";
+  chip.classList.toggle("is-passed", Boolean(status.passed));
+  chip.classList.toggle("is-pending", !status.passed);
+  stateEl.textContent = status.passed
+    ? "Puedes acceder al Modo Carrera"
+    : "Necesitas superar el test";
+}
+
+function renderReadinessProgress() {
+  const total = readinessState.questions.length || 1;
+  const current = Math.min(readinessState.currentIndex + 1, total);
+  const progressBar = document.getElementById("readiness-progress-bar");
+  const label = document.getElementById("readiness-progress-label");
+  if (progressBar) progressBar.style.width = `${(current / total) * 100}%`;
+  if (label) label.textContent = `Pregunta ${current} de ${total}`;
+}
+
+function renderReadinessQuestion() {
+  const question = readinessState.questions[readinessState.currentIndex];
+  if (!question) return;
+  const textEl = document.getElementById("readiness-question-text");
+  const topicEl = document.getElementById("readiness-topic-badge");
+  const optionsEl = document.getElementById("readiness-options");
+  const feedbackEl = document.getElementById("readiness-feedback");
+  const nextBtn = document.getElementById("readiness-next-btn");
+  if (textEl) textEl.textContent = question.prompt;
+  if (topicEl) topicEl.textContent = question.topic || "Preparación";
+  if (feedbackEl) {
+    feedbackEl.classList.add("hidden");
+    feedbackEl.innerHTML = "";
+  }
+  if (nextBtn) {
+    nextBtn.disabled = true;
+    nextBtn.textContent = readinessState.currentIndex === readinessState.questions.length - 1 ? "Ver resultado" : "Siguiente";
+  }
+  if (!optionsEl) return;
+
+  optionsEl.innerHTML = (question.options || [])
+    .map(
+      (option, index) => `
+        <button type="button" class="readiness-option" data-readiness-option="${index}">
+          <span class="readiness-option__index">${String.fromCharCode(65 + index)}</span>
+          <span>${option}</span>
+        </button>`
+    )
+    .join("");
+
+  optionsEl.querySelectorAll("[data-readiness-option]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (readinessState.submitted) return;
+      const selected = Number(btn.getAttribute("data-readiness-option"));
+      readinessState.answers[readinessState.currentIndex] = selected;
+      optionsEl.querySelectorAll(".readiness-option").forEach((item) => item.classList.remove("is-selected"));
+      btn.classList.add("is-selected");
+      if (feedbackEl) {
+        feedbackEl.classList.remove("hidden");
+        feedbackEl.innerHTML = `<strong>Respuesta seleccionada.</strong><p>${question.explanation || ""}</p>`;
+      }
+      if (nextBtn) nextBtn.disabled = false;
+    });
+  });
+
+  renderReadinessProgress();
+}
+
+function renderReadinessResult(payload) {
+  const resultEl = document.getElementById("readiness-result");
+  const questionCard = document.getElementById("readiness-question-card");
+  if (!resultEl || !questionCard) return;
+  questionCard.classList.add("hidden");
+  resultEl.classList.remove("hidden");
+  const approved = Boolean(payload?.passed);
+  const score = payload?.score ?? 0;
+  const total = payload?.total_questions ?? readinessState.questions.length;
+  resultEl.innerHTML = `
+    <div class="readiness-result__hero ${approved ? "is-passed" : "is-failed"}">
+      <p class="eyebrow">Resultado final</p>
+      <h3>${approved ? "Estás preparado para entrar al Modo Carrera." : "Todavía conviene repasar algunos conceptos antes de gestionar una simulación completa."}</h3>
+      <p class="readiness-result__score">${score}/${total}</p>
+      <p class="muted">Puntuación mínima requerida: ${payload?.pass_score ?? 7}/${total}</p>
+    </div>
+    <div class="readiness-result__actions">
+      <button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir test</button>
+      ${approved ? '<a class="btn btn-primary" href="/modo-carrera">Ir al Modo Carrera</a>' : '<a class="btn btn-ghost" href="#">Seguir repasando</a>'}
+    </div>
+    <div class="readiness-result__review">
+      ${(payload?.results || [])
+        .map(
+          (item, idx) => `
+            <article class="readiness-review-item ${item.correct ? "is-correct" : "is-wrong"}">
+              <strong>Pregunta ${idx + 1}</strong>
+              <p>${item.prompt}</p>
+              <p class="muted">${item.explanation || ""}</p>
+            </article>`
+        )
+        .join("")}
+    </div>`;
+  document.getElementById("readiness-repeat-result")?.addEventListener("click", restartReadinessQuiz);
+}
+
+async function submitReadinessQuiz() {
+  const payload = await jsonPost("/api/readiness/submit", {
+    answers: readinessState.answers,
+  });
+  readinessState.submitted = true;
+  readinessState.result = payload;
+  if (!payload.user_authenticated) {
+    saveReadinessLocalState({
+      passed: payload.passed,
+      score: payload.score,
+      total_questions: payload.total_questions,
+      passed_at: new Date().toISOString(),
+    });
+  }
+  readinessState.status = payload;
+  renderReadinessStatus(payload);
+  renderReadinessResult(payload);
+}
+
+function restartReadinessQuiz() {
+  readinessState.answers = [];
+  readinessState.currentIndex = 0;
+  readinessState.submitted = false;
+  readinessState.result = null;
+  document.getElementById("readiness-result")?.classList.add("hidden");
+  document.getElementById("readiness-question-card")?.classList.remove("hidden");
+  renderReadinessQuestion();
+}
+
+async function initReadinessQuiz() {
+  const app = document.getElementById("readiness-quiz-app");
+  if (!app) return;
+  const [status, questionsData] = await Promise.all([
+    fetchReadinessStatus(),
+    jsonGet("/api/readiness/questions"),
+  ]);
+  readinessState.questions = questionsData?.questions || [];
+  if (status) renderReadinessStatus(status);
+  document.getElementById("readiness-restart-btn")?.addEventListener("click", restartReadinessQuiz);
+  document.getElementById("readiness-next-btn")?.addEventListener("click", async () => {
+    if (readinessState.currentIndex >= readinessState.questions.length - 1) {
+      await submitReadinessQuiz();
+      return;
+    }
+    readinessState.currentIndex += 1;
+    renderReadinessQuestion();
+  });
+  renderReadinessQuestion();
 }
 
 function initCareerPage() {

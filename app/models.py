@@ -69,3 +69,15 @@ class CareerTurn(BaseModel):
 
     class Meta:
         indexes = ((('career_session', 'turn_index'), True),)
+
+
+class ReadinessQuizResult(BaseModel):
+    id = AutoField()
+    user = ForeignKeyField(User, backref="readiness_results", on_delete="CASCADE", unique=True)
+    passed = BooleanField(default=False)
+    score = IntegerField(default=0)
+    total_questions = IntegerField(default=0)
+    passed_at = DateTimeField(null=True)
+    answers_json = TextField(null=True)
+    created_at = DateTimeField(default=datetime.utcnow, index=True)
+    updated_at = DateTimeField(default=datetime.utcnow, index=True)

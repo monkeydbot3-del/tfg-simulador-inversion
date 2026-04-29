@@ -314,10 +314,27 @@
 
 ## 2026-04-29
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `b19f5ca`
 - Título: Iteración 28, mejora visual del layout de sesiones guardadas en modo carrera
 - Archivos tocados:
   - `app/templates/career.html`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-04-29
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 29, evaluación de preparación antes del modo carrera
+- Archivos tocados:
+  - `app/models.py`
+  - `app/__init__.py`
+  - `app/routes.py`
+  - `app/auth.py`
+  - `app/templates/aprende.html`
+  - `app/templates/career.html`
+  - `app/templates/base.html`
+  - `app/static/app.js`
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

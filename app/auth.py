@@ -55,8 +55,11 @@ def login_submit():
         flash("Credenciales no válidas.", "error")
         return redirect(url_for("auth.login_page"))
 
+    previous_guest_readiness = session.get("readiness_guest")
     session.clear()
     session["user_id"] = user.id
+    if previous_guest_readiness and not previous_guest_readiness.get("passed"):
+        session["readiness_guest_last_attempt"] = previous_guest_readiness
     flash("Has iniciado sesión correctamente.", "success")
     return redirect(url_for("main.home"))
 

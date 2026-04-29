@@ -104,10 +104,61 @@
       <li>Revisa periódicamente las métricas clave (<abbr title="Tasa de crecimiento anual compuesto">CAGR</abbr>, volatilidad, drawdown) para ajustar tu plan.</li>
     </ul>
     <p class="muted">*Este contenido es educativo y no constituye asesoramiento financiero personalizado.*</p>
-    <div class="cta-center">
+  </div>
+</section>
 
-      
+<section class="edu-section">
+  <div class="card card--elevated readiness-card" id="readiness-quiz-app"
+       data-pass-score="{{ readiness_pass_score }}"
+       data-total-questions="{{ readiness_total_questions }}"
+       data-initial-passed="{{ 'true' if readiness_status.passed else 'false' }}">
+    <div class="readiness-card__hero">
+      <div>
+        <p class="eyebrow">Evaluación de preparación</p>
+        <h2>Comprueba si estás preparado</h2>
+        <p class="muted">
+          Antes de entrar al Modo Carrera, comprueba que entiendes los conceptos básicos de inversión, el papel del benchmark y cómo interpretar la simulación.
+        </p>
+      </div>
+      <div class="readiness-status-chip {{ 'is-passed' if readiness_status.passed else 'is-pending' }}" id="readiness-status-chip">
+        {% if readiness_status.passed %}Aprobado{% else %}Pendiente{% endif %}
+      </div>
     </div>
+
+    <div class="readiness-summary" id="readiness-summary">
+      <div class="readiness-summary__metric">
+        <span class="muted">Puntuación mínima</span>
+        <strong>{{ readiness_pass_score }}/{{ readiness_total_questions }}</strong>
+      </div>
+      <div class="readiness-summary__metric">
+        <span class="muted">Estado actual</span>
+        <strong id="readiness-current-state">{% if readiness_status.passed %}Puedes acceder al Modo Carrera{% else %}Necesitas superar el test{% endif %}</strong>
+      </div>
+      <div class="readiness-summary__metric">
+        <span class="muted">Persistencia</span>
+        <strong>{% if readiness_status.user_authenticated %}Se guarda en tu cuenta{% else %}Se mantiene en esta sesión{% endif %}</strong>
+      </div>
+    </div>
+
+    <div class="readiness-progress" aria-hidden="true">
+      <div class="readiness-progress__bar"><span id="readiness-progress-bar"></span></div>
+      <p id="readiness-progress-label" class="muted">Pregunta 1 de {{ readiness_total_questions }}</p>
+    </div>
+
+    <div class="readiness-question-card" id="readiness-question-card">
+      <div class="readiness-question-card__head">
+        <span class="career-subtle-badge" id="readiness-topic-badge">Conceptos básicos</span>
+        <h3 id="readiness-question-text">Cargando evaluación…</h3>
+      </div>
+      <div class="readiness-options" id="readiness-options"></div>
+      <div class="readiness-feedback hidden" id="readiness-feedback"></div>
+      <div class="readiness-actions">
+        <button type="button" class="btn btn-secondary" id="readiness-restart-btn">Repetir test</button>
+        <button type="button" class="btn btn-primary" id="readiness-next-btn" disabled>Siguiente</button>
+      </div>
+    </div>
+
+    <div class="readiness-result hidden" id="readiness-result"></div>
   </div>
 </section>
 {% endblock %}

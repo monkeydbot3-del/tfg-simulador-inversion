@@ -1747,3 +1747,152 @@ No era un problema de lógica ni de datos, sino de composición del layout inici
 - que `Crear sesión` y `Reanudar última sesión` quedan agrupados y bien colocados
 - que `Tus sesiones` puede crecer sin arrastrar la otra columna
 - que en móvil o ancho estrecho el bloque vuelve a una sola columna sin romperse
+
+## Iteración 29 - Evaluación de preparación antes del Modo Carrera
+
+### Objetivo
+Convertir la pestaña `Aprender` en una experiencia interactiva con un tipo test dinámico y usarlo como requisito previo para acceder al `Modo Carrera`.
+
+### Contexto
+La aplicación ya disponía de:
+- contenido educativo básico en `Aprender`
+- usuarios autenticados y modo invitado
+- historial y persistencia de carrera
+- informe final del modo carrera ya validado en Render
+
+La necesidad de producto era añadir una comprobación mínima de comprensión antes de dejar al usuario entrar en una simulación más compleja por turnos.
+
+### Cómo funciona el test
+La funcionalidad se presenta dentro de `Aprender` como bloque destacado de onboarding educativo:
+- sección: `Comprueba si estás preparado`
+- formato dinámico: una pregunta cada vez
+- 4 opciones por pregunta
+- progreso visible
+- explicación breve tras responder
+- botón para avanzar
+- resultado final con estado aprobado/no aprobado
+- botón para repetir
+- acceso directo a `Modo Carrera` si aprueba
+
+### Banco inicial de preguntas
+Se ha creado un banco inicial de **10 preguntas** sobre:
+- riesgo vs rentabilidad
+- diversificación
+- benchmark
+- volatilidad
+- DCA
+- drawdown
+- diferencia entre simulación e inversión real
+- decisiones por turnos en modo carrera
+- lectura de Portfolio / Benchmark / Tracking
+- ventajas de usuario autenticado frente a invitado
+
+### Puntuación mínima
+- total: **10 preguntas**
+- aprobado: **7/10**
+- umbral: **70%**
+
+### Persistencia del aprobado
+#### Usuario autenticado
+Se añadió persistencia real en base de datos mediante el modelo:
+- `ReadinessQuizResult`
+
+Guarda:
+- usuario
+- si ha aprobado
+- puntuación
+- total de preguntas
+- fecha de aprobado
+- detalle de respuestas serializado
+
+Esto evita depender de `localStorage` como fuente principal en usuarios registrados y mantiene el aprobado entre logout/login.
+
+#### Invitado
+Para invitado se usa una solución ligera:
+- estado en `session` de Flask (`readiness_guest`)
+- refuerzo visual/local auxiliar con almacenamiento namespaced en `localStorage`
+
+La separación por identidad se mantiene reutilizando la distinción `user:<id>` / `guest` / `anon`.
+
+### Cómo se bloquea Modo Carrera
+El acceso se bloquea de forma elegante en `GET /modo-carrera`:
+- si no ha aprobado, la página muestra una card de bloqueo previa
+- esa card explica por qué hay que hacer la evaluación
+- ofrece CTA directo a `Aprender` para completar el test
+- no se carga la interfaz interactiva de carrera hasta aprobar
+
+Así se evita que el usuario entre en una experiencia avanzada sin pasar antes por el bloque formativo.
+
+### Endpoints añadidos o modificados
+#### Nuevos endpoints
+- `GET /api/readiness/status`
+- `GET /api/readiness/questions`
+- `POST /api/readiness/submit`
+
+#### Rutas modificadas
+- `GET /aprende`
+  - ahora inyecta estado inicial del quiz
+- `GET /modo-carrera`
+  - ahora aplica gate visual según estado de aprobado
+
+### UX aplicada
+#### En `Aprender`
+- card destacada de evaluación
+- progreso tipo `Pregunta X de 10`
+- feedback inmediato tras elegir respuesta
+- revisión final con mini explicación por pregunta
+- tono motivacional según aprobado o suspenso
+
+#### En `Modo Carrera`
+- pantalla previa de bloqueo elegante
+- CTA claro a `Aprender`
+- no se rompe el flujo responsive
+
+### Cambios aplicados
+#### Backend
+- nuevo modelo `ReadinessQuizResult`
+- creación automática de tabla en `app/__init__.py`
+- banco inicial de preguntas en backend
+- cálculo de score y persistencia del resultado
+- helpers para estado de readiness por usuario o invitado
+
+#### Frontend
+- nueva experiencia dinámica del quiz en `Aprender`
+- render de pregunta a pregunta
+- barra de progreso
+- feedback y resultado final
+- persistencia ligera local para invitado
+- gate visual en `Modo Carrera`
+
+### Archivos tocados
+- `app/models.py`
+- `app/__init__.py`
+- `app/routes.py`
+- `app/auth.py`
+- `app/templates/aprende.html`
+- `app/templates/career.html`
+- `app/templates/base.html`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones previstas
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- inspección funcional de estos casos:
+  - usuario autenticado sin test: bloqueado con CTA a `Aprender`
+  - usuario autenticado suspende: no desbloquea, puede repetir
+  - usuario autenticado aprueba: se guarda y desbloquea `Modo Carrera`
+  - logout/login: el aprobado persiste
+  - invitado: puede aprobar sin mezclarse con usuario autenticado
+  - responsive: test y gate usables en móvil
+
+### Riesgos pendientes
+- El banco inicial de preguntas es suficiente para esta fase, pero puede ampliarse o rotarse en una iteración futura.
+- Para invitado se usa persistencia ligera y no fuerte, lo cual es aceptable para este caso pero no debe confundirse con seguridad equivalente a usuario autenticado.
+- Podría merecer la pena en el futuro añadir más señales visuales de progreso longitudinal o repaso temático, pero no es necesario para cerrar esta iteración.
+
+### Siguientes pasos recomendados
+- validar en Render los casos A-F definidos por el usuario
+- observar si la tasa de aprobado/suspenso sugiere ajustar dificultad o microcopy
+- valorar en una iteración posterior una pequeña rotación de preguntas o agrupación temática sin convertirlo en una gamificación pesada

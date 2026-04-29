@@ -10,7 +10,7 @@ from flask import Flask
 from .auth import auth_bp
 from .career import career_bp
 from .db import close_db, connect_db, init_db
-from .models import AnalysisHistory, CareerSession, CareerSessionLink, CareerTurn, User
+from .models import AnalysisHistory, CareerSession, CareerSessionLink, CareerTurn, ReadinessQuizResult, User
 from .routes import bp as main_bp
 
 
@@ -33,7 +33,7 @@ def create_app() -> Flask:
 
     with database:
         database.create_tables(
-            [User, AnalysisHistory, CareerSessionLink, CareerSession, CareerTurn],
+            [User, AnalysisHistory, CareerSessionLink, CareerSession, CareerTurn, ReadinessQuizResult],
             safe=True,
         )
 

@@ -30,6 +30,9 @@
       <a class="nav-link {% if active == 'aprende' %}active{% endif %}" href="{{ url_for('main.aprende_page') }}">Aprender</a>
       <a class="nav-link {% if active == 'historial' %}active{% endif %}" href="{{ url_for('main.historial_page') }}">Historial</a>
       <a class="nav-link {% if active == 'career' %}active{% endif %}" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
+      {% if not session.get('user_id') and not session.get('guest') %}
+      <span class="badge badge-soft">Inicia sesión o entra como invitado</span>
+      {% endif %}
       {% if _user_id or _is_guest %}
       {% if _is_guest %}
       <span class="badge badge-soft">Modo invitado</span>

@@ -1250,6 +1250,43 @@ mark.hl {
   gap: 24px;
 }
 
+.career-gate-section {
+  margin-bottom: 24px;
+}
+
+.career-gate-card {
+  display: grid;
+  gap: 18px;
+}
+
+.career-gate-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.career-gate-status.is-blocked {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.career-gate-status.is-passed {
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.career-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .career-setup-shell {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
@@ -1709,6 +1746,202 @@ mark.hl {
   font-size: 0.88rem;
 }
 
+.readiness-card {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.readiness-card__hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.readiness-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.readiness-status-chip.is-passed {
+  background: #ecfdf3;
+  color: #166534;
+}
+
+.readiness-status-chip.is-pending {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.readiness-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.readiness-summary__metric {
+  background: #f8faf6;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.readiness-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.readiness-progress__bar {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.readiness-progress__bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #668a4c, #8fb26d);
+  border-radius: 999px;
+  transition: width 0.2s ease;
+}
+
+.readiness-question-card,
+.readiness-result {
+  background: #f8faf6;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.readiness-question-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.readiness-question-card__head h3 {
+  margin: 0;
+}
+
+.readiness-options {
+  display: grid;
+  gap: 12px;
+}
+
+.readiness-option {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.readiness-option:hover {
+  border-color: rgba(102, 138, 76, 0.4);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.readiness-option.is-selected {
+  border-color: rgba(102, 138, 76, 0.52);
+  background: #f2f7ed;
+}
+
+.readiness-option__index {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(102, 138, 76, 0.12);
+  color: var(--color-dark);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.readiness-feedback {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.readiness-feedback p {
+  margin: 6px 0 0;
+}
+
+.readiness-actions,
+.readiness-result__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.readiness-result__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.readiness-result__hero.is-passed .readiness-result__score {
+  color: #166534;
+}
+
+.readiness-result__hero.is-failed .readiness-result__score {
+  color: #9a3412;
+}
+
+.readiness-result__score {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  margin: 0;
+}
+
+.readiness-result__review {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.readiness-review-item {
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.readiness-review-item.is-correct {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.readiness-review-item.is-wrong {
+  border-color: rgba(249, 115, 22, 0.28);
+}
+
 #modalBacktest .kv {
   list-style: none;
   padding: 0;
@@ -1781,6 +2014,10 @@ mark.hl {
     max-height: none;
     overflow: visible;
   }
+
+  .readiness-card__hero {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1810,6 +2047,13 @@ mark.hl {
 
   .career-setup-actions-card {
     padding: 14px;
+  }
+
+  .readiness-actions,
+  .readiness-result__actions,
+  .career-gate-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .actions-row__left {

@@ -17,6 +17,26 @@
   <span class="badge badge-soft">Modo estratégico</span>
 </section>
 
+{% if readiness_gate_blocked %}
+<section class="career-gate-section">
+  <div class="card card--elevated career-gate-card">
+    <div>
+      <p class="eyebrow">Acceso previo</p>
+      <h2>Antes de entrar al Modo Carrera, completa la evaluación de preparación</h2>
+      <p class="muted">
+        Queremos que llegues a la simulación con una base mínima clara sobre riesgo, benchmark, diversificación, DCA y lectura del informe final.
+      </p>
+    </div>
+    <div class="career-gate-status {{ 'is-passed' if readiness_status.passed else 'is-blocked' }}">
+      {% if readiness_status.passed %}Acceso disponible{% else %}Acceso bloqueado hasta aprobar{% endif %}
+    </div>
+    <div class="career-gate-actions">
+      <a class="btn btn-primary" href="{{ url_for('main.aprende_page') }}#readiness-quiz-app">Ir a Aprender y hacer el test</a>
+      <a class="btn btn-secondary" href="{{ url_for('main.home') }}">Volver al inicio</a>
+    </div>
+  </div>
+</section>
+{% else %}
 <section class="career-overview-strip">
   <article class="info-strip__item">
     <strong>Sesiones históricas</strong>
@@ -579,13 +599,9 @@
   </section>
 
 </div>
-
-
+{% endif %}
 
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-
-
-
 
 {% endblock %}
 

@@ -22,10 +22,146 @@ import pandas as pd
 import yfinance as yf
 
 from .services.auth_service import get_user_by_id
+from .models import ReadinessQuizResult
 from .services.history_service import list_analysis_for_user, save_analysis_for_user
 
 
 bp = Blueprint("main", __name__)
+
+READINESS_PASS_SCORE = 7
+READINESS_TOTAL_QUESTIONS = 10
+READINESS_QUIZ_QUESTIONS = [
+    {
+        "id": "risk_return",
+        "prompt": "¿Qué suele ocurrir cuando una inversión ofrece potencial de rentabilidad más alto?",
+        "options": [
+            "Normalmente también implica más riesgo.",
+            "Garantiza beneficios sin caídas.",
+            "Siempre bate al benchmark.",
+            "Reduce automáticamente la volatilidad.",
+        ],
+        "correctIndex": 0,
+        "explanation": "Mayor rentabilidad esperada suele venir acompañada de mayor incertidumbre y oscilación.",
+        "topic": "riesgo-rentabilidad",
+    },
+    {
+        "id": "diversification",
+        "prompt": "¿Cuál es el principal objetivo de diversificar una cartera?",
+        "options": [
+            "Reducir el impacto de un único activo o sector.",
+            "Eliminar por completo el riesgo.",
+            "Duplicar siempre la rentabilidad.",
+            "Evitar comparar con un benchmark.",
+        ],
+        "correctIndex": 0,
+        "explanation": "Diversificar ayuda a no depender demasiado de una sola posición, aunque no elimina todo el riesgo.",
+        "topic": "diversificación",
+    },
+    {
+        "id": "benchmark",
+        "prompt": "En esta aplicación, ¿para qué sirve el benchmark?",
+        "options": [
+            "Para comparar el comportamiento de tu cartera frente a una referencia.",
+            "Para fijar automáticamente el precio de compra.",
+            "Para ocultar la volatilidad del portfolio.",
+            "Para guardar sesiones en el historial.",
+        ],
+        "correctIndex": 0,
+        "explanation": "El benchmark permite ver si tu cartera lo hace mejor, peor o parecido a una referencia de mercado.",
+        "topic": "benchmark",
+    },
+    {
+        "id": "volatility",
+        "prompt": "¿Qué describe mejor la volatilidad?",
+        "options": [
+            "La intensidad con la que el valor de una inversión sube y baja en el tiempo.",
+            "El capital inicial invertido.",
+            "La rentabilidad acumulada garantizada.",
+            "La cantidad de turnos del modo carrera.",
+        ],
+        "correctIndex": 0,
+        "explanation": "La volatilidad mide la variabilidad de los precios o rendimientos, no si algo es bueno o malo por sí solo.",
+        "topic": "volatilidad",
+    },
+    {
+        "id": "dca",
+        "prompt": "¿Qué representa DCA o inversión periódica en la app?",
+        "options": [
+            "Aportar cantidades periódicas para repartir el punto de entrada en el tiempo.",
+            "Comprar solo cuando el benchmark cae.",
+            "Una técnica para eliminar drawdowns.",
+            "Un modo de exportar el informe final.",
+        ],
+        "correctIndex": 0,
+        "explanation": "DCA reparte las compras en el tiempo y puede suavizar el riesgo de entrar todo en un solo punto.",
+        "topic": "dca",
+    },
+    {
+        "id": "drawdown",
+        "prompt": "¿Qué indica un drawdown en el informe final?",
+        "options": [
+            "La caída desde un máximo previo hasta un mínimo posterior.",
+            "La rentabilidad anual compuesta exacta.",
+            "El número de operaciones realizadas.",
+            "El peso del benchmark en la cartera.",
+        ],
+        "correctIndex": 0,
+        "explanation": "El drawdown ayuda a entender cuánto llegó a retroceder una estrategia desde su mejor punto anterior.",
+        "topic": "drawdown",
+    },
+    {
+        "id": "simulation_vs_real",
+        "prompt": "¿Qué diferencia clave existe entre esta app y una inversión real?",
+        "options": [
+            "La app simula escenarios con datos históricos y no ejecuta operaciones reales.",
+            "La app garantiza resultados futuros.",
+            "La app elimina los riesgos de mercado.",
+            "La app obliga a comprar acciones reales al cerrar un turno.",
+        ],
+        "correctIndex": 0,
+        "explanation": "La herramienta es educativa: compara escenarios y decisiones, pero no invierte dinero real.",
+        "topic": "simulación",
+    },
+    {
+        "id": "career_turns",
+        "prompt": "¿Qué implica tomar decisiones por turnos en el Modo Carrera?",
+        "options": [
+            "Ajustar la cartera en distintos tramos históricos y observar cómo evoluciona.",
+            "Repetir siempre la misma asignación sin contexto.",
+            "Ignorar los eventos y el benchmark.",
+            "Bloquear el historial del usuario.",
+        ],
+        "correctIndex": 0,
+        "explanation": "El Modo Carrera divide el periodo en fases para que tomes decisiones y veas su impacto acumulado.",
+        "topic": "modo-carrera",
+    },
+    {
+        "id": "final_report",
+        "prompt": "En el informe final, ¿qué comparan Portfolio, Benchmark y Tracking?",
+        "options": [
+            "El resultado de tu cartera, la referencia de mercado y la diferencia entre ambos.",
+            "Tres formas distintas de guardar la sesión.",
+            "El capital inicial, el capital final y el correo del usuario.",
+            "La teoría, el historial y el login.",
+        ],
+        "correctIndex": 0,
+        "explanation": "Portfolio resume tu estrategia, Benchmark la referencia y Tracking cómo te separas de ella.",
+        "topic": "informe-final",
+    },
+    {
+        "id": "auth_history",
+        "prompt": "¿Qué ventaja principal tiene usar una cuenta autenticada frente al modo invitado?",
+        "options": [
+            "Conservar historial y progreso, incluido el acceso al Modo Carrera, entre sesiones.",
+            "Eliminar automáticamente la volatilidad.",
+            "Obtener una rentabilidad mejor en el informe.",
+            "Acceder a precios futuros reales.",
+        ],
+        "correctIndex": 0,
+        "explanation": "La autenticación permite persistir historial, sesiones de carrera y el aprobado del test entre accesos.",
+        "topic": "usuarios-autenticados",
+    },
+]
 
 
 # ----------------------
@@ -69,9 +205,58 @@ def historial_page():
     return render_template("historial.html", active="historial", nav_mode="practice")
 
 
+def _current_user_id() -> int | None:
+    raw = session.get("user_id")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_guest_user() -> bool:
+    return bool(session.get("guest")) and not bool(session.get("user_id"))
+
+
+def _readiness_status_payload() -> dict:
+    current_user_id = _current_user_id()
+    if current_user_id:
+        record = ReadinessQuizResult.select().where(ReadinessQuizResult.user == current_user_id).first()
+        passed = bool(record.passed) if record else False
+        return {
+            "passed": passed,
+            "score": record.score if record else 0,
+            "total_questions": record.total_questions if record else READINESS_TOTAL_QUESTIONS,
+            "pass_score": READINESS_PASS_SCORE,
+            "storage": "server",
+            "user_authenticated": True,
+            "guest": False,
+            "passed_at": record.passed_at.isoformat() + "Z" if record and record.passed_at else None,
+        }
+
+    guest_payload = session.get("readiness_guest") or {}
+    passed = bool(guest_payload.get("passed"))
+    return {
+        "passed": passed,
+        "score": int(guest_payload.get("score") or 0),
+        "total_questions": int(guest_payload.get("total_questions") or READINESS_TOTAL_QUESTIONS),
+        "pass_score": READINESS_PASS_SCORE,
+        "storage": "session",
+        "user_authenticated": False,
+        "guest": _is_guest_user(),
+        "passed_at": guest_payload.get("passed_at"),
+    }
+
+
 @bp.get("/aprende")
 def aprende_page():
-    return render_template("aprende.html", active="aprende", nav_mode="practice")
+    return render_template(
+        "aprende.html",
+        active="aprende",
+        nav_mode="practice",
+        readiness_status=_readiness_status_payload(),
+        readiness_pass_score=READINESS_PASS_SCORE,
+        readiness_total_questions=READINESS_TOTAL_QUESTIONS,
+    )
 
 
 @bp.get("/manual")
@@ -81,7 +266,126 @@ def manual_page():
 
 @bp.get("/modo-carrera")
 def career_page():
-    return render_template("career.html", active="career", nav_mode="career")
+    readiness_status = _readiness_status_payload()
+    return render_template(
+        "career.html",
+        active="career",
+        nav_mode="career",
+        readiness_status=readiness_status,
+        readiness_gate_blocked=not readiness_status.get("passed"),
+    )
+
+
+@bp.get("/api/readiness/status")
+def readiness_status_api():
+    payload = _readiness_status_payload()
+    payload["required_score"] = READINESS_PASS_SCORE
+    payload["total_questions_default"] = READINESS_TOTAL_QUESTIONS
+    return jsonify(payload)
+
+
+@bp.get("/api/readiness/questions")
+def readiness_questions_api():
+    questions = [
+        {
+            "id": item["id"],
+            "prompt": item["prompt"],
+            "options": item["options"],
+            "explanation": item["explanation"],
+            "topic": item["topic"],
+        }
+        for item in READINESS_QUIZ_QUESTIONS
+    ]
+    return jsonify(
+        {
+            "questions": questions,
+            "pass_score": READINESS_PASS_SCORE,
+            "total_questions": len(questions),
+        }
+    )
+
+
+@bp.post("/api/readiness/submit")
+def readiness_submit_api():
+    payload = request.get_json(silent=True) or {}
+    answers = payload.get("answers") or []
+    if not isinstance(answers, list):
+        return jsonify({"error": "El formato de respuestas no es válido."}), 400
+
+    if len(answers) != len(READINESS_QUIZ_QUESTIONS):
+        return jsonify({"error": "Debes responder todas las preguntas del test."}), 400
+
+    score = 0
+    result_items = []
+    for question, given in zip(READINESS_QUIZ_QUESTIONS, answers):
+        try:
+            selected_index = int(given)
+        except (TypeError, ValueError):
+            selected_index = -1
+        is_correct = selected_index == int(question["correctIndex"])
+        if is_correct:
+            score += 1
+        result_items.append(
+            {
+                "id": question["id"],
+                "prompt": question["prompt"],
+                "selectedIndex": selected_index,
+                "correctIndex": int(question["correctIndex"]),
+                "correct": is_correct,
+                "explanation": question["explanation"],
+                "topic": question["topic"],
+            }
+        )
+
+    passed = score >= READINESS_PASS_SCORE
+    current_user_id = _current_user_id()
+    passed_at = datetime.utcnow() if passed else None
+
+    if current_user_id:
+        record, created = ReadinessQuizResult.get_or_create(
+            user=current_user_id,
+            defaults={
+                "passed": passed,
+                "score": score,
+                "total_questions": len(READINESS_QUIZ_QUESTIONS),
+                "passed_at": passed_at,
+                "answers_json": json.dumps(result_items, ensure_ascii=False),
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            },
+        )
+        if not created:
+            record.passed = passed
+            record.score = score
+            record.total_questions = len(READINESS_QUIZ_QUESTIONS)
+            record.passed_at = passed_at
+            record.answers_json = json.dumps(result_items, ensure_ascii=False)
+            record.updated_at = datetime.utcnow()
+            record.save()
+        storage = "server"
+    else:
+        session["readiness_guest"] = {
+            "passed": passed,
+            "score": score,
+            "total_questions": len(READINESS_QUIZ_QUESTIONS),
+            "passed_at": passed_at.isoformat() + "Z" if passed_at else None,
+        }
+        session.modified = True
+        storage = "session"
+
+    return jsonify(
+        {
+            "passed": passed,
+            "score": score,
+            "total_questions": len(READINESS_QUIZ_QUESTIONS),
+            "pass_score": READINESS_PASS_SCORE,
+            "results": result_items,
+            "storage": storage,
+            "can_access_career": passed,
+            "user_authenticated": bool(current_user_id),
+            "guest": _is_guest_user(),
+        }
+    )
 
 
 # ----------------------
