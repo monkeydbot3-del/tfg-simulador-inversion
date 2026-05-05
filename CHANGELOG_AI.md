@@ -362,3 +362,14 @@
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-05
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 32, modal visual de puntuación para el readiness quiz
+- Archivos tocados:
+  - `app/templates/aprende.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

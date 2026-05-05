@@ -2196,3 +2196,164 @@ Se añadieron y ajustaron estilos para:
 - validar en Render la percepción real del resultado aprobado y del suspenso con usuarios distintos
 - observar si conviene destacar todavía más el estado persistido cuando un usuario autenticado ya aprobó antes
 - si se quiere seguir puliendo el producto, una siguiente iteración pequeña podría mejorar el estado inicial de `Aprender` cuando el usuario ya tiene el readiness aprobado
+
+## Iteración 32 - Modal visual de puntuación para el readiness quiz
+
+### Objetivo
+Dar más protagonismo al momento final del readiness quiz convirtiendo el resultado en un modal visual centrado, más llamativo y claramente orientado a la acción.
+
+### Enfoque aplicado
+Se mantuvo intacta toda la base funcional previa:
+- scoring por `questionId` y `optionId`
+- aleatorización de preguntas y respuestas
+- persistencia del aprobado
+- gate de `Modo Carrera`
+- compatibilidad entre invitado y autenticado
+
+La mejora se centró en la presentación final:
+- mostrar un modal grande y claro al terminar el recorrido
+- adaptar el mensaje según la puntuación exacta
+- hacer que las acciones siguientes sean muy visibles
+- conservar la revisión ya útil, pero relegándola a un segundo nivel tras el impacto inicial del resultado
+
+### Estructura del nuevo modal
+#### En `app/templates/aprende.html`
+Se añadió una estructura dedicada de modal:
+- overlay de fondo
+- diálogo centrado
+- botón de cierre
+- contenedor dinámico para el contenido final del resultado
+
+#### En `app/static/app.js`
+Se añadió la lógica de presentación:
+- `getReadinessScoreMessage(score, total, passed)`
+- `openReadinessResultModal(contentHtml)`
+- `closeReadinessResultModal()`
+
+El modal muestra de forma protagonista:
+- score grande (`8/10`, `10/10`, etc.)
+- estado visible (`Desbloqueado`, `Casi listo`, `Pendiente`)
+- comentario principal según nota
+- bloque resumen con estado, umbral y orientación
+- botones de acción claros y muy visibles
+
+### Lógica de mensajes por puntuación
+Se implementó una variación directa del mensaje según nota:
+- `10/10`
+  - excelente, dominio total
+- `9/10`
+  - muy buen resultado, claramente preparado
+- `8/10`
+  - base sólida, con matices por afinar
+- `7/10`
+  - aprobado con recomendación de repaso ligero
+- `5–6/10`
+  - cerca del desbloqueo, conviene repetir tras repasar
+- `0–4/10`
+  - aún no preparado, se recomienda rehacer el recorrido con calma
+
+El tono se mantiene motivador, sin humillar al usuario cuando suspende.
+
+### CTAs finales
+#### Si aprueba
+- `Ir al Modo Carrera`
+- `Repetir evaluación`
+- `Cerrar y ver revisión`
+
+#### Si suspende
+- `Repetir recorrido`
+- `Volver a Aprender`
+- `Ver qué repasar`
+
+La prioridad visual ahora está en la decisión inmediata que debe tomar el usuario tras recibir la nota.
+
+### Revisión de respuestas
+La revisión no se elimina.
+
+Nuevo comportamiento:
+- el modal resume de forma potente el resultado final
+- la revisión completa sigue quedando renderizada en la propia página debajo del flujo
+- desde el modal se puede:
+  - cerrarlo manualmente
+  - o saltar directamente a la revisión con CTA específico (`Cerrar y ver revisión` / `Ver qué repasar`)
+
+Así el usuario recibe primero una resolución clara y después, si quiere, profundiza en aciertos y errores.
+
+### Cambios visuales en `app/static/estilos.css`
+Se añadieron estilos para:
+- overlay del modal
+- diálogo centrado con sombra fuerte y bordes redondeados
+- insignia o emblema visual grande
+- score destacado de gran tamaño
+- estado tipo badge
+- grid de resumen dentro del modal
+- responsive del modal en móvil
+- bloqueo de scroll del body mientras el modal está abierto
+
+### Archivos tocados
+- `app/templates/aprende.html`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/templates/aprende.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `app/routes.py`
+  - lógica actual del readiness quiz
+  - flujo actual del resultado final
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe comprobarse en Render
+#### Caso A, 10/10
+- aparece el modal
+- se ve mensaje excelente
+- CTA a `Modo Carrera` visible
+
+#### Caso B, 8/10
+- aparece el modal
+- mensaje positivo intermedio
+- acceso permitido a `Modo Carrera`
+
+#### Caso C, 7/10
+- aparece el modal
+- sigue aprobado
+- mensaje con recomendación de repaso
+
+#### Caso D, 5/10 o 6/10
+- aparece el modal
+- mensaje de “cerca”
+- no desbloquea `Modo Carrera`
+- CTA claro para repetir
+
+#### Caso E, suspenso bajo
+- aparece el modal
+- mensaje orientado a repasar
+- CTA a `Volver a Aprender`
+
+#### Caso F, invitado
+- mismo comportamiento visual
+- sin mezcla con usuario autenticado
+
+#### Caso G, responsive
+- modal usable en móvil
+- score visible
+- botones visibles
+
+### Riesgos pendientes
+- La revisión sigue viviendo en la página y el resumen principal en el modal. Es una solución equilibrada, pero conviene validar en Render que el salto a revisión se perciba natural.
+- El cierre manual del modal deja visible la revisión previa, así que merece una comprobación visual final para asegurar que el flujo no resulte duplicado o extraño.
+
+### Siguientes pasos recomendados
+- validar en Render la sensación general del modal en aprobado alto, aprobado justo y suspenso
+- observar si compensa hacer persistente un pequeño estado visual de “ya aprobado” al volver a `Aprender`
+- si la experiencia gusta, una futura miniiteración podría pulir animación de entrada/salida del modal sin tocar lógica funcional

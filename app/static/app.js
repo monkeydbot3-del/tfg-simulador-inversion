@@ -1986,6 +1986,79 @@ function renderReadinessQuestion() {
   renderReadinessProgress();
 }
 
+function getReadinessScoreMessage(score, total, passed) {
+  if (score === total) {
+    return {
+      tone: "excellent",
+      status: "Desbloqueado",
+      headline: "Excelente. Has completado el recorrido con un dominio total de los conceptos clave.",
+      detail: "Tu base es sólida para entrar en el Modo Carrera y leer con criterio benchmark, riesgo y evolución de cartera.",
+      emblem: "🏅",
+    };
+  }
+  if (score === 9) {
+    return {
+      tone: "great",
+      status: "Desbloqueado",
+      headline: "Muy buen resultado. Estás claramente preparado para entrar al Modo Carrera.",
+      detail: "Has entendido casi todo el recorrido y solo te quedarían matices menores por afinar.",
+      emblem: "🏆",
+    };
+  }
+  if (score === 8) {
+    return {
+      tone: "strong",
+      status: "Desbloqueado",
+      headline: "Muy bien. Tienes una base sólida, aunque todavía puedes afinar algunos conceptos.",
+      detail: "Ya puedes acceder a Carrera, con margen para reforzar algunos puntos antes de hacer simulaciones más largas.",
+      emblem: "✓",
+    };
+  }
+  if (score === 7) {
+    return {
+      tone: "pass",
+      status: "Desbloqueado",
+      headline: "Has aprobado. Ya puedes acceder al Modo Carrera, aunque conviene repasar algunos puntos.",
+      detail: "Has alcanzado el umbral mínimo y ya puedes continuar, pero la revisión te ayudará a entrar con más seguridad.",
+      emblem: "↗",
+    };
+  }
+  if (score >= 5) {
+    return {
+      tone: "near",
+      status: "Casi listo",
+      headline: "Te has quedado cerca. Repasa algunos conceptos y vuelve a intentarlo.",
+      detail: "Estás relativamente próximo al desbloqueo. Un repaso corto debería ayudarte a cruzar el umbral.",
+      emblem: "◔",
+    };
+  }
+  return {
+    tone: passed ? "pass" : "retry",
+    status: passed ? "Desbloqueado" : "Pendiente",
+    headline: "Aún no estás preparado para desbloquear el Modo Carrera. Te recomendamos repasar el recorrido antes de repetir.",
+    detail: "No pasa nada, el objetivo es que entiendas bien la base antes de entrar en una simulación más exigente.",
+    emblem: "◌",
+  };
+}
+
+function closeReadinessResultModal() {
+  const modal = document.getElementById("readiness-result-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("has-readiness-modal-open");
+}
+
+function openReadinessResultModal(contentHtml) {
+  const modal = document.getElementById("readiness-result-modal");
+  const content = document.getElementById("readiness-result-modal-content");
+  if (!modal || !content) return;
+  content.innerHTML = contentHtml;
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("has-readiness-modal-open");
+}
+
 function renderReadinessResult(payload) {
   const resultEl = document.getElementById("readiness-result");
   const questionCard = document.getElementById("readiness-question-card");
@@ -2020,6 +2093,7 @@ function renderReadinessResult(payload) {
     "usuarios-autenticados": "Usuarios autenticados",
     "repaso-general": "Repaso general",
   };
+  const scoreMessage = getReadinessScoreMessage(score, total, approved);
 
   const reinforceTopics = Object.entries(topicSummary)
     .sort((a, b) => b[1] - a[1])
@@ -2052,47 +2126,8 @@ function renderReadinessResult(payload) {
     )
     .join("");
 
+  const reviewSectionId = "readiness-result-review";
   resultEl.innerHTML = `
-    <div class="readiness-result__hero ${approved ? "is-passed" : "is-failed"}">
-      <div class="readiness-result__status-badge">${approved ? "Modo Carrera desbloqueado" : "Desbloqueo pendiente"}</div>
-      <p class="eyebrow">Resultado final</p>
-      <h3>${approved ? "Has demostrado que entiendes los conceptos básicos y el funcionamiento de la simulación." : "Todavía no has desbloqueado el Modo Carrera, pero estás bastante cerca."}</h3>
-      <p class="readiness-result__score">${score}/${total}</p>
-      <p class="muted">${approved ? "Ya puedes entrar al Modo Carrera con una base suficiente para interpretar riesgo, benchmark y evolución de cartera." : `Te han faltado ${missingToPass} ${missingToPass === 1 ? "respuesta" : "respuestas"} para alcanzar el mínimo de ${passScore}/${total}.`}</p>
-    </div>
-
-    <div class="readiness-result__summary-grid">
-      <article class="readiness-summary-tile ${approved ? "is-passed" : "is-failed"}">
-        <span class="muted">Estado</span>
-        <strong>${approved ? "Acceso desbloqueado" : "Aún no desbloqueado"}</strong>
-      </article>
-      <article class="readiness-summary-tile">
-        <span class="muted">Puntuación</span>
-        <strong>${score} de ${total}</strong>
-      </article>
-      <article class="readiness-summary-tile">
-        <span class="muted">Umbral</span>
-        <strong>${passScore} aciertos</strong>
-      </article>
-    </div>
-
-    ${approved ? `
-      <div class="readiness-result__callout readiness-result__callout--success">
-        <strong>Ya estás listo para empezar.</strong>
-        <p>Puedes entrar al Modo Carrera ahora o repetir la evaluación si quieres afianzar conceptos antes de lanzarte.</p>
-      </div>
-    ` : `
-      <div class="readiness-result__callout readiness-result__callout--retry">
-        <strong>Repasa los bloques marcados y vuelve a intentarlo.</strong>
-        <p>La evaluación no busca castigarte, sino asegurarse de que entiendes bien qué mirar antes de tomar decisiones por turnos.</p>
-      </div>
-      ${reinforceTopics ? `<div class="readiness-topic-summary"><h4>Conceptos a reforzar</h4><div class="readiness-topic-summary__grid">${reinforceTopics}</div></div>` : ""}
-    `}
-
-    <div class="readiness-result__actions">
-      ${approved ? '<a class="btn btn-primary" href="/modo-carrera">Entrar al Modo Carrera</a><button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir evaluación</button><a class="btn btn-ghost" href="/aprende">Repasar conceptos</a>' : '<button type="button" class="btn btn-primary" id="readiness-repeat-result">Repasar y repetir</button><a class="btn btn-secondary" href="/aprende">Volver a Aprender</a>'}
-    </div>
-
     <div class="readiness-result__review-wrap">
       <div class="readiness-result__review-head">
         <div>
@@ -2101,9 +2136,63 @@ function renderReadinessResult(payload) {
         </div>
         <span class="muted">${results.length} preguntas revisadas</span>
       </div>
-      <div class="readiness-result__review">${reviewMarkup}</div>
+      <div class="readiness-result__review" id="${reviewSectionId}">${reviewMarkup}</div>
     </div>`;
-  document.getElementById("readiness-repeat-result")?.addEventListener("click", restartReadinessQuiz);
+
+  const modalHtml = `
+    <div class="readiness-score-modal readiness-score-modal--${approved ? "passed" : "failed"} readiness-score-modal--${scoreMessage.tone}">
+      <div class="readiness-score-modal__badge">${scoreMessage.emblem}</div>
+      <div class="readiness-score-modal__status">${scoreMessage.status}</div>
+      <div class="readiness-score-modal__score">${score}/${total}</div>
+      <p class="eyebrow">Resultado del recorrido</p>
+      <h2 id="readiness-modal-title">${scoreMessage.headline}</h2>
+      <p class="muted">${scoreMessage.detail}</p>
+      <div class="readiness-score-modal__meta">
+        <article>
+          <span class="muted">Estado</span>
+          <strong>${approved ? "Modo Carrera desbloqueado" : missingToPass <= 2 ? "Casi listo" : "Pendiente de desbloqueo"}</strong>
+        </article>
+        <article>
+          <span class="muted">Umbral</span>
+          <strong>${passScore}/${total}</strong>
+        </article>
+        <article>
+          <span class="muted">Comentario</span>
+          <strong>${approved ? "Acceso permitido" : missingToPass <= 2 ? `Te faltan ${missingToPass}` : "Conviene repasar"}</strong>
+        </article>
+      </div>
+      ${approved ? `
+        <div class="readiness-result__callout readiness-result__callout--success">
+          <strong>Modo Carrera desbloqueado.</strong>
+          <p>Ya puedes entrar directamente o revisar tus respuestas antes de empezar la simulación.</p>
+        </div>
+      ` : `
+        <div class="readiness-result__callout readiness-result__callout--retry">
+          <strong>${missingToPass <= 2 ? "Estás cerca del desbloqueo." : "Conviene reforzar la base antes de repetir."}</strong>
+          <p>${missingToPass <= 2 ? `Te han faltado ${missingToPass} ${missingToPass === 1 ? "respuesta" : "respuestas"} para aprobar.` : "El recorrido te deja una revisión clara para saber qué conceptos repasar primero."}</p>
+        </div>
+        ${reinforceTopics ? `<div class="readiness-topic-summary"><h4>Qué repasar primero</h4><div class="readiness-topic-summary__grid">${reinforceTopics}</div></div>` : ""}
+      `}
+      <div class="readiness-result__actions readiness-score-modal__actions">
+        ${approved
+          ? '<a class="btn btn-primary" href="/modo-carrera">Ir al Modo Carrera</a><button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir evaluación</button><a class="btn btn-ghost" href="#readiness-result-review" data-readiness-scroll-review>Cerrar y ver revisión</a>'
+          : '<button type="button" class="btn btn-primary" id="readiness-repeat-result">Repetir recorrido</button><a class="btn btn-secondary" href="/aprende">Volver a Aprender</a><button type="button" class="btn btn-ghost" data-readiness-scroll-review>Ver qué repasar</button>'}
+      </div>
+    </div>`;
+
+  openReadinessResultModal(modalHtml);
+
+  document.getElementById("readiness-repeat-result")?.addEventListener("click", async () => {
+    closeReadinessResultModal();
+    await restartReadinessQuiz();
+  });
+  document.querySelectorAll("[data-readiness-scroll-review]").forEach((btn) => {
+    btn.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      closeReadinessResultModal();
+      document.getElementById(reviewSectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 }
 
 async function submitReadinessQuiz() {
@@ -2166,6 +2255,11 @@ async function initReadinessQuiz() {
     }
     readinessState.currentIndex += 1;
     renderReadinessQuestion();
+  });
+
+  document.getElementById("readiness-modal-close")?.addEventListener("click", closeReadinessResultModal);
+  document.querySelectorAll("[data-readiness-modal-close]").forEach((node) => {
+    node.addEventListener("click", closeReadinessResultModal);
   });
 }
 
