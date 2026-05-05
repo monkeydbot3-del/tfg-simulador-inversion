@@ -1577,6 +1577,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const hasHistorial = Boolean(document.getElementById("his-tbody"));
   const hasCareer = Boolean(document.getElementById("career-app"));
   const hasReadinessQuiz = Boolean(document.getElementById("readiness-quiz-app"));
+  const hasHorizon = Boolean(document.getElementById("horizon-app"));
 
   const hasBacktestModal = Boolean(document.getElementById("modalBacktest"));
   if (hasBacktestModal) {
@@ -1683,6 +1684,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (hasReadinessQuiz) {
     initReadinessQuiz();
   }
+  if (hasHorizon) {
+    initHorizonPage();
+  }
 });
 
 /* ============================================================================
@@ -1693,6 +1697,7 @@ const CAREER_MAX_ASSETS = 10;
 const CAREER_STORAGE_KEY = "career:preferences";
 const CAREER_IDENTITY_KEY = "career:identity";
 const READINESS_STORAGE_KEY = "readiness:quiz";
+const HORIZON_STORAGE_KEY = "horizon:preferences";
 const CAREER_PALETTE = [
   "#1d4ed8",
   "#34d399",
@@ -1784,6 +1789,28 @@ function saveReadinessLocalState(partial) {
   }
 }
 
+function loadHorizonLocalState() {
+  try {
+    const raw = localStorage.getItem(HORIZON_STORAGE_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    return all?.[getCareerIdentity()] || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveHorizonLocalState(partial) {
+  try {
+    const raw = localStorage.getItem(HORIZON_STORAGE_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    const identity = getCareerIdentity();
+    all[identity] = { ...(all[identity] || {}), ...(partial || {}) };
+    localStorage.setItem(HORIZON_STORAGE_KEY, JSON.stringify(all));
+  } catch (err) {
+    console.warn("No se pudo guardar estado de Horizonte:", err);
+  }
+}
+
 function readAllCareerPrefs() {
   try {
     const raw = localStorage.getItem(CAREER_STORAGE_KEY);
@@ -1856,6 +1883,15 @@ const readinessState = {
   submitted: false,
   result: null,
   started: false,
+};
+
+const horizonState = {
+  acknowledged: false,
+  source: "manual",
+  sessionId: null,
+  assets: [],
+  chart: null,
+  result: null,
 };
 
 async function fetchReadinessStatus() {
@@ -2057,6 +2093,242 @@ function openReadinessResultModal(contentHtml) {
   modal.classList.remove("hidden");
   modal.setAttribute("aria-hidden", "false");
   document.body.classList.add("has-readiness-modal-open");
+}
+
+function fmtMoney(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return ND;
+  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
+}
+
+function renderHorizonWarnings(warnings = []) {
+  const container = document.getElementById("horizon-warnings-list");
+  if (!container) return;
+  if (!warnings.length) {
+    container.innerHTML = '<span class="status-chip status-chip--ok">Sin advertencias</span>';
+    return;
+  }
+  container.innerHTML = warnings.map((item) => `<span class="warning-chip">${item}</span>`).join("");
+}
+
+function renderHorizonMetrics(payload) {
+  const metrics = payload?.metrics || {};
+  const portfolioEl = document.getElementById("horizon-metric-portfolio");
+  const riskEl = document.getElementById("horizon-metric-risk");
+  const assetsEl = document.getElementById("horizon-metric-assets");
+  if (portfolioEl) {
+    portfolioEl.innerHTML = `
+      <li>Inicial: ${fmtMoney(metrics.initial_value)}</li>
+      <li>Final simulado: ${fmtMoney(metrics.projected_final_value)}</li>
+      <li>Retorno total: ${fmtPct((metrics.simulated_total_return || 0) * 100)}</li>
+    `;
+  }
+  if (riskEl) {
+    riskEl.innerHTML = `
+      <li>Horizonte: ${metrics.horizon_years || ND} años</li>
+      <li>Retorno anualizado: ${fmtPct((metrics.simulated_annualized_return || 0) * 100)}</li>
+      <li>Volatilidad simulada: ${fmtPct((metrics.simulated_volatility || 0) * 100)}</li>
+    `;
+  }
+  if (assetsEl) {
+    const assets = metrics.assets_used || [];
+    assetsEl.innerHTML = assets.length
+      ? assets.map((ticker) => `<li>${ticker}</li>`).join("")
+      : "<li>Sin activos válidos.</li>";
+  }
+}
+
+function renderHorizonChart(payload) {
+  if (typeof Chart === "undefined") return;
+  const canvas = document.getElementById("horizon-chart");
+  const empty = document.getElementById("horizon-empty");
+  if (!canvas) return;
+  const historical = payload?.historical_series || [];
+  const projected = payload?.projected_series || [];
+  const labels = [...historical.map((item) => item[0]), ...projected.map((item) => item[0])];
+  const historicalMap = new Map(historical.map((item) => [item[0], Number(item[1])]));
+  const projectedMap = new Map(projected.map((item) => [item[0], Number(item[1])]));
+  const historicalData = labels.map((label) => (historicalMap.has(label) ? historicalMap.get(label) : null));
+  const projectedData = labels.map((label) => (projectedMap.has(label) ? projectedMap.get(label) : null));
+  if (empty) empty.classList.add("hidden");
+
+  const datasets = [
+    {
+      label: "Datos históricos",
+      data: historicalData,
+      borderColor: CAREER_PALETTE[0],
+      backgroundColor: "transparent",
+      tension: 0.18,
+      spanGaps: true,
+    },
+    {
+      label: "Escenario experimental",
+      data: projectedData,
+      borderColor: CAREER_PALETTE[1],
+      backgroundColor: "transparent",
+      borderDash: [8, 5],
+      tension: 0.18,
+      spanGaps: true,
+    },
+  ];
+
+  if (!horizonState.chart) {
+    horizonState.chart = new Chart(canvas.getContext("2d"), {
+      type: "line",
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { display: true } },
+        scales: { y: { title: { display: true, text: "Base 100" } } },
+      },
+    });
+  } else {
+    horizonState.chart.data.labels = labels;
+    horizonState.chart.data.datasets = datasets;
+    horizonState.chart.update();
+  }
+}
+
+function setHorizonLoading(isLoading) {
+  const loading = document.getElementById("horizon-loading");
+  const btn = document.getElementById("horizon-generate-btn");
+  const rerun = document.getElementById("horizon-rerun-btn");
+  if (loading) loading.classList.toggle("hidden", !isLoading);
+  if (btn) btn.disabled = isLoading || !horizonState.acknowledged;
+  if (rerun) rerun.disabled = isLoading || !horizonState.acknowledged;
+}
+
+function openHorizonModal() {
+  const modal = document.getElementById("horizon-disclaimer-modal");
+  if (!modal) return;
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+  document.body.classList.add("has-readiness-modal-open");
+}
+
+function closeHorizonModal() {
+  const modal = document.getElementById("horizon-disclaimer-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("has-readiness-modal-open");
+}
+
+async function acceptHorizonDisclaimer() {
+  const data = await jsonPost("/api/horizon/disclaimer/accept", {});
+  horizonState.acknowledged = Boolean(data?.acknowledged || data?.ok);
+  saveHorizonLocalState({ acknowledged: horizonState.acknowledged });
+  closeHorizonModal();
+  setHorizonLoading(false);
+}
+
+async function preloadHorizonFromCareer() {
+  const params = new URLSearchParams(window.location.search);
+  const source = params.get("source");
+  const sessionId = params.get("session_id");
+  if (source !== "career" || !sessionId) return;
+  const data = await jsonGet(`/api/horizon/from-career/${encodeURIComponent(sessionId)}`);
+  horizonState.source = "career";
+  horizonState.sessionId = sessionId;
+  horizonState.assets = data.assets || [];
+  const tickersInput = document.getElementById("horizon-tickers");
+  const initialValueInput = document.getElementById("horizon-initial-value");
+  const banner = document.getElementById("horizon-source-banner");
+  if (tickersInput) tickersInput.value = (data.assets || []).map((item) => item.ticker).join(", ");
+  if (initialValueInput && data.initial_value) initialValueInput.value = Math.round(Number(data.initial_value));
+  if (banner) {
+    banner.innerHTML = `<strong>Origen: informe final de Carrera</strong><p class="muted">Se han precargado los tickers de la cartera final para construir una continuación ficticia sin validez predictiva.</p>`;
+  }
+}
+
+function collectHorizonPayload() {
+  const tickersValue = document.getElementById("horizon-tickers")?.value || "";
+  const horizon = Number(document.getElementById("horizon-years")?.value || 3);
+  const initialValue = Number(document.getElementById("horizon-initial-value")?.value || 10000);
+  const tickers = tickersValue
+    .split(",")
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+  return {
+    tickers,
+    horizon,
+    initial_value: initialValue,
+    source: horizonState.source || "manual",
+    session_id: horizonState.sessionId || null,
+  };
+}
+
+async function runHorizonSimulation() {
+  if (!horizonState.acknowledged) {
+    openHorizonModal();
+    return;
+  }
+  const payload = collectHorizonPayload();
+  setHorizonLoading(true);
+  try {
+    const data = await jsonPost("/api/horizon/simulate", payload);
+    horizonState.result = data;
+    renderHorizonChart(data);
+    renderHorizonMetrics(data);
+    renderHorizonWarnings(data.warnings || []);
+    const rerun = document.getElementById("horizon-rerun-btn");
+    if (rerun) rerun.disabled = false;
+    mostrarToastOk("Escenario experimental generado.");
+  } catch (err) {
+    renderHorizonWarnings(err?.warnings || []);
+    mostrarToastError(err?.message || "No se pudo generar el escenario experimental.");
+  } finally {
+    setHorizonLoading(false);
+  }
+}
+
+async function initHorizonPage() {
+  const app = document.getElementById("horizon-app");
+  if (!app) return;
+  const local = loadHorizonLocalState();
+  horizonState.acknowledged = String(app.dataset.acknowledged || "false") === "true" || Boolean(local.acknowledged);
+  horizonState.source = "manual";
+  horizonState.sessionId = null;
+
+  const acceptCheck = document.getElementById("horizon-disclaimer-check");
+  const acceptBtn = document.getElementById("horizon-disclaimer-accept");
+  const generateBtn = document.getElementById("horizon-generate-btn");
+  const rerunBtn = document.getElementById("horizon-rerun-btn");
+  const yearSelect = document.getElementById("horizon-years");
+
+  if (yearSelect && app.dataset.defaultHorizon) {
+    yearSelect.value = String(app.dataset.defaultHorizon);
+  }
+
+  if (acceptCheck && acceptBtn) {
+    acceptCheck.addEventListener("change", () => {
+      acceptBtn.disabled = !acceptCheck.checked;
+    });
+  }
+  if (acceptBtn) {
+    acceptBtn.addEventListener("click", () => {
+      acceptHorizonDisclaimer().catch((err) => mostrarToastError(err?.message || "No se pudo registrar el aviso."));
+    });
+  }
+  document.querySelectorAll("[data-horizon-modal-close]").forEach((el) => {
+    el.addEventListener("click", () => {
+      window.location.href = "/";
+    });
+  });
+  if (generateBtn) generateBtn.addEventListener("click", () => runHorizonSimulation());
+  if (rerunBtn) rerunBtn.addEventListener("click", () => runHorizonSimulation());
+
+  try {
+    await preloadHorizonFromCareer();
+  } catch (err) {
+    mostrarToastError(err?.message || "No se pudieron precargar los datos de Carrera.");
+  }
+
+  if (!horizonState.acknowledged) {
+    openHorizonModal();
+  }
+  setHorizonLoading(false);
 }
 
 function renderReadinessResult(payload) {
@@ -3357,6 +3629,7 @@ function renderCareerReportPanels(report, hasSeries) {
   if (Array.isArray(report.turns)) {
     updateCareerTurnsTable(report.turns);
   }
+  renderCareerHorizonCta();
 
   if (hasSeries && report.portfolio_equity?.series?.length) {
     renderCareerEquityChart(report, careerState.bench);
@@ -3489,6 +3762,18 @@ function renderCareerEquityChart(report, benchTicker) {
     };
     chart.update();
   }
+}
+
+function renderCareerHorizonCta() {
+  const card = document.getElementById("career-horizon-cta");
+  const link = document.getElementById("career-horizon-link");
+  if (!card || !link) return;
+  if (!careerState.sessionId || !careerState.report) {
+    card.classList.add("hidden");
+    return;
+  }
+  link.href = `/modo-horizonte?source=career&session_id=${encodeURIComponent(careerState.sessionId)}`;
+  card.classList.remove("hidden");
 }
 
 function exportCareerCsv(type) {

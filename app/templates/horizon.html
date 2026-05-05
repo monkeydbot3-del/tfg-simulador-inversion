@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Modo Horizonte{% endblock %}
+
+{% block content %}
+<section class="page-header page-header--with-badge">
+  <div>
+    <p class="eyebrow">Proyección experimental basada en patrones históricos</p>
+    <h1>Modo Horizonte</h1>
+    <p class="muted">Explora una continuación ficticia de cartera usando remezcla de rentabilidades históricas, siempre como simulación educativa y no predictiva.</p>
+  </div>
+  <span class="badge badge-soft">Experimental</span>
+</section>
+
+<section class="horizon-shell" id="horizon-app"
+  data-max-assets="{{ horizon_config.max_assets }}"
+  data-default-horizon="{{ horizon_config.default_horizon_years }}"
+  data-max-horizon="{{ horizon_config.max_horizon_years }}"
+  data-acknowledged="{{ 'true' if horizon_config.acknowledged else 'false' }}">
+  <article class="card card--elevated horizon-hero-card">
+    <div class="horizon-hero-card__head">
+      <div>
+        <p class="eyebrow">Modo experimental</p>
+        <h2>Genera un escenario hipotético de continuidad</h2>
+        <p class="muted">Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa.</p>
+      </div>
+      <div class="horizon-badge-stack">
+        <span class="badge badge-soft">No predictivo</span>
+        <span class="badge badge-soft">Uso educativo</span>
+        <span class="badge badge-soft">Experimental</span>
+      </div>
+    </div>
+    <div class="horizon-disclaimer-banner">
+      <strong>Esta simulación no predice el futuro.</strong>
+      <p>{{ horizon_config.disclaimer }}</p>
+    </div>
+  </article>
+
+  <section class="horizon-grid">
+    <article class="card card--elevated horizon-card horizon-card--controls">
+      <div class="card-section">
+        <div>
+          <span class="career-step-badge">Paso 1</span>
+          <h2>Configura el escenario experimental</h2>
+          <p class="muted">Selecciona activos, define un horizonte y genera una continuación ficticia basada en patrones históricos.</p>
+        </div>
+
+        <div class="horizon-source-banner" id="horizon-source-banner">
+          <strong>Entrada independiente</strong>
+          <p class="muted">Puedes construir un escenario manualmente o venir desde el informe final de Carrera.</p>
+        </div>
+
+        <div class="horizon-warning-card">
+          <p class="eyebrow">Aviso obligatorio</p>
+          <p>{{ horizon_config.disclaimer }}</p>
+        </div>
+
+        <div class="form-grid">
+          <label class="field field--wide">
+            <span>Tickers (máximo {{ horizon_config.max_assets }})</span>
+            <input id="horizon-tickers" type="text" placeholder="Ej: AAPL, MSFT, NVDA" />
+            <small class="muted">Separados por coma. Si vienes desde Carrera intentaremos precargarlos.</small>
+          </label>
+          <label class="field">
+            <span>Horizonte</span>
+            <select id="horizon-years">
+              <option value="1">1 año</option>
+              <option value="2">2 años</option>
+              <option value="3" selected>3 años</option>
+              <option value="4">4 años</option>
+              <option value="5">5 años</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Valor inicial (€)</span>
+            <input id="horizon-initial-value" type="number" min="1000" step="500" value="10000" />
+          </label>
+        </div>
+
+        <div class="horizon-actions">
+          <button type="button" class="btn btn-primary btn-large" id="horizon-generate-btn">Generar escenario experimental</button>
+          <button type="button" class="btn btn-secondary" id="horizon-rerun-btn" disabled>Generar otro escenario</button>
+        </div>
+
+        <div class="horizon-method-card">
+          <h3>Método en lenguaje claro</h3>
+          <p>{{ horizon_config.method_description }}</p>
+        </div>
+      </div>
+    </article>
+
+    <article class="card card--elevated horizon-card horizon-card--results">
+      <div class="card-section">
+        <div class="career-panel-head">
+          <div>
+            <span class="career-step-badge">Paso 2</span>
+            <h2>Resultado del escenario</h2>
+          </div>
+          <div class="horizon-label-group">
+            <span class="badge badge-soft">Datos históricos</span>
+            <span class="badge badge-soft">Escenario experimental</span>
+          </div>
+        </div>
+
+        <div class="horizon-disclaimer-inline">
+          <strong>No predictivo.</strong>
+          <p>{{ horizon_config.disclaimer }}</p>
+        </div>
+
+        <div class="chart-wrapper chart-wrapper--career horizon-chart-wrapper">
+          <div class="loading-surface loading-surface--inline hidden" id="horizon-loading" aria-live="polite">
+            <span class="global-loading-spinner" aria-hidden="true"></span>
+            <span>Generando escenario experimental...</span>
+          </div>
+          <canvas id="horizon-chart" aria-label="Datos históricos y escenario experimental"></canvas>
+          <p id="horizon-empty" class="empty empty--panel">Aún no has generado ningún escenario experimental.</p>
+        </div>
+
+        <div class="career-metrics horizon-metrics" id="horizon-metrics">
+          <div class="metric-card"><h4>Valor proyectado</h4><ul class="metric-list" id="horizon-metric-portfolio"><li>Genera un escenario para ver métricas.</li></ul></div>
+          <div class="metric-card"><h4>Riesgo simulado</h4><ul class="metric-list" id="horizon-metric-risk"><li>Se mostrará volatilidad experimental.</li></ul></div>
+          <div class="metric-card"><h4>Activos usados</h4><ul class="metric-list" id="horizon-metric-assets"><li>Se listarán los activos válidos incluidos.</li></ul></div>
+        </div>
+
+        <div class="career-warnings">
+          <h4>Advertencias y exclusiones</h4>
+          <div id="horizon-warnings-list" class="warning-chips"><span class="status-chip status-chip--ok">Sin advertencias todavía</span></div>
+        </div>
+      </div>
+    </article>
+  </section>
+</section>
+
+<div class="readiness-result-modal hidden" id="horizon-disclaimer-modal" aria-hidden="true">
+  <div class="readiness-result-modal__backdrop" data-horizon-modal-close></div>
+  <div class="readiness-result-modal__dialog horizon-disclaimer-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="horizon-disclaimer-title">
+    <h2 id="horizon-disclaimer-title">Antes de continuar: esto no es una predicción</h2>
+    <p>Modo Horizonte genera escenarios hipotéticos a partir de datos históricos. En inversión, los resultados pasados no garantizan resultados futuros. Esta función es educativa y demostrativa, y no debe usarse para tomar decisiones financieras reales.</p>
+    <label class="checkbox-inline horizon-disclaimer-checkbox">
+      <input type="checkbox" id="horizon-disclaimer-check" />
+      <span>Entiendo que esto es una simulación experimental sin validez predictiva.</span>
+    </label>
+    <div class="readiness-result__actions">
+      <button type="button" class="btn btn-primary" id="horizon-disclaimer-accept" disabled>Entrar en Modo Horizonte</button>
+      <a class="btn btn-secondary" href="{{ url_for('main.home') }}">Volver</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -32,6 +32,19 @@ bp = Blueprint("main", __name__)
 READINESS_PASS_SCORE = 7
 READINESS_TOTAL_QUESTIONS = 10
 READINESS_QUIZ_SESSION_KEY = "readiness_quiz_questions"
+HORIZON_MAX_ASSETS = 5
+HORIZON_DEFAULT_HORIZON_YEARS = 3
+HORIZON_MAX_HORIZON_YEARS = 5
+HORIZON_WARNING_KEY = "horizon_disclaimer_ack"
+HORIZON_DISCLAIMER_TEXT = (
+    "Esta simulación no predice el futuro. Se trata de una proyección experimental generada a partir de patrones históricos. "
+    "En inversión, los resultados pasados no garantizan resultados futuros. Esta herramienta tiene finalidad educativa y demostrativa, "
+    "no debe usarse para tomar decisiones financieras reales."
+)
+HORIZON_METHOD_DESCRIPTION = (
+    "Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. "
+    "No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa."
+)
 READINESS_QUIZ_QUESTIONS = [
     {
         "id": "risk_return",
@@ -305,6 +318,269 @@ def aprende_page():
 @bp.get("/manual")
 def manual_page():
     return render_template("manual.html", active="manual", nav_mode="manual")
+
+
+def _horizon_ack_key() -> str:
+    user_id = _current_user_id()
+    if user_id:
+        return f"user:{user_id}"
+    if _is_guest_user():
+        return "guest"
+    return "anon"
+
+
+def _horizon_acknowledged() -> bool:
+    payload = session.get(HORIZON_WARNING_KEY) or {}
+    if not isinstance(payload, dict):
+        return False
+    return bool(payload.get(_horizon_ack_key()))
+
+
+def _set_horizon_acknowledged() -> None:
+    payload = session.get(HORIZON_WARNING_KEY) or {}
+    if not isinstance(payload, dict):
+        payload = {}
+    payload[_horizon_ack_key()] = True
+    session[HORIZON_WARNING_KEY] = payload
+    session.modified = True
+
+
+def _normalize_horizon_weights(assets: list[dict]) -> list[dict]:
+    cleaned = []
+    total_weight = 0.0
+    for asset in assets:
+        ticker = str(asset.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        try:
+            weight = float(asset.get("weight") or 0)
+        except (TypeError, ValueError):
+            weight = 0.0
+        if weight < 0:
+            weight = 0.0
+        cleaned.append({"ticker": ticker, "weight": weight})
+        total_weight += weight
+
+    if not cleaned:
+        return []
+
+    if total_weight <= 0:
+        even_weight = round(1 / len(cleaned), 6)
+        return [{**asset, "weight": even_weight} for asset in cleaned]
+
+    return [{**asset, "weight": asset["weight"] / total_weight} for asset in cleaned]
+
+
+def _horizon_identity_payload() -> dict:
+    return {
+        "acknowledged": _horizon_acknowledged(),
+        "disclaimer": HORIZON_DISCLAIMER_TEXT,
+        "method_description": HORIZON_METHOD_DESCRIPTION,
+        "max_assets": HORIZON_MAX_ASSETS,
+        "default_horizon_years": HORIZON_DEFAULT_HORIZON_YEARS,
+        "max_horizon_years": HORIZON_MAX_HORIZON_YEARS,
+    }
+
+
+@bp.get("/modo-horizonte")
+def horizon_page():
+    return render_template(
+        "horizon.html",
+        active="horizon",
+        nav_mode="practice",
+        horizon_config=_horizon_identity_payload(),
+    )
+
+
+@bp.post("/api/horizon/disclaimer/accept")
+def horizon_accept_disclaimer_api():
+    _set_horizon_acknowledged()
+    return jsonify({"ok": True, **_horizon_identity_payload()})
+
+
+@bp.get("/api/horizon/from-career/<session_id>")
+def horizon_from_career_api(session_id: str):
+    from .career import _resolve_session_for_request
+
+    session_payload = _resolve_session_for_request(session_id)
+    if not session_payload:
+        return jsonify({"error": "No se pudo acceder a la sesión de carrera indicada."}), 404
+
+    portfolio = session_payload.get("portfolio") or {}
+    positions = portfolio.get("positions") or []
+    assets = []
+    for position in positions:
+        ticker = str(position.get("ticker") or "").strip().upper()
+        if not ticker or ticker == "CASH":
+            continue
+        try:
+            weight = float(position.get("weight") or 0)
+        except (TypeError, ValueError):
+            weight = 0.0
+        assets.append({"ticker": ticker, "weight": weight})
+
+    normalized_assets = _normalize_horizon_weights(assets)[:HORIZON_MAX_ASSETS]
+    final_value = portfolio.get("total_value") or portfolio.get("portfolio_value") or session_payload.get("capital") or 10000
+    try:
+        initial_value = float(final_value)
+    except (TypeError, ValueError):
+        initial_value = 10000.0
+
+    return jsonify(
+        {
+            "source": "career",
+            "session_id": session_id,
+            "assets": normalized_assets,
+            "initial_value": max(initial_value, 1000.0),
+            "disclaimer": HORIZON_DISCLAIMER_TEXT,
+            "method_description": HORIZON_METHOD_DESCRIPTION,
+        }
+    )
+
+
+@bp.post("/api/horizon/simulate")
+def horizon_simulate_api():
+    payload = request.get_json(silent=True) or {}
+    tickers_raw = payload.get("tickers")
+    assets_raw = payload.get("assets")
+    source = str(payload.get("source") or "manual").strip().lower() or "manual"
+    session_id = str(payload.get("session_id") or "").strip()
+
+    assets_input = []
+    if isinstance(assets_raw, list) and assets_raw:
+        assets_input = assets_raw
+    elif isinstance(tickers_raw, list):
+        assets_input = [{"ticker": item} for item in tickers_raw]
+
+    assets = _normalize_horizon_weights(assets_input)
+    if not assets:
+        return jsonify({"error": "Debes seleccionar al menos un activo válido para generar el escenario experimental."}), 400
+    if len(assets) > HORIZON_MAX_ASSETS:
+        return jsonify({"error": f"El modo Horizonte admite como máximo {HORIZON_MAX_ASSETS} activos en esta versión."}), 400
+
+    try:
+        horizon_years = int(payload.get("horizon") or HORIZON_DEFAULT_HORIZON_YEARS)
+    except (TypeError, ValueError):
+        horizon_years = 0
+    if horizon_years < 1 or horizon_years > HORIZON_MAX_HORIZON_YEARS:
+        return jsonify({"error": f"Selecciona un horizonte válido entre 1 y {HORIZON_MAX_HORIZON_YEARS} años."}), 400
+
+    try:
+        initial_value = float(payload.get("initial_value") or 10000)
+    except (TypeError, ValueError):
+        initial_value = 10000.0
+    if initial_value <= 0:
+        return jsonify({"error": "El valor inicial debe ser mayor que cero."}), 400
+
+    if source == "career" and session_id:
+        from .career import _resolve_session_for_request
+
+        if not _resolve_session_for_request(session_id):
+            return jsonify({"error": "No puedes usar una sesión de carrera ajena o inexistente como origen."}), 404
+
+    end_d = date.today()
+    start_d = end_d - timedelta(days=365 * 8)
+    warnings = []
+    valid_assets = []
+    monthly_returns = []
+
+    for asset in assets:
+        ticker = asset["ticker"]
+        try:
+            df = _download_history_df(ticker, start_d, end_d, include_actions=False)
+            adj = _series_with_date_index(_extract_series(df, "Adj Close", ticker)).dropna()
+        except Exception:
+            warnings.append(f"{ticker} se ha excluido porque no tiene datos históricos suficientes.")
+            continue
+        if adj.empty or len(adj) < 120:
+            warnings.append(f"{ticker} se ha excluido porque no dispone de un historial útil para esta simulación experimental.")
+            continue
+        monthly = adj.resample("M").last().pct_change().dropna()
+        if monthly.empty:
+            warnings.append(f"{ticker} se ha excluido porque no genera retornos mensuales suficientes.")
+            continue
+        valid_assets.append({"ticker": ticker, "weight": asset["weight"], "series": adj})
+        monthly_returns.append(monthly.rename(ticker))
+
+    if not valid_assets:
+        return jsonify({"error": "No hay datos históricos suficientes para construir el escenario experimental con los activos seleccionados.", "warnings": warnings}), 400
+
+    total_valid_weight = sum(item["weight"] for item in valid_assets) or 1.0
+    valid_assets = [{**item, "weight": item["weight"] / total_valid_weight} for item in valid_assets]
+
+    hist_length = min(260, max(90, horizon_years * 52))
+    hist_frames = []
+    for item in valid_assets:
+        series = item["series"].tail(hist_length)
+        values = pd.to_numeric(series, errors="coerce").dropna()
+        if values.empty:
+            continue
+        normalized = values / float(values.iloc[0]) * 100
+        hist_frames.append(normalized.rename(item["ticker"]))
+    hist_df = pd.concat(hist_frames, axis=1).dropna(how="all") if hist_frames else pd.DataFrame()
+    if hist_df.empty:
+        return jsonify({"error": "No se pudo construir la serie histórica base para el escenario experimental.", "warnings": warnings}), 400
+    hist_df = hist_df.fillna(method="ffill").dropna(how="any")
+    hist_weights = pd.Series({item["ticker"]: item["weight"] for item in valid_assets if item["ticker"] in hist_df.columns})
+    hist_weights = hist_weights / hist_weights.sum()
+    blended_hist = hist_df.mul(hist_weights, axis=1).sum(axis=1)
+
+    monthly_df = pd.concat(monthly_returns, axis=1).dropna(how="all")
+    monthly_df = monthly_df.fillna(method="ffill").dropna(how="any")
+    if monthly_df.empty:
+        return jsonify({"error": "No se pudieron combinar patrones mensuales suficientes para generar el escenario experimental.", "warnings": warnings}), 400
+
+    weights = pd.Series({item["ticker"]: item["weight"] for item in valid_assets})
+    available_cols = [col for col in monthly_df.columns if col in weights.index]
+    monthly_df = monthly_df[available_cols]
+    weights = weights[available_cols]
+    weights = weights / weights.sum()
+    blended_monthly = monthly_df.mul(weights, axis=1).sum(axis=1)
+    if blended_monthly.empty:
+        return jsonify({"error": "No hay patrones mensuales suficientes para proyectar el escenario experimental.", "warnings": warnings}), 400
+
+    future_months = horizon_years * 12
+    rng_seed = sum(sum(ord(ch) for ch in item["ticker"]) for item in valid_assets) + future_months + int(initial_value)
+    rng = random.Random(rng_seed)
+    sample_pool = blended_monthly.tolist()
+    simulated_returns = [sample_pool[rng.randrange(len(sample_pool))] for _ in range(future_months)]
+
+    future_dates = pd.date_range(start=date.today() + timedelta(days=30), periods=future_months, freq="M")
+    projected_base = [100.0]
+    projected_value = [float(initial_value)]
+    for ret in simulated_returns:
+        projected_base.append(projected_base[-1] * (1 + float(ret)))
+        projected_value.append(projected_value[-1] * (1 + float(ret)))
+
+    historical_series = [[idx.isoformat(), round(float(value), 4)] for idx, value in blended_hist.items()]
+    projected_series = [[future_dates[idx].date().isoformat(), round(float(projected_base[idx + 1]), 4)] for idx in range(future_months)]
+
+    final_value = projected_value[-1]
+    total_return = (final_value / initial_value) - 1 if initial_value else 0.0
+    annualized = (final_value / initial_value) ** (1 / horizon_years) - 1 if initial_value and horizon_years > 0 else 0.0
+    volatility = pd.Series(simulated_returns).std() * math.sqrt(12) if len(simulated_returns) > 1 else 0.0
+
+    return jsonify(
+        {
+            "disclaimer": HORIZON_DISCLAIMER_TEXT,
+            "historical_series": historical_series,
+            "projected_series": projected_series,
+            "metrics": {
+                "initial_value": round(float(initial_value), 2),
+                "projected_final_value": round(float(final_value), 2),
+                "simulated_total_return": round(float(total_return), 6),
+                "simulated_annualized_return": round(float(annualized), 6),
+                "simulated_volatility": round(float(volatility), 6),
+                "assets_used": [item["ticker"] for item in valid_assets],
+                "horizon_years": horizon_years,
+            },
+            "warnings": warnings,
+            "method_description": HORIZON_METHOD_DESCRIPTION,
+            "source": source,
+            "session_id": session_id or None,
+            "assets": [{"ticker": item["ticker"], "weight": round(float(item["weight"]), 6)} for item in valid_assets],
+        }
+    )
 
 
 @bp.get("/modo-carrera")

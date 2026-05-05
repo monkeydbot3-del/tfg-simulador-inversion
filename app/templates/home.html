@@ -44,6 +44,7 @@
     <div class="hero__actions">
       <a class="btn btn-primary btn-large" href="{{ url_for('main.inicio_alias') }}">Empezar en modo práctica</a>
       <a class="btn btn-secondary btn-large" href="{{ url_for('main.career_page') }}">Explorar modo carrera</a>
+      <a class="btn btn-ghost btn-large" href="{{ url_for('main.horizon_page') }}">Probar Modo Horizonte</a>
     </div>
   </div>
 
@@ -92,12 +93,12 @@
       </div>
     </a>
 
-    <a class="landing-item" href="{{ url_for('main.manual_page') }}">
-      <img src="{{ url_for('static', filename='img/manual-usuario.png') }}" alt="Manual de usuario" class="landing-icon">
+    <a class="landing-item" href="{{ url_for('main.horizon_page') }}">
+      <img src="{{ url_for('static', filename='img/manual-usuario.png') }}" alt="Modo Horizonte" class="landing-icon">
       <div class="landing-copy">
-        <h2>Manual de usuario</h2>
-        <p>Consulta el funcionamiento de cada pantalla y resuelve dudas antes de empezar.</p>
-        <span class="landing-btn">Abrir manual</span>
+        <h2>Modo Horizonte</h2>
+        <p>Explora una continuación futura hipotética basada en patrones históricos, solo con finalidad educativa.</p>
+        <span class="landing-btn">Abrir modo experimental</span>
       </div>
     </a>
   </div>

@@ -373,3 +373,19 @@
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-05
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 33, Modo Horizonte experimental con acceso independiente y entrada desde Carrera
+- Archivos tocados:
+  - `app/routes.py`
+  - `app/templates/horizon.html`
+  - `app/templates/base.html`
+  - `app/templates/home.html`
+  - `app/templates/career.html`
+  - `app/templates/aprende.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

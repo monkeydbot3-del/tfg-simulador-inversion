@@ -2357,3 +2357,163 @@ Se añadieron estilos para:
 - validar en Render la sensación general del modal en aprobado alto, aprobado justo y suspenso
 - observar si compensa hacer persistente un pequeño estado visual de “ya aprobado” al volver a `Aprender`
 - si la experiencia gusta, una futura miniiteración podría pulir animación de entrada/salida del modal sin tocar lógica funcional
+
+## Iteración 33 - Modo Horizonte experimental con disclaimers reforzados
+
+### Objetivo
+Se añade un nuevo modo llamado `Modo Horizonte`, con subtítulo `Proyección experimental basada en patrones históricos`, pensado como extensión demostrativa del producto y no como herramienta predictiva real.
+
+La intención académica es enseñar una posible evolución ficticia de una cartera usando remezcla de patrones históricos, dejando muy claro que no predice el futuro, que no sirve para decisiones reales de inversión y que los resultados pasados no garantizan resultados futuros.
+
+### Decisiones de producto
+- el nombre final usado es `Modo Horizonte`
+- se integra como acceso independiente desde navegación principal y home
+- se integra también desde el informe final de `Modo Carrera` mediante CTA `Continuar en Modo Horizonte`
+- el tono visual mantiene la línea SaaS/finanzas sobria ya presente en la app
+- se repite el disclaimer en entrada, hero, bloque de resultados y CTA desde carrera
+- no se introduce persistencia nueva compleja ni combinatoria pesada
+
+### Método implementado
+El método mostrado al usuario y aplicado en backend es explícitamente experimental:
+
+> “Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa.”
+
+A nivel técnico, la primera versión hace esto:
+- descarga un histórico acotado por activo
+- construye una serie histórica base normalizada para la visualización
+- calcula retornos mensuales por activo
+- combina esos retornos con pesos normalizados sencillos
+- genera una continuación futura ficticia muestreando retornos mensuales de ese pool histórico
+- devuelve histórico + tramo experimental + métricas simples
+
+No hay forecasting profesional, no hay optimización pesada y no hay promesa de validez predictiva.
+
+### Advertencias añadidas
+Texto obligatorio integrado en la funcionalidad:
+
+> “Esta simulación no predice el futuro. Se trata de una proyección experimental generada a partir de patrones históricos. En inversión, los resultados pasados no garantizan resultados futuros. Esta herramienta tiene finalidad educativa y demostrativa, no debe usarse para tomar decisiones financieras reales.”
+
+Ese aviso queda reflejado en:
+- modal obligatorio de entrada
+- hero / banner principal de `Modo Horizonte`
+- bloque de resultados junto al gráfico
+- CTA de entrada desde el informe final de `Modo Carrera`
+
+### Rutas y endpoints añadidos
+- `GET /modo-horizonte`
+- `POST /api/horizon/disclaimer/accept`
+- `POST /api/horizon/simulate`
+- `GET /api/horizon/from-career/<session_id>`
+
+### Integración con Modo Carrera
+En el informe final de carrera se añadió un bloque visible con CTA `Abrir Modo Horizonte`.
+
+El enlace abre:
+- `/modo-horizonte?source=career&session_id=<id>`
+
+Después, el frontend intenta precargar:
+- tickers de la cartera final
+- valor inicial aproximado desde el portfolio final
+
+La precarga se apoya en backend para validar ownership mediante la misma resolución de sesión ya endurecida en carrera. No depende de `localStorage` para autorizar acceso a sesiones ajenas.
+
+### Integración con Aprender
+Se añadió una sección breve en `Aprender` con el título:
+- `Modo Horizonte: escenarios experimentales`
+
+Refuerza:
+- que no predice el futuro
+- que la finalidad es educativa
+- que hay que distinguir simulación histórica de proyección experimental
+
+### Validaciones y límites incluidos
+- máximo 5 activos
+- horizonte entre 1 y 5 años
+- tickers vacíos filtrados
+- pesos normalizados de forma controlada
+- exclusión amable de activos sin datos suficientes
+- mensajes de error controlados en vez de 500 por casos esperables
+- warnings visibles si se descarta un ticker
+- coste acotado, sin combinaciones ni recalculado masivo del bloque teórico de carrera
+
+### Archivos tocados
+- `app/routes.py`
+- `app/templates/horizon.html`
+- `app/templates/base.html`
+- `app/templates/home.html`
+- `app/templates/career.html`
+- `app/templates/aprende.html`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/routes.py`
+  - `app/career.py`
+  - `app/models.py`
+  - `app/templates/home.html`
+  - `app/templates/career.html`
+  - `app/templates/base.html`
+  - `app/templates/aprende.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - endpoints y render del informe final de carrera
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe probarse en Render
+#### Caso A, acceso independiente
+- entrar en `/modo-horizonte`
+- aparece el modal obligatorio
+- no permite generar sin aceptar
+- tras aceptar, se puede generar escenario con 1 a 5 activos
+- disclaimer visible antes y después de generar
+
+#### Caso B, acceso desde Carrera
+- terminar una sesión
+- generar informe final
+- aparece el CTA `Continuar en Modo Horizonte`
+- abre `Modo Horizonte` con `session_id`
+- se precargan tickers y valor inicial si hay datos
+- el disclaimer sigue siendo visible y obligatorio si aún no se aceptó
+
+#### Caso C, ownership y aislamiento
+- usuario autenticado no puede cargar sesión ajena
+- invitado puede usar la pantalla, pero sin mezclar aceptación con usuario autenticado
+- la aceptación del modal se mantiene namespaced por identidad
+
+#### Caso D, errores controlados
+- ticker inválido
+- pocos datos históricos
+- más de 5 activos
+- horizonte inválido
+- comprobar que responde con mensaje amable y no con 500
+
+#### Caso E, responsive y performance
+- modal usable en móvil
+- cards y gráfico no rompen layout
+- caso de 5 activos y horizonte 5 años no debe disparar un cálculo pesado anómalo
+
+### Limitaciones explícitas
+- el escenario generado es ficticio y experimental
+- no es un modelo de forecasting profesional
+- no persiste simulaciones de Horizonte en base de datos en esta iteración
+- la generación usa muestreo simple de patrones mensuales, suficiente para MVP demostrativo pero no para análisis financiero real
+
+### Riesgos pendientes
+- conviene validar en Render si todos los tickers de cartera final exponen `weight` en todos los estados finales esperados de Carrera
+- merece revisión visual real el contraste entre tramo histórico y tramo experimental en móvil
+- puede ser conveniente una microiteración futura para añadir separador visual más explícito en la frontera histórico/futuro
+
+### Siguientes pasos recomendados
+- validar en Render el flujo completo desde home y desde informe final de carrera
+- comprobar casos reales de usuario autenticado, invitado y cambio de identidad
+- si la UX gusta, plantear una iteración pequeña para enriquecer la explicación metodológica o añadir exportación marcada con disclaimer fuerte
+- mantener explícito en toda futura evolución que `Modo Horizonte` no predice resultados futuros y no tiene validez como herramienta de asesoramiento financiero
