@@ -628,12 +628,14 @@ async function jsonPost(url, body) {
     if (!res.ok) {
       const msg =
         data?.errores?.join?.("; ") ||
+        data?.error ||
         data?.message ||
         `Error ${res.status}`;
       const error = new Error(msg);
       error.status = res.status;
       error.body = data;
       error.url = url;
+      error.warnings = data?.warnings || [];
       throw error;
     }
     return data;
