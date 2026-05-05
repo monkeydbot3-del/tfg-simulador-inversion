@@ -365,7 +365,7 @@
 
 ## 2026-05-05
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `2a2c511`
 - Título: Iteración 32, modal visual de puntuación para el readiness quiz
 - Archivos tocados:
   - `app/templates/aprende.html`
