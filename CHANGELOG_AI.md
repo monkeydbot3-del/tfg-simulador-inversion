@@ -341,7 +341,7 @@
 
 ## 2026-05-05
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `41d0323`
 - Título: Iteración 30, mejora interactiva del readiness quiz, gate visual y logout visible
 - Archivos tocados:
   - `app/routes.py`
