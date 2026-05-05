@@ -1896,3 +1896,169 @@ Así se evita que el usuario entre en una experiencia avanzada sin pasar antes p
 - validar en Render los casos A-F definidos por el usuario
 - observar si la tasa de aprobado/suspenso sugiere ajustar dificultad o microcopy
 - valorar en una iteración posterior una pequeña rotación de preguntas o agrupación temática sin convertirlo en una gamificación pesada
+
+## Iteración 30 - Mejora interactiva del readiness quiz, gate visual y logout visible
+
+### Problemas detectados
+Tras publicar la iteración 29 y probarla visual y funcionalmente, aparecieron cuatro problemas claros:
+- el gate de acceso a `Modo Carrera` era correcto a nivel funcional, pero demasiado plano visualmente
+- la respuesta correcta parecía quedar siempre en la opción A, lo que dañaba la credibilidad del quiz
+- la experiencia se sentía demasiado cercana a un examen clásico, no a un onboarding de producto
+- la home autenticada no mostraba de forma visible cómo cerrar sesión o cambiar de usuario
+
+### Enfoque elegido
+Se ha mantenido la base funcional ya aprobada, pero evolucionando la experiencia hacia un recorrido más de producto:
+- mantener persistencia real del aprobado para usuarios autenticados
+- mantener aislamiento entre autenticado, invitado y anónimo
+- convertir el quiz en un flujo guiado con introducción, recorrido final y resultado
+- mover la aleatorización de respuestas al backend por intento para no depender del orden visual ni de un índice fijo en frontend
+- reforzar la entrada a `Modo Carrera` con una card de acceso previo más elaborada y motivadora
+- hacer visible el estado de sesión en la home, con CTA directo para cerrar sesión o cambiar de usuario
+
+### Corrección del bug de respuestas siempre en A
+La causa real era que el backend exponía siempre las opciones en el orden original y el `correctIndex` seguía apuntando al índice 0.
+
+#### Solución aplicada en `app/routes.py`
+- se añadió `READINESS_QUIZ_SESSION_KEY`
+- se creó `_build_readiness_question_set()` para:
+  - transformar cada pregunta en opciones con `option.id`, `label` y flag `correct`
+  - mezclar aleatoriamente las respuestas de cada pregunta
+  - mezclar también el orden de las propias preguntas
+- se creó `_get_or_create_readiness_question_set(force_new=False)` para mantener estable el mismo intento dentro de la sesión
+- se añadió `_clear_readiness_question_set()` para regenerar el recorrido al reiniciar o tras enviar el intento
+- `GET /api/readiness/questions` ahora devuelve preguntas con opciones ya mezcladas y con ids estables, sin exponer `correctIndex`
+- `POST /api/readiness/submit` ya no recibe índices visuales, sino pares `{ questionId, optionId }`
+- la validación compara ids reales de opción, no posiciones A/B/C/D
+
+Resultado: la respuesta correcta ya no queda anclada a la A y el scoring no depende del orden visual.
+
+### Cómo se hizo el quiz más interactivo
+#### En `app/templates/aprende.html`
+La sección de readiness dejó de ser una card de test simple y pasó a un flujo más guiado:
+- hero más claro y más de producto
+- bloque de resumen con persistencia y estado
+- bloque de recorrido en 3 pasos:
+  - aprende lo esencial
+  - conecta la teoría con la app
+  - valida que estás listo
+- panel lateral de progreso con etapas visibles:
+  - introducción guiada
+  - ponte a prueba
+  - resultado final
+- card inicial de onboarding antes de la primera pregunta
+- preguntas con contexto temático, microcopy más guiado y CTA de inicio del recorrido
+
+#### En `app/static/app.js`
+- se añadió `readinessState.started`
+- se creó `setReadinessStage(stage)` para marcar visualmente la etapa activa/completada
+- el flujo ya no arranca directamente en pregunta 1, sino en una introducción guiada
+- cada pregunta muestra:
+  - badge de tema
+  - contexto del bloque
+  - pista breve de qué se está evaluando
+- el feedback tras marcar una opción ahora se presenta como validación del paso, no como simple examen plano
+- el resultado final revisa:
+  - puntuación
+  - estado aprobado/no aprobado
+  - la respuesta elegida
+  - la respuesta correcta si falló
+  - explicación breve por pregunta
+- `restartReadinessQuiz()` ahora fuerza regeneración del set mezclado mediante `GET /api/readiness/questions?restart=1`
+
+### Mejora visual del gate de Carrera
+#### En `app/templates/career.html`
+El bloqueo inicial se rehízo como una experiencia de acceso previo más elaborada:
+- nuevo titular más claro y motivador
+- explicación del porqué del requisito
+- bloque de desbloqueo en 3 pasos:
+  - aprende
+  - supera la evaluación
+  - accede a carrera
+- bloque de beneficios concretos:
+  - riesgo y diversificación
+  - benchmark e informe final
+  - funcionamiento del modo carrera
+- CTAs diferenciados:
+  - `Comenzar evaluación`
+  - `Ir a Aprender`
+  - `Volver al inicio`
+
+#### En `app/static/estilos.css`
+- nueva variante `career-gate-card--premium`
+- gradientes suaves y composición más cuidada
+- grid interior con panel de pasos y panel de beneficios
+- cards internas para dar sensación de producto más trabajado
+- responsive para que todo vuelva a una sola columna sin romperse
+
+### Logout visible en la home
+#### En `app/routes.py`
+- `home()` ahora inyecta `current_user` para poder mostrar nombre o email en la vista
+
+#### En `app/templates/home.html`
+Se añadió una banda visible de sesión en la parte superior del hero:
+- si hay usuario autenticado:
+  - muestra `Sesión iniciada`
+  - muestra `username` o `email`
+  - muestra el email como contexto secundario
+  - muestra botón visible para `Cambiar usuario`
+- si hay invitado:
+  - muestra `Modo invitado`
+  - explica que el progreso no se guarda en cuenta
+  - muestra botón para salir del modo invitado
+
+#### En `app/static/estilos.css`
+- nuevas clases:
+  - `session-banner`
+  - `session-banner__meta`
+  - `session-banner__actions`
+- adaptación responsive para móvil
+
+### Archivos tocados
+- `app/routes.py`
+- `app/templates/aprende.html`
+- `app/templates/career.html`
+- `app/templates/home.html`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/templates/aprende.html`
+  - `app/templates/career.html`
+  - `app/templates/base.html`
+  - `app/routes.py`
+  - `app/auth.py`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `app/models.py`
+  - endpoints del readiness quiz
+  - layout de home autenticada
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe comprobarse en Render
+- que al reiniciar o recargar el quiz la correcta no se mantiene siempre en A
+- que el scoring sigue siendo correcto aunque cambien orden de preguntas y respuestas
+- que el recorrido de `Aprender` se siente más guiado y menos como un examen plano
+- que el gate de `Modo Carrera` se ve más sólido y motivador
+- que un usuario aprobado entra normalmente y uno no aprobado sigue bloqueado
+- que la home autenticada muestra claramente el estado de sesión y el botón para cambiar de usuario
+- que invitado y autenticado siguen sin mezclar estado de readiness
+- que la experiencia responsive sigue bien en home, aprender y gate de carrera
+
+### Riesgos pendientes
+- La aleatorización queda estable por intento de sesión, que es lo correcto para validar respuestas; aun así conviene comprobar en Render un ciclo completo de reinicio y recarga para confirmar percepción de variedad suficiente.
+- El contenido del quiz sigue apoyándose en el mismo banco de 10 preguntas. La experiencia mejora mucho, pero en el futuro podría venir bien añadir más rotación o variantes de redacción.
+- No se han añadido tests automáticos del readiness flow, así que la comprobación final sigue siendo principalmente manual y en despliegue.
+
+### Siguientes pasos recomendados
+- validar en Render el flujo completo autenticado e invitado con varios reinicios del quiz
+- observar si compensa reducir el bloque final a 8 preguntas manteniendo 7/10 o si el formato actual ya se siente suficientemente ligero
+- si la UX gusta, considerar una iteración futura con mini ilustraciones o estados vacíos más ricos en la parte educativa sin tocar más backend

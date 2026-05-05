@@ -324,7 +324,7 @@
 
 ## 2026-04-29
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `73c9939`
 - Título: Iteración 29, evaluación de preparación antes del modo carrera
 - Archivos tocados:
   - `app/models.py`
@@ -334,6 +334,20 @@
   - `app/templates/aprende.html`
   - `app/templates/career.html`
   - `app/templates/base.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-05
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 30, mejora interactiva del readiness quiz, gate visual y logout visible
+- Archivos tocados:
+  - `app/routes.py`
+  - `app/templates/aprende.html`
+  - `app/templates/career.html`
+  - `app/templates/home.html`
   - `app/static/app.js`
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`

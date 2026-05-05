@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import math
+import random
 import unicodedata
 import uuid
 from datetime import date, datetime, timedelta
@@ -30,6 +31,7 @@ bp = Blueprint("main", __name__)
 
 READINESS_PASS_SCORE = 7
 READINESS_TOTAL_QUESTIONS = 10
+READINESS_QUIZ_SESSION_KEY = "readiness_quiz_questions"
 READINESS_QUIZ_QUESTIONS = [
     {
         "id": "risk_return",
@@ -171,7 +173,8 @@ READINESS_QUIZ_QUESTIONS = [
 def home():
     if not _current_user_id() and not session.get("guest"):
         return redirect(url_for("auth.login_page"))
-    return render_template("home.html", active="home", nav_mode="landing")
+    current_user = get_user_by_id(_current_user_id()) if _current_user_id() else None
+    return render_template("home.html", active="home", nav_mode="landing", current_user=current_user)
 
 
 @bp.get("/inicio")
@@ -215,6 +218,46 @@ def _current_user_id() -> int | None:
 
 def _is_guest_user() -> bool:
     return bool(session.get("guest")) and not bool(session.get("user_id"))
+
+
+def _build_readiness_question_set() -> list[dict]:
+    prepared = []
+    for item in READINESS_QUIZ_QUESTIONS:
+        options = []
+        for index, label in enumerate(item["options"]):
+            options.append(
+                {
+                    "id": f"{item['id']}:opt:{index}",
+                    "label": label,
+                    "correct": index == int(item["correctIndex"]),
+                }
+            )
+        random.shuffle(options)
+        prepared.append(
+            {
+                "id": item["id"],
+                "prompt": item["prompt"],
+                "options": options,
+                "explanation": item["explanation"],
+                "topic": item["topic"],
+            }
+        )
+    random.shuffle(prepared)
+    return prepared
+
+
+def _get_or_create_readiness_question_set(force_new: bool = False) -> list[dict]:
+    stored = session.get(READINESS_QUIZ_SESSION_KEY)
+    if force_new or not stored:
+        stored = _build_readiness_question_set()
+        session[READINESS_QUIZ_SESSION_KEY] = stored
+        session.modified = True
+    return stored
+
+
+def _clear_readiness_question_set() -> None:
+    session.pop(READINESS_QUIZ_SESSION_KEY, None)
+    session.modified = True
 
 
 def _readiness_status_payload() -> dict:
@@ -286,21 +329,31 @@ def readiness_status_api():
 
 @bp.get("/api/readiness/questions")
 def readiness_questions_api():
-    questions = [
-        {
-            "id": item["id"],
-            "prompt": item["prompt"],
-            "options": item["options"],
-            "explanation": item["explanation"],
-            "topic": item["topic"],
-        }
-        for item in READINESS_QUIZ_QUESTIONS
-    ]
+    restart = request.args.get("restart") in {"1", "true", "yes"}
+    questions = _get_or_create_readiness_question_set(force_new=restart)
+    public_questions = []
+    for index, item in enumerate(questions, start=1):
+        public_questions.append(
+            {
+                "id": item["id"],
+                "prompt": item["prompt"],
+                "options": [{"id": option["id"], "label": option["label"]} for option in item["options"]],
+                "explanation": item["explanation"],
+                "topic": item["topic"],
+                "step": index,
+                "contextTitle": "Conceptos básicos" if index <= 5 else "Cómo leer la simulación",
+                "contextHint": (
+                    "Piensa en riesgo, diversificación, benchmark y horizonte temporal."
+                    if index <= 5
+                    else "Relaciona cada respuesta con las pantallas, métricas y decisiones de la app."
+                ),
+            }
+        )
     return jsonify(
         {
-            "questions": questions,
+            "questions": public_questions,
             "pass_score": READINESS_PASS_SCORE,
-            "total_questions": len(questions),
+            "total_questions": len(public_questions),
         }
     )
 
@@ -312,25 +365,34 @@ def readiness_submit_api():
     if not isinstance(answers, list):
         return jsonify({"error": "El formato de respuestas no es válido."}), 400
 
-    if len(answers) != len(READINESS_QUIZ_QUESTIONS):
-        return jsonify({"error": "Debes responder todas las preguntas del test."}), 400
+    question_set = _get_or_create_readiness_question_set()
+    if len(answers) != len(question_set):
+        return jsonify({"error": "Debes responder todas las preguntas del recorrido final."}), 400
 
     score = 0
     result_items = []
-    for question, given in zip(READINESS_QUIZ_QUESTIONS, answers):
-        try:
-            selected_index = int(given)
-        except (TypeError, ValueError):
-            selected_index = -1
-        is_correct = selected_index == int(question["correctIndex"])
+    question_map = {item["id"]: item for item in question_set}
+    for answer in answers:
+        if not isinstance(answer, dict):
+            return jsonify({"error": "Cada respuesta debe indicar pregunta y opción."}), 400
+        question_id = answer.get("questionId")
+        option_id = answer.get("optionId")
+        question = question_map.get(question_id)
+        if not question:
+            return jsonify({"error": "Se ha detectado una pregunta no válida en el intento."}), 400
+        selected_option = next((option for option in question["options"] if option["id"] == option_id), None)
+        correct_option = next((option for option in question["options"] if option["correct"]), None)
+        is_correct = bool(selected_option and correct_option and selected_option["id"] == correct_option["id"])
         if is_correct:
             score += 1
         result_items.append(
             {
                 "id": question["id"],
                 "prompt": question["prompt"],
-                "selectedIndex": selected_index,
-                "correctIndex": int(question["correctIndex"]),
+                "selectedOptionId": selected_option["id"] if selected_option else None,
+                "selectedLabel": selected_option["label"] if selected_option else None,
+                "correctOptionId": correct_option["id"] if correct_option else None,
+                "correctLabel": correct_option["label"] if correct_option else None,
                 "correct": is_correct,
                 "explanation": question["explanation"],
                 "topic": question["topic"],
@@ -347,7 +409,7 @@ def readiness_submit_api():
             defaults={
                 "passed": passed,
                 "score": score,
-                "total_questions": len(READINESS_QUIZ_QUESTIONS),
+                "total_questions": len(question_set),
                 "passed_at": passed_at,
                 "answers_json": json.dumps(result_items, ensure_ascii=False),
                 "created_at": datetime.utcnow(),
@@ -357,7 +419,7 @@ def readiness_submit_api():
         if not created:
             record.passed = passed
             record.score = score
-            record.total_questions = len(READINESS_QUIZ_QUESTIONS)
+            record.total_questions = len(question_set)
             record.passed_at = passed_at
             record.answers_json = json.dumps(result_items, ensure_ascii=False)
             record.updated_at = datetime.utcnow()
@@ -367,17 +429,19 @@ def readiness_submit_api():
         session["readiness_guest"] = {
             "passed": passed,
             "score": score,
-            "total_questions": len(READINESS_QUIZ_QUESTIONS),
+            "total_questions": len(question_set),
             "passed_at": passed_at.isoformat() + "Z" if passed_at else None,
         }
         session.modified = True
         storage = "session"
 
+    _clear_readiness_question_set()
+
     return jsonify(
         {
             "passed": passed,
             "score": score,
-            "total_questions": len(READINESS_QUIZ_QUESTIONS),
+            "total_questions": len(question_set),
             "pass_score": READINESS_PASS_SCORE,
             "results": result_items,
             "storage": storage,

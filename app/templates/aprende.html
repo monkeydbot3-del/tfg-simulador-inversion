@@ -115,9 +115,9 @@
     <div class="readiness-card__hero">
       <div>
         <p class="eyebrow">Evaluación de preparación</p>
-        <h2>Comprueba si estás preparado</h2>
+        <h2>Desbloquea el Modo Carrera con un recorrido guiado</h2>
         <p class="muted">
-          Antes de entrar al Modo Carrera, comprueba que entiendes los conceptos básicos de inversión, el papel del benchmark y cómo interpretar la simulación.
+          Ya no es solo un test: primero repasas lo importante, después validas que sabes interpretar riesgo, benchmark, diversificación y métricas de la simulación.
         </p>
       </div>
       <div class="readiness-status-chip {{ 'is-passed' if readiness_status.passed else 'is-pending' }}" id="readiness-status-chip">
@@ -132,7 +132,7 @@
       </div>
       <div class="readiness-summary__metric">
         <span class="muted">Estado actual</span>
-        <strong id="readiness-current-state">{% if readiness_status.passed %}Puedes acceder al Modo Carrera{% else %}Necesitas superar el test{% endif %}</strong>
+        <strong id="readiness-current-state">{% if readiness_status.passed %}Puedes acceder al Modo Carrera{% else %}Necesitas superar la validación final{% endif %}</strong>
       </div>
       <div class="readiness-summary__metric">
         <span class="muted">Persistencia</span>
@@ -140,25 +140,95 @@
       </div>
     </div>
 
-    <div class="readiness-progress" aria-hidden="true">
-      <div class="readiness-progress__bar"><span id="readiness-progress-bar"></span></div>
-      <p id="readiness-progress-label" class="muted">Pregunta 1 de {{ readiness_total_questions }}</p>
+    <div class="readiness-journey">
+      <article class="readiness-journey-card">
+        <span class="career-step-badge">Paso 1</span>
+        <h3>Aprende lo esencial</h3>
+        <p class="muted">Riesgo, diversificación, benchmark, volatilidad y DCA con lenguaje simple.</p>
+      </article>
+      <article class="readiness-journey-card">
+        <span class="career-step-badge">Paso 2</span>
+        <h3>Conecta la teoría con la app</h3>
+        <p class="muted">Entiende qué significa Portfolio, Benchmark, Tracking y qué cambia entre práctica y carrera.</p>
+      </article>
+      <article class="readiness-journey-card">
+        <span class="career-step-badge">Paso 3</span>
+        <h3>Valida que estás listo</h3>
+        <p class="muted">Completa el recorrido final y desbloquea el acceso al modo más avanzado.</p>
+      </article>
     </div>
 
-    <div class="readiness-question-card" id="readiness-question-card">
-      <div class="readiness-question-card__head">
-        <span class="career-subtle-badge" id="readiness-topic-badge">Conceptos básicos</span>
-        <h3 id="readiness-question-text">Cargando evaluación…</h3>
-      </div>
-      <div class="readiness-options" id="readiness-options"></div>
-      <div class="readiness-feedback hidden" id="readiness-feedback"></div>
-      <div class="readiness-actions">
-        <button type="button" class="btn btn-secondary" id="readiness-restart-btn">Repetir test</button>
-        <button type="button" class="btn btn-primary" id="readiness-next-btn" disabled>Siguiente</button>
+    <div class="readiness-stage-shell">
+      <aside class="readiness-stage-panel">
+        <p class="eyebrow">Recorrido</p>
+        <h3>Tu progreso</h3>
+        <div class="readiness-stage-list">
+          <div class="readiness-stage-item is-active" id="readiness-stage-intro">
+            <strong>Introducción guiada</strong>
+            <span>Qué vas a repasar y por qué importa.</span>
+          </div>
+          <div class="readiness-stage-item" id="readiness-stage-practice">
+            <strong>Ponte a prueba</strong>
+            <span>Una pregunta cada vez, con contexto y feedback.</span>
+          </div>
+          <div class="readiness-stage-item" id="readiness-stage-result">
+            <strong>Resultado final</strong>
+            <span>Resumen, revisión rápida y acceso a Carrera si apruebas.</span>
+          </div>
+        </div>
+        <div class="readiness-progress" aria-hidden="true">
+          <div class="readiness-progress__bar"><span id="readiness-progress-bar"></span></div>
+          <p id="readiness-progress-label" class="muted">Preparando recorrido…</p>
+        </div>
+      </aside>
+
+      <div class="readiness-stage-content">
+        <div class="readiness-intro-card" id="readiness-intro-card">
+          <span class="career-subtle-badge">Antes de empezar</span>
+          <h3>Una validación breve, pensada como onboarding</h3>
+          <p>
+            El objetivo no es examinarte sin contexto, sino confirmar que ya sabes interpretar lo básico antes de entrar en una simulación con turnos, benchmark e informe final.
+          </p>
+          <div class="readiness-intro-points">
+            <article>
+              <strong>Riesgo y diversificación</strong>
+              <p>Para no confundir una cartera concentrada con una estrategia equilibrada.</p>
+            </article>
+            <article>
+              <strong>Benchmark e informe</strong>
+              <p>Para entender si tu resultado mejora o empeora frente al mercado.</p>
+            </article>
+            <article>
+              <strong>Modo Carrera</strong>
+              <p>Para saber qué estás decidiendo en cada turno y cómo leer el resultado acumulado.</p>
+            </article>
+          </div>
+          <div class="readiness-actions">
+            <button type="button" class="btn btn-primary" id="readiness-start-btn">Comenzar recorrido</button>
+            <a class="btn btn-secondary" href="{{ url_for('main.manual_page') }}">Ver manual</a>
+          </div>
+        </div>
+
+        <div class="readiness-question-card hidden" id="readiness-question-card">
+          <div class="readiness-question-card__head">
+            <div class="readiness-question-card__meta">
+              <span class="career-subtle-badge" id="readiness-topic-badge">Conceptos básicos</span>
+              <span class="readiness-context-label" id="readiness-context-title">Recorrido guiado</span>
+            </div>
+            <h3 id="readiness-question-text">Cargando evaluación…</h3>
+            <p class="muted" id="readiness-context-hint">Selecciona la opción que mejor encaja con la situación.</p>
+          </div>
+          <div class="readiness-options" id="readiness-options"></div>
+          <div class="readiness-feedback hidden" id="readiness-feedback"></div>
+          <div class="readiness-actions">
+            <button type="button" class="btn btn-secondary" id="readiness-restart-btn">Empezar de nuevo</button>
+            <button type="button" class="btn btn-primary" id="readiness-next-btn" disabled>Siguiente</button>
+          </div>
+        </div>
+
+        <div class="readiness-result hidden" id="readiness-result"></div>
       </div>
     </div>
-
-    <div class="readiness-result hidden" id="readiness-result"></div>
   </div>
 </section>
 {% endblock %}

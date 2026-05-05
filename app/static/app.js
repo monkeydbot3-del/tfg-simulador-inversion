@@ -1855,6 +1855,7 @@ const readinessState = {
   status: null,
   submitted: false,
   result: null,
+  started: false,
 };
 
 async function fetchReadinessStatus() {
@@ -1874,6 +1875,25 @@ async function fetchReadinessStatus() {
   }
 }
 
+function setReadinessStage(stage) {
+  const intro = document.getElementById("readiness-stage-intro");
+  const practice = document.getElementById("readiness-stage-practice");
+  const result = document.getElementById("readiness-stage-result");
+  [intro, practice, result].forEach((node) => node?.classList.remove("is-active", "is-complete"));
+  if (stage === "intro") {
+    intro?.classList.add("is-active");
+  }
+  if (stage === "practice") {
+    intro?.classList.add("is-complete");
+    practice?.classList.add("is-active");
+  }
+  if (stage === "result") {
+    intro?.classList.add("is-complete");
+    practice?.classList.add("is-complete");
+    result?.classList.add("is-active");
+  }
+}
+
 function renderReadinessStatus(status) {
   const chip = document.getElementById("readiness-status-chip");
   const stateEl = document.getElementById("readiness-current-state");
@@ -1883,44 +1903,64 @@ function renderReadinessStatus(status) {
   chip.classList.toggle("is-pending", !status.passed);
   stateEl.textContent = status.passed
     ? "Puedes acceder al Modo Carrera"
-    : "Necesitas superar el test";
+    : "Necesitas superar la validación final";
 }
 
 function renderReadinessProgress() {
   const total = readinessState.questions.length || 1;
-  const current = Math.min(readinessState.currentIndex + 1, total);
+  const current = readinessState.started ? Math.min(readinessState.currentIndex + 1, total) : 0;
   const progressBar = document.getElementById("readiness-progress-bar");
   const label = document.getElementById("readiness-progress-label");
   if (progressBar) progressBar.style.width = `${(current / total) * 100}%`;
-  if (label) label.textContent = `Pregunta ${current} de ${total}`;
+  if (label) {
+    label.textContent = readinessState.started
+      ? `Paso final, pregunta ${current} de ${total}`
+      : "Introducción completada antes del recorrido final";
+  }
 }
 
 function renderReadinessQuestion() {
   const question = readinessState.questions[readinessState.currentIndex];
   if (!question) return;
+  const introCard = document.getElementById("readiness-intro-card");
+  const questionCard = document.getElementById("readiness-question-card");
+  const resultCard = document.getElementById("readiness-result");
   const textEl = document.getElementById("readiness-question-text");
   const topicEl = document.getElementById("readiness-topic-badge");
+  const contextTitleEl = document.getElementById("readiness-context-title");
+  const contextHintEl = document.getElementById("readiness-context-hint");
   const optionsEl = document.getElementById("readiness-options");
   const feedbackEl = document.getElementById("readiness-feedback");
   const nextBtn = document.getElementById("readiness-next-btn");
+
+  introCard?.classList.add("hidden");
+  resultCard?.classList.add("hidden");
+  questionCard?.classList.remove("hidden");
+  setReadinessStage("practice");
+
   if (textEl) textEl.textContent = question.prompt;
   if (topicEl) topicEl.textContent = question.topic || "Preparación";
+  if (contextTitleEl) contextTitleEl.textContent = question.contextTitle || "Recorrido guiado";
+  if (contextHintEl) contextHintEl.textContent = question.contextHint || "Selecciona la opción que mejor encaja con la situación.";
   if (feedbackEl) {
     feedbackEl.classList.add("hidden");
     feedbackEl.innerHTML = "";
   }
   if (nextBtn) {
     nextBtn.disabled = true;
-    nextBtn.textContent = readinessState.currentIndex === readinessState.questions.length - 1 ? "Ver resultado" : "Siguiente";
+    nextBtn.textContent = readinessState.currentIndex === readinessState.questions.length - 1 ? "Ver resultado" : "Continuar";
   }
   if (!optionsEl) return;
 
+  const savedAnswer = readinessState.answers[readinessState.currentIndex];
   optionsEl.innerHTML = (question.options || [])
     .map(
       (option, index) => `
-        <button type="button" class="readiness-option" data-readiness-option="${index}">
+        <button type="button" class="readiness-option ${savedAnswer?.optionId === option.id ? "is-selected" : ""}" data-readiness-option="${option.id}">
           <span class="readiness-option__index">${String.fromCharCode(65 + index)}</span>
-          <span>${option}</span>
+          <span>
+            <strong>${option.label}</strong>
+          </span>
         </button>`
     )
     .join("");
@@ -1928,13 +1968,16 @@ function renderReadinessQuestion() {
   optionsEl.querySelectorAll("[data-readiness-option]").forEach((btn) => {
     btn.addEventListener("click", () => {
       if (readinessState.submitted) return;
-      const selected = Number(btn.getAttribute("data-readiness-option"));
-      readinessState.answers[readinessState.currentIndex] = selected;
+      const selectedOptionId = btn.getAttribute("data-readiness-option");
+      readinessState.answers[readinessState.currentIndex] = {
+        questionId: question.id,
+        optionId: selectedOptionId,
+      };
       optionsEl.querySelectorAll(".readiness-option").forEach((item) => item.classList.remove("is-selected"));
       btn.classList.add("is-selected");
       if (feedbackEl) {
         feedbackEl.classList.remove("hidden");
-        feedbackEl.innerHTML = `<strong>Respuesta seleccionada.</strong><p>${question.explanation || ""}</p>`;
+        feedbackEl.innerHTML = `<strong>Buena, ya la tienes marcada.</strong><p>${question.explanation || "En la siguiente pantalla verás el resultado global."}</p>`;
       }
       if (nextBtn) nextBtn.disabled = false;
     });
@@ -1949,27 +1992,30 @@ function renderReadinessResult(payload) {
   if (!resultEl || !questionCard) return;
   questionCard.classList.add("hidden");
   resultEl.classList.remove("hidden");
+  setReadinessStage("result");
   const approved = Boolean(payload?.passed);
   const score = payload?.score ?? 0;
   const total = payload?.total_questions ?? readinessState.questions.length;
   resultEl.innerHTML = `
     <div class="readiness-result__hero ${approved ? "is-passed" : "is-failed"}">
       <p class="eyebrow">Resultado final</p>
-      <h3>${approved ? "Estás preparado para entrar al Modo Carrera." : "Todavía conviene repasar algunos conceptos antes de gestionar una simulación completa."}</h3>
+      <h3>${approved ? "Ya estás listo para entrar al Modo Carrera." : "Aún te conviene reforzar algunos conceptos antes de entrar en una simulación más exigente."}</h3>
       <p class="readiness-result__score">${score}/${total}</p>
-      <p class="muted">Puntuación mínima requerida: ${payload?.pass_score ?? 7}/${total}</p>
+      <p class="muted">Necesitas ${payload?.pass_score ?? 7}/${total} para desbloquear Carrera.</p>
     </div>
     <div class="readiness-result__actions">
-      <button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir test</button>
-      ${approved ? '<a class="btn btn-primary" href="/modo-carrera">Ir al Modo Carrera</a>' : '<a class="btn btn-ghost" href="#">Seguir repasando</a>'}
+      <button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir recorrido</button>
+      ${approved ? '<a class="btn btn-primary" href="/modo-carrera">Ir al Modo Carrera</a>' : '<a class="btn btn-ghost" href="/aprende">Seguir repasando</a>'}
     </div>
     <div class="readiness-result__review">
       ${(payload?.results || [])
         .map(
           (item, idx) => `
             <article class="readiness-review-item ${item.correct ? "is-correct" : "is-wrong"}">
-              <strong>Pregunta ${idx + 1}</strong>
+              <strong>Pregunta ${idx + 1} · ${item.correct ? "Bien respondida" : "Conviene repasar"}</strong>
               <p>${item.prompt}</p>
+              <p class="muted"><strong>Tu respuesta:</strong> ${item.selectedLabel || "Sin respuesta válida"}</p>
+              ${item.correct ? "" : `<p class="muted"><strong>Respuesta correcta:</strong> ${item.correctLabel || "No disponible"}</p>`}
               <p class="muted">${item.explanation || ""}</p>
             </article>`
         )
@@ -1997,14 +2043,19 @@ async function submitReadinessQuiz() {
   renderReadinessResult(payload);
 }
 
-function restartReadinessQuiz() {
+async function restartReadinessQuiz() {
   readinessState.answers = [];
   readinessState.currentIndex = 0;
   readinessState.submitted = false;
   readinessState.result = null;
+  readinessState.started = false;
   document.getElementById("readiness-result")?.classList.add("hidden");
-  document.getElementById("readiness-question-card")?.classList.remove("hidden");
-  renderReadinessQuestion();
+  document.getElementById("readiness-question-card")?.classList.add("hidden");
+  document.getElementById("readiness-intro-card")?.classList.remove("hidden");
+  setReadinessStage("intro");
+  renderReadinessProgress();
+  const questionsData = await jsonGet("/api/readiness/questions?restart=1");
+  readinessState.questions = questionsData?.questions || [];
 }
 
 async function initReadinessQuiz() {
@@ -2016,6 +2067,15 @@ async function initReadinessQuiz() {
   ]);
   readinessState.questions = questionsData?.questions || [];
   if (status) renderReadinessStatus(status);
+  setReadinessStage("intro");
+  renderReadinessProgress();
+
+  document.getElementById("readiness-start-btn")?.addEventListener("click", () => {
+    readinessState.started = true;
+    readinessState.currentIndex = 0;
+    renderReadinessQuestion();
+  });
+
   document.getElementById("readiness-restart-btn")?.addEventListener("click", restartReadinessQuiz);
   document.getElementById("readiness-next-btn")?.addEventListener("click", async () => {
     if (readinessState.currentIndex >= readinessState.questions.length - 1) {
@@ -2025,7 +2085,6 @@ async function initReadinessQuiz() {
     readinessState.currentIndex += 1;
     renderReadinessQuestion();
   });
-  renderReadinessQuestion();
 }
 
 function initCareerPage() {

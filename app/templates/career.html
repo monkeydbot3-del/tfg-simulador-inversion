@@ -19,20 +19,53 @@
 
 {% if readiness_gate_blocked %}
 <section class="career-gate-section">
-  <div class="card card--elevated career-gate-card">
-    <div>
-      <p class="eyebrow">Acceso previo</p>
-      <h2>Antes de entrar al Modo Carrera, completa la evaluación de preparación</h2>
-      <p class="muted">
-        Queremos que llegues a la simulación con una base mínima clara sobre riesgo, benchmark, diversificación, DCA y lectura del informe final.
-      </p>
+  <div class="card card--elevated career-gate-card career-gate-card--premium">
+    <div class="career-gate-card__hero">
+      <div>
+        <p class="eyebrow">Acceso previo al simulador avanzado</p>
+        <h2>Antes de entrar al Modo Carrera, demuestra que dominas lo esencial</h2>
+        <p class="muted">
+          El Modo Carrera exige interpretar riesgo, comparar tu cartera con un benchmark y entender qué significa cada turno. Por eso pedimos una validación breve antes de desbloquearlo.
+        </p>
+      </div>
+      <div class="career-gate-status {{ 'is-passed' if readiness_status.passed else 'is-blocked' }}">
+        {% if readiness_status.passed %}Acceso disponible{% else %}Pendiente de desbloqueo{% endif %}
+      </div>
     </div>
-    <div class="career-gate-status {{ 'is-passed' if readiness_status.passed else 'is-blocked' }}">
-      {% if readiness_status.passed %}Acceso disponible{% else %}Acceso bloqueado hasta aprobar{% endif %}
+
+    <div class="career-gate-grid">
+      <div class="career-gate-panel career-gate-panel--steps">
+        <span class="career-subtle-badge">Desbloqueo en 3 pasos</span>
+        <ol class="career-gate-steps">
+          <li><strong>Aprende</strong><span>Repasa conceptos básicos de inversión y navegación por la app.</span></li>
+          <li><strong>Supera la evaluación</strong><span>Consigue al menos 7 de 10 con preguntas aleatorizadas y guiadas.</span></li>
+          <li><strong>Accede a Carrera</strong><span>Entra con una base más sólida para interpretar el resultado final.</span></li>
+        </ol>
+      </div>
+
+      <div class="career-gate-panel career-gate-panel--benefits">
+        <span class="career-subtle-badge">Qué reforzarás</span>
+        <div class="career-gate-benefits">
+          <article>
+            <strong>Riesgo y diversificación</strong>
+            <p>Para no tomar decisiones sin contexto al construir una cartera.</p>
+          </article>
+          <article>
+            <strong>Benchmark e informe final</strong>
+            <p>Para comparar tu resultado con el mercado y entender el tracking.</p>
+          </article>
+          <article>
+            <strong>Funcionamiento de Carrera</strong>
+            <p>Para saber qué cambia en cada turno y por qué importa cada ajuste.</p>
+          </article>
+        </div>
+      </div>
     </div>
+
     <div class="career-gate-actions">
-      <a class="btn btn-primary" href="{{ url_for('main.aprende_page') }}#readiness-quiz-app">Ir a Aprender y hacer el test</a>
-      <a class="btn btn-secondary" href="{{ url_for('main.home') }}">Volver al inicio</a>
+      <a class="btn btn-primary" href="{{ url_for('main.aprende_page') }}#readiness-quiz-app">Comenzar evaluación</a>
+      <a class="btn btn-secondary" href="{{ url_for('main.aprende_page') }}">Ir a Aprender</a>
+      <a class="btn btn-ghost" href="{{ url_for('main.home') }}">Volver al inicio</a>
     </div>
   </div>
 </section>

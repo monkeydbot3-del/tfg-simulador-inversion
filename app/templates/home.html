@@ -3,6 +3,37 @@
 
 {% block content %}
 <section class="landing-hero landing-hero--enhanced">
+  {% if session.get('user_id') or session.get('guest') %}
+  <div class="session-banner">
+    <div class="session-banner__meta">
+      <span class="badge badge-soft">{{ 'Sesión iniciada' if session.get('user_id') else 'Modo invitado' }}</span>
+      <strong>
+        {% if session.get('user_id') and current_user %}
+        {{ current_user.username or current_user.email }}
+        {% elif session.get('guest') %}
+        Estás navegando como invitado
+        {% else %}
+        Acceso activo
+        {% endif %}
+      </strong>
+      <span class="muted">
+        {% if session.get('user_id') and current_user %}
+        {{ current_user.email }} · Puedes cambiar de cuenta cuando quieras.
+        {% elif session.get('guest') %}
+        Tu progreso no se guarda en la cuenta.
+        {% endif %}
+      </span>
+    </div>
+    <div class="session-banner__actions">
+      {% if not session.get('user_id') %}
+      <a class="btn btn-secondary" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
+      {% endif %}
+      <form method="post" action="{{ url_for('auth.logout_submit') }}" class="nav-inline-form">
+        <button type="submit" class="btn btn-primary">{{ 'Cambiar usuario' if session.get('user_id') else 'Salir del modo invitado' }}</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
   <div class="landing-hero__content">
     <p class="eyebrow">Simulador de inversiones</p>
     <span class="hero-badge">Simulación y análisis con datos históricos</span>
