@@ -2671,3 +2671,69 @@ Se rehízo la composición superior para que respire mejor:
 - validar en Render el flujo con activos válidos y con fallo temporal de proveedor
 - revisar si el mensaje inline dentro del panel es suficiente o si conviene refinar aún más la jerarquía del error
 - si todo queda estable, pasar a microiteraciones visuales pequeñas en vez de tocar más la lógica de Horizonte
+
+## Iteración 35 - Pulido fino de gráfico y retry ligero en Modo Horizonte
+
+### Objetivo
+Cerrar el comportamiento residual detectado tras la iteración 34:
+- en algunos casos la primera petición a mercado fallaba y la segunda funcionaba
+- el gráfico mostraba etiquetas de fecha demasiado largas y ruidosas (`T00:00:00`)
+
+### Ajuste técnico aplicado
+Se añadió un retry mínimo y controlado en `_download_history_df(...)`:
+- solo para este flujo de descarga
+- máximo 1 reintento adicional
+- pequeña espera (`0.8s`) si el primer fallo es `YFRateLimitError`
+
+La idea es reducir el caso real observado de:
+- primera llamada falla
+- segunda llamada manual funciona
+
+sin introducir colas, caching complejo ni lógica nueva grande.
+
+### Ajuste de UX aplicado
+En `app/static/app.js`:
+- se limpian las etiquetas del eje X del gráfico para mostrar solo `YYYY-MM-DD`
+- se limitan mejor las ticks visibles del eje X
+- se mantiene rotación controlada para evitar solape visual
+- se refuerza el mensaje de estado durante la carga, explicando que si la fuente responde con demora o limita temporalmente, el usuario puede reintentar
+
+### Resultado esperado
+- menos fricción en primeras llamadas afectadas por proveedor externo
+- gráfico más limpio y legible
+- mejor percepción de calidad final de `Modo Horizonte`
+
+### Archivos tocados
+- `app/routes.py`
+- `app/static/app.js`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/routes.py`
+  - `app/static/app.js`
+  - `app/templates/horizon.html`
+  - `app/static/estilos.css`
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe probarse en Render
+- repetir caso `AAPL`, `5 años`, `10000`
+- observar si disminuye el fallo a la primera llamada
+- revisar que el eje X ya no muestre timestamps completos
+- comprobar que la gráfica sigue dibujando bien en escritorio y móvil
+- confirmar que desde Carrera sigue funcionando igual
+
+### Riesgos pendientes
+- Yahoo Finance puede seguir fallando aunque exista retry corto; el objetivo aquí es mejorar la resiliencia, no garantizar disponibilidad total del proveedor
+- conviene validar en Render si el número de ticks visibles del eje X sigue siendo cómodo con horizontes distintos
+
+### Siguientes pasos recomendados
+- si este ajuste deja estable el flujo, pasar a fase de validación real en Render y cerrar Horizonte como bloque funcionalmente maduro
+- no seguir tocando backend salvo que aparezca un bug real nuevo reproducible

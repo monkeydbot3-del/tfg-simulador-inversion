@@ -3,6 +3,7 @@ import io
 import json
 import math
 import random
+import time
 import unicodedata
 import uuid
 from datetime import date, datetime, timedelta
@@ -1512,26 +1513,38 @@ def _download_history_df(
     if not ticker_clean:
         raise BacktestError(not_found_msg, 404)
 
-    try:
-        df = yf.download(
-            ticker_clean,
-            start=str(start_d),
-            end=str(end_d + timedelta(days=1)),
-            interval="1d",
-            auto_adjust=False,
-            actions=include_actions,
-            progress=False,
-        )
-    except YFRateLimitError as exc:
+    last_rate_limit_exc = None
+    for attempt in range(2):
+        try:
+            df = yf.download(
+                ticker_clean,
+                start=str(start_d),
+                end=str(end_d + timedelta(days=1)),
+                interval="1d",
+                auto_adjust=False,
+                actions=include_actions,
+                progress=False,
+            )
+            break
+        except YFRateLimitError as exc:
+            last_rate_limit_exc = exc
+            if attempt == 0:
+                time.sleep(0.8)
+                continue
+            raise BacktestError(
+                "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo.",
+                503,
+            ) from exc
+        except Exception as exc:
+            raise BacktestError(
+                f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento.",
+                503,
+            ) from exc
+    else:
         raise BacktestError(
             "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo.",
             503,
-        ) from exc
-    except Exception as exc:
-        raise BacktestError(
-            f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento.",
-            503,
-        ) from exc
+        ) from last_rate_limit_exc
 
     df = _normalize_price_df(df)
     if df is None or df.empty:

@@ -2160,6 +2160,11 @@ function renderHorizonMetrics(payload) {
   }
 }
 
+function formatHorizonChartLabel(label) {
+  if (!label) return "";
+  return String(label).slice(0, 10);
+}
+
 function renderHorizonChart(payload) {
   if (typeof Chart === "undefined") return;
   const canvas = document.getElementById("horizon-chart");
@@ -2167,9 +2172,9 @@ function renderHorizonChart(payload) {
   if (!canvas) return;
   const historical = payload?.historical_series || [];
   const projected = payload?.projected_series || [];
-  const labels = [...historical.map((item) => item[0]), ...projected.map((item) => item[0])];
-  const historicalMap = new Map(historical.map((item) => [item[0], Number(item[1])]));
-  const projectedMap = new Map(projected.map((item) => [item[0], Number(item[1])]));
+  const labels = [...historical.map((item) => formatHorizonChartLabel(item[0])), ...projected.map((item) => formatHorizonChartLabel(item[0]))];
+  const historicalMap = new Map(historical.map((item) => [formatHorizonChartLabel(item[0]), Number(item[1])]));
+  const projectedMap = new Map(projected.map((item) => [formatHorizonChartLabel(item[0]), Number(item[1])]));
   const historicalData = labels.map((label) => (historicalMap.has(label) ? historicalMap.get(label) : null));
   const projectedData = labels.map((label) => (projectedMap.has(label) ? projectedMap.get(label) : null));
   if (empty) empty.classList.add("hidden");
@@ -2202,7 +2207,17 @@ function renderHorizonChart(payload) {
         responsive: true,
         interaction: { mode: "index", intersect: false },
         plugins: { legend: { display: true } },
-        scales: { y: { title: { display: true, text: "Base 100" } } },
+        scales: {
+          x: {
+            ticks: {
+              maxRotation: 45,
+              minRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: 8,
+            },
+          },
+          y: { title: { display: true, text: "Base 100" } },
+        },
       },
     });
   } else {
@@ -2288,7 +2303,7 @@ async function runHorizonSimulation() {
   }
   const payload = collectHorizonPayload();
   setHorizonLoading(true);
-  renderHorizonStatusMessage("Generando escenario experimental con datos históricos…", "info");
+  renderHorizonStatusMessage("Generando escenario experimental con datos históricos… Si la fuente de mercado responde con demora o limita temporalmente las peticiones, puedes reintentar.", "info");
   try {
     const data = await jsonPost("/api/horizon/simulate", payload);
     horizonState.result = data;
