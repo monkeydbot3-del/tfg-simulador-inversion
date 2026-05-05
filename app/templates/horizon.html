@@ -2,13 +2,16 @@
 {% block title %}Modo Horizonte{% endblock %}
 
 {% block content %}
-<section class="page-header page-header--with-badge">
-  <div>
+<section class="page-header page-header--with-badge horizon-page-header">
+  <div class="horizon-page-header__copy">
     <p class="eyebrow">Proyección experimental basada en patrones históricos</p>
     <h1>Modo Horizonte</h1>
     <p class="muted">Explora una continuación ficticia de cartera usando remezcla de rentabilidades históricas, siempre como simulación educativa y no predictiva.</p>
   </div>
-  <span class="badge badge-soft">Experimental</span>
+  <div class="horizon-page-header__meta">
+    <span class="badge badge-soft">Experimental</span>
+    <span class="badge badge-soft">No predictivo</span>
+  </div>
 </section>
 
 <section class="horizon-shell" id="horizon-app"
@@ -18,16 +21,22 @@
   data-acknowledged="{{ 'true' if horizon_config.acknowledged else 'false' }}">
   <article class="card card--elevated horizon-hero-card">
     <div class="horizon-hero-card__head">
-      <div>
+      <div class="horizon-hero-card__content">
         <p class="eyebrow">Modo experimental</p>
         <h2>Genera un escenario hipotético de continuidad</h2>
         <p class="muted">Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa.</p>
       </div>
-      <div class="horizon-badge-stack">
-        <span class="badge badge-soft">No predictivo</span>
-        <span class="badge badge-soft">Uso educativo</span>
-        <span class="badge badge-soft">Experimental</span>
-      </div>
+      <aside class="horizon-hero-card__aside">
+        <div class="horizon-badge-stack">
+          <span class="badge badge-soft">No predictivo</span>
+          <span class="badge badge-soft">Uso educativo</span>
+          <span class="badge badge-soft">Experimental</span>
+        </div>
+        <div class="horizon-hero-note">
+          <strong>Lectura correcta del resultado</strong>
+          <p class="muted">Interprétalo como un escenario generado, no como una previsión fiable del mercado.</p>
+        </div>
+      </aside>
     </div>
     <div class="horizon-disclaimer-banner">
       <strong>Esta simulación no predice el futuro.</strong>
@@ -123,6 +132,7 @@
 
         <div class="career-warnings">
           <h4>Advertencias y exclusiones</h4>
+          <p id="horizon-status-message" class="muted horizon-status-message">Si la fuente de mercado falla o limita temporalmente las peticiones, verás aquí un mensaje claro y reutilizable.</p>
           <div id="horizon-warnings-list" class="warning-chips"><span class="status-chip status-chip--ok">Sin advertencias todavía</span></div>
         </div>
       </div>

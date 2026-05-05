@@ -21,6 +21,7 @@ from flask import (
 )
 import pandas as pd
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
 
 from .services.auth_service import get_user_by_id
 from .models import ReadinessQuizResult
@@ -483,27 +484,41 @@ def horizon_simulate_api():
     warnings = []
     valid_assets = []
     monthly_returns = []
+    provider_temporarily_limited = False
 
     for asset in assets:
         ticker = asset["ticker"]
         try:
             df = _download_history_df(ticker, start_d, end_d, include_actions=False)
-            adj = _series_with_date_index(_extract_series(df, "Adj Close", ticker)).dropna()
-        except Exception:
-            warnings.append(f"{ticker} se ha excluido porque no tiene datos históricos suficientes.")
+            price_series = _extract_market_price_series(df, ticker)
+            monthly = _compute_horizon_monthly_returns(df, ticker)
+        except BacktestError as exc:
+            if exc.status_code >= 500:
+                provider_temporarily_limited = True
+            warnings.append(str(exc))
             continue
-        if adj.empty or len(adj) < 120:
+        except HorizonSimulationError as exc:
+            warnings.append(str(exc))
+            continue
+        except Exception:
+            warnings.append(f"{ticker} se ha excluido porque no se pudo normalizar su histórico de mercado.")
+            continue
+
+        if price_series.empty or len(price_series) < 120:
             warnings.append(f"{ticker} se ha excluido porque no dispone de un historial útil para esta simulación experimental.")
             continue
-        monthly = adj.resample("M").last().pct_change().dropna()
-        if monthly.empty:
-            warnings.append(f"{ticker} se ha excluido porque no genera retornos mensuales suficientes.")
-            continue
-        valid_assets.append({"ticker": ticker, "weight": asset["weight"], "series": adj})
+
+        valid_assets.append({"ticker": ticker, "weight": asset["weight"], "series": price_series})
         monthly_returns.append(monthly.rename(ticker))
 
     if not valid_assets:
-        return jsonify({"error": "No hay datos históricos suficientes para construir el escenario experimental con los activos seleccionados.", "warnings": warnings}), 400
+        status_code = 503 if provider_temporarily_limited else 400
+        error_message = (
+            "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo."
+            if provider_temporarily_limited
+            else "No hay datos históricos suficientes para construir el escenario experimental con los activos seleccionados."
+        )
+        return jsonify({"error": error_message, "warnings": warnings}), status_code
 
     total_valid_weight = sum(item["weight"] for item in valid_assets) or 1.0
     valid_assets = [{**item, "weight": item["weight"] / total_valid_weight} for item in valid_assets]
@@ -520,13 +535,13 @@ def horizon_simulate_api():
     hist_df = pd.concat(hist_frames, axis=1).dropna(how="all") if hist_frames else pd.DataFrame()
     if hist_df.empty:
         return jsonify({"error": "No se pudo construir la serie histórica base para el escenario experimental.", "warnings": warnings}), 400
-    hist_df = hist_df.fillna(method="ffill").dropna(how="any")
+    hist_df = hist_df.ffill().dropna(how="any")
     hist_weights = pd.Series({item["ticker"]: item["weight"] for item in valid_assets if item["ticker"] in hist_df.columns})
     hist_weights = hist_weights / hist_weights.sum()
     blended_hist = hist_df.mul(hist_weights, axis=1).sum(axis=1)
 
     monthly_df = pd.concat(monthly_returns, axis=1).dropna(how="all")
-    monthly_df = monthly_df.fillna(method="ffill").dropna(how="any")
+    monthly_df = monthly_df.ffill().dropna(how="any")
     if monthly_df.empty:
         return jsonify({"error": "No se pudieron combinar patrones mensuales suficientes para generar el escenario experimental.", "warnings": warnings}), 400
 
@@ -545,7 +560,7 @@ def horizon_simulate_api():
     sample_pool = blended_monthly.tolist()
     simulated_returns = [sample_pool[rng.randrange(len(sample_pool))] for _ in range(future_months)]
 
-    future_dates = pd.date_range(start=date.today() + timedelta(days=30), periods=future_months, freq="M")
+    future_dates = pd.date_range(start=date.today() + timedelta(days=30), periods=future_months, freq="ME")
     projected_base = [100.0]
     projected_value = [float(initial_value)]
     for ret in simulated_returns:
@@ -1479,6 +1494,13 @@ class BacktestError(Exception):
         self.status_code = status_code
 
 
+class HorizonSimulationError(Exception):
+    def __init__(self, message: str, status_code: int = 400, warnings: list[str] | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.warnings = warnings or []
+
+
 def _download_history_df(
     ticker: str, start_d: date, end_d: date, include_actions: bool = True
 ) -> pd.DataFrame:
@@ -1490,19 +1512,75 @@ def _download_history_df(
     if not ticker_clean:
         raise BacktestError(not_found_msg, 404)
 
-    df = yf.download(
-        ticker_clean,
-        start=str(start_d),
-        end=str(end_d + timedelta(days=1)),
-        interval="1d",
-        auto_adjust=False,
-        actions=include_actions,
-        progress=False,
-    )
+    try:
+        df = yf.download(
+            ticker_clean,
+            start=str(start_d),
+            end=str(end_d + timedelta(days=1)),
+            interval="1d",
+            auto_adjust=False,
+            actions=include_actions,
+            progress=False,
+        )
+    except YFRateLimitError as exc:
+        raise BacktestError(
+            "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo.",
+            503,
+        ) from exc
+    except Exception as exc:
+        raise BacktestError(
+            f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento.",
+            503,
+        ) from exc
+
     df = _normalize_price_df(df)
     if df is None or df.empty:
         raise BacktestError(not_found_msg, 404)
     return df
+
+
+def _extract_market_price_series(df: pd.DataFrame, ticker: str) -> pd.Series:
+    normalized_df = _normalize_price_df(df)
+    series = _extract_series(normalized_df, "Adj Close", ticker)
+    if series.empty:
+        series = _extract_series(normalized_df, "Close", ticker)
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0] if not series.empty else pd.Series(dtype=float)
+    if series is None:
+        return pd.Series(dtype=float)
+
+    series = pd.to_numeric(pd.Series(series).copy(), errors="coerce").dropna()
+    if series.empty:
+        return pd.Series(dtype=float)
+
+    datetime_index = pd.to_datetime(series.index, errors="coerce")
+    valid_mask = ~pd.isna(datetime_index)
+    series = series.loc[valid_mask]
+    datetime_index = datetime_index[valid_mask]
+    if series.empty:
+        return pd.Series(dtype=float)
+
+    series.index = pd.DatetimeIndex(datetime_index)
+    series = series[~series.index.duplicated(keep="last")].sort_index()
+    if not isinstance(series.index, pd.DatetimeIndex):
+        return pd.Series(dtype=float)
+    return series
+
+
+def _compute_horizon_monthly_returns(df: pd.DataFrame, ticker: str) -> pd.Series:
+    series = _extract_market_price_series(df, ticker)
+    if series.empty:
+        raise HorizonSimulationError(
+            f"{ticker} no dispone de una serie temporal válida para construir la simulación experimental.",
+            400,
+        )
+    monthly = series.resample("ME").last().pct_change().dropna()
+    if monthly.empty:
+        raise HorizonSimulationError(
+            f"{ticker} no genera retornos mensuales suficientes para esta simulación experimental.",
+            400,
+        )
+    return monthly
 
 
 def _compute_price_summary(

@@ -2517,3 +2517,157 @@ Refuerza:
 - comprobar casos reales de usuario autenticado, invitado y cambio de identidad
 - si la UX gusta, plantear una iteración pequeña para enriquecer la explicación metodológica o añadir exportación marcada con disclaimer fuerte
 - mantener explícito en toda futura evolución que `Modo Horizonte` no predice resultados futuros y no tiene validez como herramienta de asesoramiento financiero
+
+## Iteración 34 - Hardening técnico y pulido visual de Modo Horizonte
+
+### Objetivo
+Corregir los bugs reales detectados en Render tras publicar `62e89ae`, sin añadir funcionalidad nueva:
+- mejorar el hero/cabecera de `Modo Horizonte`
+- controlar el error 400 derivado del rate limit de Yahoo Finance
+- corregir el error 500 causado por resample sobre índice no temporal
+
+### Bugs detectados en Render
+#### Bug 1, UI del hero
+Síntomas observados:
+- textos demasiado pegados
+- badges mal colocadas
+- jerarquía visual pobre
+- distribución demasiado apretada en cabecera
+- comportamiento mejorable en responsive
+
+#### Bug 2, error 400 por proveedor
+Log real observado:
+- `YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')`
+
+Conclusión:
+- el proveedor de mercado puede limitar temporalmente peticiones
+- el backend no estaba devolviendo una experiencia suficientemente clara para ese caso
+
+#### Bug 3, error 500 por serie temporal
+Traceback real observado:
+- `monthly = adj.resample("M").last().pct_change().dropna()`
+- `TypeError: Only valid with DatetimeIndex, TimedeltaIndex or PeriodIndex, but got an instance of 'Index'`
+
+Conclusión:
+- la serie usada en Horizonte no estaba quedando garantizada como `DatetimeIndex`
+- se estaba reutilizando una serie pensada para otras partes del proyecto donde el índice se convierte a `date`, no a `DatetimeIndex`
+
+### Causa exacta del error 400
+La causa real era el rate limit de Yahoo Finance (`YFRateLimitError`). Cuando la fuente limita peticiones, el flujo de Horizonte podía quedarse en un error de proveedor poco amable.
+
+### Causa exacta del error 500
+La causa real era esta:
+- Horizonte tomaba la serie con `_series_with_date_index(...)`
+- ese helper convierte el índice a objetos `date`
+- luego se intentaba hacer `resample(...)`
+- `resample` necesita `DatetimeIndex`, `TimedeltaIndex` o `PeriodIndex`
+- por eso se producía el `TypeError`
+
+### Corrección de normalización temporal
+Se añadió una normalización más robusta para Horizonte en `app/routes.py`:
+- `_extract_market_price_series(df, ticker)`
+- `_compute_horizon_monthly_returns(df, ticker)`
+
+La serie ahora se trata así:
+- normalización previa del dataframe con `_normalize_price_df(...)`
+- prioridad a `Adj Close`
+- fallback a `Close` si `Adj Close` no existe o no aporta serie útil
+- si llega `DataFrame`, reducción controlada a `Series`
+- conversión numérica con `pd.to_numeric(..., errors="coerce")`
+- conversión del índice con `pd.to_datetime(..., errors="coerce")`
+- descarte de entradas inválidas (`NaT`)
+- eliminación de duplicados
+- ordenación del índice
+- validación final de que queda un `DatetimeIndex`
+
+Si la serie no queda válida, ya no cae con 500: se excluye el ticker o se devuelve error controlado.
+
+### Correcciones de backend adicionales
+- captura explícita de `YFRateLimitError` en `_download_history_df(...)`
+- traducción a mensaje amable y controlado para el usuario
+- status `503` cuando la fuente está temporalmente limitada
+- mantenimiento de `400` para problemas de inputs o datos insuficientes
+- sustitución de `resample("M")` por `resample("ME")`
+- sustitución de `fillna(method="ffill")` por `ffill()` en el flujo de Horizonte
+
+### Mejora de frontend en errores controlados
+En `app/static/app.js` se añadió un bloque de estado persistente en el panel de Horizonte:
+- `renderHorizonStatusMessage(message, tone)`
+
+Nuevo comportamiento:
+- mensaje neutro mientras genera
+- mensaje de éxito tras construir escenario
+- mensaje claro dentro del panel si falla la fuente o si la API devuelve error controlado
+- se mantiene el toast, pero ya no es la única vía de feedback
+
+### Mejora visual del hero/cabecera
+Se rehízo la composición superior para que respire mejor:
+- cabecera de página con copy a la izquierda y meta/badges a la derecha
+- hero principal con grid de dos columnas más equilibrada
+- contenido textual con ancho máximo razonable
+- stack lateral con badges y una nota secundaria ordenada
+- más separación entre título, subtítulo, badges y disclaimer
+- mejor comportamiento responsive al colapsar a una columna en tamaños menores
+
+### Archivos tocados
+- `app/routes.py`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/routes.py`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `app/templates/horizon.html`
+  - `app/templates/career.html`
+  - `app/templates/home.html`
+  - helpers de descarga y normalización de series históricas
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe probarse en Render
+#### Caso A, UI
+- la cabecera de Horizonte se ve más limpia
+- mejor spacing vertical
+- pills/badges bien colocadas
+- layout correcto en móvil
+
+#### Caso B, ticker válido
+- `AAPL`
+- horizonte `5 años`
+- valor inicial `10000`
+- genera escenario o devuelve error controlado, pero nunca 500
+
+#### Caso C, rate limit / proveedor
+- si Yahoo limita temporalmente, aparece mensaje amable dentro del panel
+- no se muestra un error genérico roto
+
+#### Caso D, índice no datetime
+- no aparece el 500 anterior
+- el flujo normaliza correctamente o excluye el activo con aviso controlado
+
+#### Caso E, desde Carrera
+- sigue abriendo Horizonte correctamente
+- no rompe la precarga
+
+#### Caso F, responsive
+- hero, formulario y panel de resultado se ven usables en móvil
+
+### Riesgos pendientes
+- Yahoo Finance puede seguir limitar peticiones en momentos puntuales; ahora queda degradado de forma controlada, pero sigue dependiendo de un proveedor externo
+- conviene validar en Render si algunos tickers devuelven solo `Close` y confirmar que el fallback visual/numérico queda razonable
+- todavía merece una comprobación visual real de la cabecera en móvil estrecho
+
+### Siguientes pasos recomendados
+- validar en Render el flujo con activos válidos y con fallo temporal de proveedor
+- revisar si el mensaje inline dentro del panel es suficiente o si conviene refinar aún más la jerarquía del error
+- si todo queda estable, pasar a microiteraciones visuales pequeñas en vez de tocar más la lógica de Horizonte

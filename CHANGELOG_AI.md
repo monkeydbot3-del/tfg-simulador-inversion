@@ -389,3 +389,15 @@
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-05
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 34, hardening técnico y pulido visual de Modo Horizonte
+- Archivos tocados:
+  - `app/routes.py`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `app/templates/horizon.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

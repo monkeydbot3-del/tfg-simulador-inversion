@@ -2111,6 +2111,26 @@ function renderHorizonWarnings(warnings = []) {
   container.innerHTML = warnings.map((item) => `<span class="warning-chip">${item}</span>`).join("");
 }
 
+function renderHorizonStatusMessage(message = "", tone = "info") {
+  const el = document.getElementById("horizon-status-message");
+  if (!el) return;
+  el.textContent = message || "";
+  el.classList.remove("is-error", "is-success", "is-muted");
+  if (!message) {
+    el.classList.add("is-muted");
+    return;
+  }
+  if (tone === "error") {
+    el.classList.add("is-error");
+    return;
+  }
+  if (tone === "success") {
+    el.classList.add("is-success");
+    return;
+  }
+  el.classList.add("is-muted");
+}
+
 function renderHorizonMetrics(payload) {
   const metrics = payload?.metrics || {};
   const portfolioEl = document.getElementById("horizon-metric-portfolio");
@@ -2266,18 +2286,25 @@ async function runHorizonSimulation() {
   }
   const payload = collectHorizonPayload();
   setHorizonLoading(true);
+  renderHorizonStatusMessage("Generando escenario experimental con datos históricos…", "info");
   try {
     const data = await jsonPost("/api/horizon/simulate", payload);
     horizonState.result = data;
     renderHorizonChart(data);
     renderHorizonMetrics(data);
     renderHorizonWarnings(data.warnings || []);
+    renderHorizonStatusMessage(
+      "Escenario experimental generado. Recuerda que se trata de una simulación educativa sin validez predictiva.",
+      "success"
+    );
     const rerun = document.getElementById("horizon-rerun-btn");
     if (rerun) rerun.disabled = false;
     mostrarToastOk("Escenario experimental generado.");
   } catch (err) {
+    const message = err?.message || "No se pudo generar el escenario experimental.";
     renderHorizonWarnings(err?.warnings || []);
-    mostrarToastError(err?.message || "No se pudo generar el escenario experimental.");
+    renderHorizonStatusMessage(message, "error");
+    mostrarToastError(message);
   } finally {
     setHorizonLoading(false);
   }
