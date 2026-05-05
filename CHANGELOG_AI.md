@@ -352,3 +352,13 @@
   - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-05
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 31, pulido del resultado final del readiness quiz
+- Archivos tocados:
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

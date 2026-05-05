@@ -1993,33 +1993,115 @@ function renderReadinessResult(payload) {
   questionCard.classList.add("hidden");
   resultEl.classList.remove("hidden");
   setReadinessStage("result");
+
   const approved = Boolean(payload?.passed);
   const score = payload?.score ?? 0;
   const total = payload?.total_questions ?? readinessState.questions.length;
+  const passScore = payload?.pass_score ?? 7;
+  const missingToPass = Math.max(passScore - score, 0);
+  const results = payload?.results || [];
+  const wrongItems = results.filter((item) => !item.correct);
+  const topicSummary = wrongItems.reduce((acc, item) => {
+    const topic = item?.topic || "repaso-general";
+    if (!acc[topic]) acc[topic] = 0;
+    acc[topic] += 1;
+    return acc;
+  }, {});
+  const topicLabels = {
+    "riesgo-rentabilidad": "Riesgo",
+    "diversificación": "Diversificación",
+    benchmark: "Benchmark",
+    volatilidad: "Volatilidad",
+    dca: "DCA",
+    drawdown: "Drawdown",
+    simulación: "Simulación",
+    "modo-carrera": "Modo Carrera",
+    "informe-final": "Informe final",
+    "usuarios-autenticados": "Usuarios autenticados",
+    "repaso-general": "Repaso general",
+  };
+
+  const reinforceTopics = Object.entries(topicSummary)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([topic, count]) => `
+      <article class="readiness-topic-chip-card">
+        <strong>${topicLabels[topic] || topic}</strong>
+        <span>${count === 1 ? "Te conviene repasarlo una vez más." : `Has fallado ${count} preguntas de este bloque.`}</span>
+      </article>`)
+    .join("");
+
+  const reviewMarkup = results
+    .map(
+      (item, idx) => `
+        <article class="readiness-review-item ${item.correct ? "is-correct" : "is-wrong"}">
+          <div class="readiness-review-item__head">
+            <div>
+              <span class="readiness-review-item__state ${item.correct ? "is-correct" : "is-wrong"}">${item.correct ? "Correcta" : "A reforzar"}</span>
+              <strong>Pregunta ${idx + 1}</strong>
+            </div>
+            <span class="career-subtle-badge">${topicLabels[item.topic] || item.topic || "Preparación"}</span>
+          </div>
+          <p>${item.prompt}</p>
+          <div class="readiness-review-item__answers">
+            <p class="muted"><strong>Tu respuesta:</strong> ${item.selectedLabel || "Sin respuesta válida"}</p>
+            ${item.correct ? "" : `<p class="muted"><strong>Respuesta correcta:</strong> ${item.correctLabel || "No disponible"}</p>`}
+          </div>
+          <p class="muted">${item.explanation || ""}</p>
+        </article>`
+    )
+    .join("");
+
   resultEl.innerHTML = `
     <div class="readiness-result__hero ${approved ? "is-passed" : "is-failed"}">
+      <div class="readiness-result__status-badge">${approved ? "Modo Carrera desbloqueado" : "Desbloqueo pendiente"}</div>
       <p class="eyebrow">Resultado final</p>
-      <h3>${approved ? "Ya estás listo para entrar al Modo Carrera." : "Aún te conviene reforzar algunos conceptos antes de entrar en una simulación más exigente."}</h3>
+      <h3>${approved ? "Has demostrado que entiendes los conceptos básicos y el funcionamiento de la simulación." : "Todavía no has desbloqueado el Modo Carrera, pero estás bastante cerca."}</h3>
       <p class="readiness-result__score">${score}/${total}</p>
-      <p class="muted">Necesitas ${payload?.pass_score ?? 7}/${total} para desbloquear Carrera.</p>
+      <p class="muted">${approved ? "Ya puedes entrar al Modo Carrera con una base suficiente para interpretar riesgo, benchmark y evolución de cartera." : `Te han faltado ${missingToPass} ${missingToPass === 1 ? "respuesta" : "respuestas"} para alcanzar el mínimo de ${passScore}/${total}.`}</p>
     </div>
+
+    <div class="readiness-result__summary-grid">
+      <article class="readiness-summary-tile ${approved ? "is-passed" : "is-failed"}">
+        <span class="muted">Estado</span>
+        <strong>${approved ? "Acceso desbloqueado" : "Aún no desbloqueado"}</strong>
+      </article>
+      <article class="readiness-summary-tile">
+        <span class="muted">Puntuación</span>
+        <strong>${score} de ${total}</strong>
+      </article>
+      <article class="readiness-summary-tile">
+        <span class="muted">Umbral</span>
+        <strong>${passScore} aciertos</strong>
+      </article>
+    </div>
+
+    ${approved ? `
+      <div class="readiness-result__callout readiness-result__callout--success">
+        <strong>Ya estás listo para empezar.</strong>
+        <p>Puedes entrar al Modo Carrera ahora o repetir la evaluación si quieres afianzar conceptos antes de lanzarte.</p>
+      </div>
+    ` : `
+      <div class="readiness-result__callout readiness-result__callout--retry">
+        <strong>Repasa los bloques marcados y vuelve a intentarlo.</strong>
+        <p>La evaluación no busca castigarte, sino asegurarse de que entiendes bien qué mirar antes de tomar decisiones por turnos.</p>
+      </div>
+      ${reinforceTopics ? `<div class="readiness-topic-summary"><h4>Conceptos a reforzar</h4><div class="readiness-topic-summary__grid">${reinforceTopics}</div></div>` : ""}
+    `}
+
     <div class="readiness-result__actions">
-      <button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir recorrido</button>
-      ${approved ? '<a class="btn btn-primary" href="/modo-carrera">Ir al Modo Carrera</a>' : '<a class="btn btn-ghost" href="/aprende">Seguir repasando</a>'}
+      ${approved ? '<a class="btn btn-primary" href="/modo-carrera">Entrar al Modo Carrera</a><button type="button" class="btn btn-secondary" id="readiness-repeat-result">Repetir evaluación</button><a class="btn btn-ghost" href="/aprende">Repasar conceptos</a>' : '<button type="button" class="btn btn-primary" id="readiness-repeat-result">Repasar y repetir</button><a class="btn btn-secondary" href="/aprende">Volver a Aprender</a>'}
     </div>
-    <div class="readiness-result__review">
-      ${(payload?.results || [])
-        .map(
-          (item, idx) => `
-            <article class="readiness-review-item ${item.correct ? "is-correct" : "is-wrong"}">
-              <strong>Pregunta ${idx + 1} · ${item.correct ? "Bien respondida" : "Conviene repasar"}</strong>
-              <p>${item.prompt}</p>
-              <p class="muted"><strong>Tu respuesta:</strong> ${item.selectedLabel || "Sin respuesta válida"}</p>
-              ${item.correct ? "" : `<p class="muted"><strong>Respuesta correcta:</strong> ${item.correctLabel || "No disponible"}</p>`}
-              <p class="muted">${item.explanation || ""}</p>
-            </article>`
-        )
-        .join("")}
+
+    <div class="readiness-result__review-wrap">
+      <div class="readiness-result__review-head">
+        <div>
+          <p class="eyebrow">Revisión</p>
+          <h4>Qué has hecho bien y qué conviene repasar</h4>
+        </div>
+        <span class="muted">${results.length} preguntas revisadas</span>
+      </div>
+      <div class="readiness-result__review">${reviewMarkup}</div>
     </div>`;
   document.getElementById("readiness-repeat-result")?.addEventListener("click", restartReadinessQuiz);
 }

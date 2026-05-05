@@ -2062,3 +2062,137 @@ Se añadió una banda visible de sesión en la parte superior del hero:
 - validar en Render el flujo completo autenticado e invitado con varios reinicios del quiz
 - observar si compensa reducir el bloque final a 8 preguntas manteniendo 7/10 o si el formato actual ya se siente suficientemente ligero
 - si la UX gusta, considerar una iteración futura con mini ilustraciones o estados vacíos más ricos en la parte educativa sin tocar más backend
+
+## Iteración 31 - Pulido del resultado final del readiness quiz
+
+### Objetivo
+Mejorar la pantalla final del readiness quiz para que se sienta más de producto y más útil para el usuario, sin tocar arquitectura, persistencia, endpoints principales ni lógica del `Modo Carrera`.
+
+### Enfoque aplicado
+Se mantuvo intacta la base funcional de la iteración 30:
+- scoring robusto por `questionId` y `optionId`
+- persistencia real del aprobado para autenticados
+- aislamiento entre invitado y usuario autenticado
+- aleatorización de preguntas y respuestas
+- gate funcional de `Modo Carrera`
+
+La mejora se centró exclusivamente en la experiencia final de resultado:
+- hacer el aprobado más celebratorio y explícito como desbloqueo
+- hacer el suspenso más útil, menos punitivo y más orientado a repaso
+- convertir la revisión en una lectura más clara y accionable
+
+### Cambios UX/visuales aplicados
+#### En `app/static/app.js`
+Se rehízo `renderReadinessResult(payload)` para diferenciar mejor ambos desenlaces.
+
+##### Si el usuario aprueba
+- aparece un badge claro: `Modo Carrera desbloqueado`
+- se refuerza el mensaje de que ya domina lo mínimo necesario
+- se mantiene visible la puntuación
+- se añade una callout de éxito explicando que ya puede entrar a `Modo Carrera`
+- CTAs finales:
+  - `Entrar al Modo Carrera`
+  - `Repetir evaluación`
+  - `Repasar conceptos`
+
+##### Si el usuario suspende
+- aparece un estado de `Desbloqueo pendiente`
+- se muestra cuántas respuestas le faltaron para aprobar
+- el tono se vuelve más amable y orientado a mejora
+- se añade una callout de repaso explicando que el objetivo no es castigar, sino asegurar comprensión suficiente
+- CTAs finales:
+  - `Repasar y repetir`
+  - `Volver a Aprender`
+
+##### Resumen de conceptos a reforzar
+- si hay errores, se agrupan los temas fallados por `topic`
+- se muestran hasta 3 bloques prioritarios de repaso
+- se traducen los topics técnicos a etiquetas más claras de producto, por ejemplo:
+  - `Riesgo`
+  - `Diversificación`
+  - `Benchmark`
+  - `DCA`
+  - `Modo Carrera`
+  - `Informe final`
+  - `Usuarios autenticados`
+
+### Revisión final de respuestas
+La revisión se rehízo para ser más legible y menos tosca:
+- cada pregunta aparece en una card individual
+- cada card lleva estado visual:
+  - `Correcta`
+  - `A reforzar`
+- se muestra el tema de la pregunta con badge
+- se muestra siempre:
+  - enunciado
+  - respuesta elegida
+  - explicación breve
+- si la respuesta fue incorrecta, se añade explícitamente la respuesta correcta
+
+Esto permite entender mejor qué salió bien y qué conviene revisar, sin depender del orden aleatorio del intento.
+
+### Cambios visuales en `app/static/estilos.css`
+Se añadieron y ajustaron estilos para:
+- badge de estado del resultado final
+- hero diferenciado para aprobado y suspenso
+- tiles resumen con estado
+- callouts de éxito y repaso
+- cards de conceptos a reforzar
+- cabecera de revisión más clara
+- chips de estado `Correcta` / `A reforzar`
+- mejor responsive para el bloque final y la cabecera de revisión
+
+### Archivos tocados
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/templates/aprende.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `app/routes.py`
+  - flujo completo del readiness quiz añadido en la iteración anterior
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe comprobarse en Render
+#### Caso A, usuario aprueba
+- aparece un resultado claro de desbloqueo
+- el botón `Entrar al Modo Carrera` funciona
+- sigue desbloqueado tras recargar o volver a entrar
+
+#### Caso B, usuario suspende
+- aparece pantalla de repaso, no de castigo
+- se indica cuántas respuestas faltaron para aprobar
+- puede repetir la evaluación
+- no desbloquea `Modo Carrera`
+
+#### Caso C, revisión
+- las cards distinguen bien correctas e incorrectas
+- si falla, se ve la respuesta correcta
+- la explicación encaja con la pregunta
+- la revisión no depende del orden aleatorio del intento
+
+#### Caso D, invitado
+- el resultado final sigue funcionando
+- no se mezcla con el estado de un usuario autenticado
+
+#### Caso E, responsive
+- la pantalla final sigue siendo usable en móvil
+
+### Riesgos pendientes
+- El agrupado de conceptos a reforzar es deliberadamente ligero y depende de los `topic` ya definidos. Si en el futuro cambia el banco de preguntas, convendrá revisar el mapeo de etiquetas visibles.
+- No se ha tocado backend ni persistencia en esta iteración, por lo que la validación final sigue siendo principalmente visual y manual en Render.
+
+### Siguientes pasos recomendados
+- validar en Render la percepción real del resultado aprobado y del suspenso con usuarios distintos
+- observar si conviene destacar todavía más el estado persistido cuando un usuario autenticado ya aprobó antes
+- si se quiere seguir puliendo el producto, una siguiente iteración pequeña podría mejorar el estado inicial de `Aprender` cuando el usuario ya tiene el readiness aprobado
