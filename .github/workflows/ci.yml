@@ -7,6 +7,9 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: ci-secret-key
+      DATABASE_URL: sqlite:///ci.db
     steps:
       - name: Checkout
         uses: actions/checkout@v4

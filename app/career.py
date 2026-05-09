@@ -962,7 +962,9 @@ def _series_list_to_series(series_list: list[list[str, float]]) -> pd.Series:
         return pd.Series(dtype=float)
 
     clean_dates = dates[valid_mask]
-    clean_values = [raw_values[idx] for idx, is_valid in enumerate(valid_mask) if is_valid]
+    clean_values = [
+        raw_values[idx] for idx, is_valid in enumerate(valid_mask) if is_valid
+    ]
     if not clean_values:
         return pd.Series(dtype=float)
 
@@ -1242,13 +1244,17 @@ def _portfolio_equity_series(
     return series.sort_index()
 
 
-def _downsample_series(series: pd.Series, max_points: int = THEORETICAL_MAX_POINTS) -> pd.Series:
+def _downsample_series(
+    series: pd.Series, max_points: int = THEORETICAL_MAX_POINTS
+) -> pd.Series:
     if series.empty or max_points <= 0 or len(series) <= max_points:
         return series
     if max_points == 1:
         return series.iloc[[0]]
     step = max((len(series) - 1) / (max_points - 1), 1)
-    positions = sorted({min(len(series) - 1, int(round(step * idx))) for idx in range(max_points)})
+    positions = sorted(
+        {min(len(series) - 1, int(round(step * idx))) for idx in range(max_points)}
+    )
     return series.iloc[positions]
 
 
@@ -1288,7 +1294,11 @@ def _combine_normalized_series(
     df = df.ffill().bfill()
     weights_by_ticker = pd.Series(weights, index=tickers)
     combined = df.mul(weights_by_ticker, axis=1).sum(axis=1)
-    combined = pd.to_numeric(combined, errors="coerce").replace([math.inf, -math.inf], pd.NA).dropna()
+    combined = (
+        pd.to_numeric(combined, errors="coerce")
+        .replace([math.inf, -math.inf], pd.NA)
+        .dropna()
+    )
     if combined.empty:
         return combined
     first_value = combined.iloc[0]
@@ -1493,7 +1503,9 @@ def _compute_theoretical_summary(
         raise BadRequest("El universo de la sesión está vacío.")
 
     normalized_map = _build_normalized_series_map(universe_candidates, start_d, end_d)
-    full_series_cache = _build_series_cache(normalized_map, max_points=THEORETICAL_MAX_POINTS)
+    full_series_cache = _build_series_cache(
+        normalized_map, max_points=THEORETICAL_MAX_POINTS
+    )
 
     ticker_metrics: dict[str, dict[str, float]] = {}
     filtered_tickers: list[str] = []
@@ -1531,7 +1543,10 @@ def _compute_theoretical_summary(
     if combos_count > THEORETICAL_MAX_COMBINATIONS:
         use_greedy = True
 
-    series_cache = {ticker: full_series_cache.get(ticker, pd.Series(dtype=float)) for ticker in tickers_eval}
+    series_cache = {
+        ticker: full_series_cache.get(ticker, pd.Series(dtype=float))
+        for ticker in tickers_eval
+    }
 
     results: dict[str, dict[str, Any]] = {}
     method_map: dict[str, str] = {}
@@ -1564,7 +1579,9 @@ def _compute_theoretical_summary(
             for candidate in tickers_eval:
                 if candidate == base_ticker:
                     continue
-                combo = _evaluate_combo_result([base_ticker, candidate], normalized_map, series_cache=series_cache)
+                combo = _evaluate_combo_result(
+                    [base_ticker, candidate], normalized_map, series_cache=series_cache
+                )
                 if not combo:
                     continue
                 if (
@@ -1572,7 +1589,8 @@ def _compute_theoretical_summary(
                     or combo["cagr"] > best_combo["cagr"]
                     or (
                         combo["cagr"] == best_combo["cagr"]
-                        and combo["metrics"]["total_return"] > best_combo["metrics"]["total_return"]
+                        and combo["metrics"]["total_return"]
+                        > best_combo["metrics"]["total_return"]
                     )
                 ):
                     best_combo = combo
@@ -1582,7 +1600,9 @@ def _compute_theoretical_summary(
         else:
             best_combo = None
             for combo in combinations(tickers_eval, 2):
-                combo_result = _evaluate_combo_result(list(combo), normalized_map, series_cache=series_cache)
+                combo_result = _evaluate_combo_result(
+                    list(combo), normalized_map, series_cache=series_cache
+                )
                 if not combo_result:
                     continue
                 if (
@@ -1590,7 +1610,8 @@ def _compute_theoretical_summary(
                     or combo_result["cagr"] > best_combo["cagr"]
                     or (
                         combo_result["cagr"] == best_combo["cagr"]
-                        and combo_result["metrics"]["total_return"] > best_combo["metrics"]["total_return"]
+                        and combo_result["metrics"]["total_return"]
+                        > best_combo["metrics"]["total_return"]
                     )
                 ):
                     best_combo = combo_result
@@ -1603,7 +1624,9 @@ def _compute_theoretical_summary(
             base_combo = results.get("k2")
             if not base_combo and len(tickers_eval) >= 2:
                 tentative = tickers_eval[:2]
-                base_combo = _evaluate_combo_result(tentative, normalized_map, series_cache=series_cache)
+                base_combo = _evaluate_combo_result(
+                    tentative, normalized_map, series_cache=series_cache
+                )
                 if base_combo:
                     _record_best_combination("k2", base_combo)
                     method_map["k2"] = "greedy"
@@ -1615,7 +1638,9 @@ def _compute_theoretical_summary(
                 combo_tickers = list(base_tickers) + [candidate]
                 if len(combo_tickers) != 3:
                     continue
-                combo_result = _evaluate_combo_result(combo_tickers, normalized_map, series_cache=series_cache)
+                combo_result = _evaluate_combo_result(
+                    combo_tickers, normalized_map, series_cache=series_cache
+                )
                 if not combo_result:
                     continue
                 if (
@@ -1623,7 +1648,8 @@ def _compute_theoretical_summary(
                     or combo_result["cagr"] > best_triple["cagr"]
                     or (
                         combo_result["cagr"] == best_triple["cagr"]
-                        and combo_result["metrics"]["total_return"] > best_triple["metrics"]["total_return"]
+                        and combo_result["metrics"]["total_return"]
+                        > best_triple["metrics"]["total_return"]
                     )
                 ):
                     best_triple = combo_result
@@ -1633,7 +1659,9 @@ def _compute_theoretical_summary(
         else:
             best_combo = None
             for combo in combinations(tickers_eval, 3):
-                combo_result = _evaluate_combo_result(list(combo), normalized_map, series_cache=series_cache)
+                combo_result = _evaluate_combo_result(
+                    list(combo), normalized_map, series_cache=series_cache
+                )
                 if not combo_result:
                     continue
                 if (
@@ -1641,7 +1669,8 @@ def _compute_theoretical_summary(
                     or combo_result["cagr"] > best_combo["cagr"]
                     or (
                         combo_result["cagr"] == best_combo["cagr"]
-                        and combo_result["metrics"]["total_return"] > best_combo["metrics"]["total_return"]
+                        and combo_result["metrics"]["total_return"]
+                        > best_combo["metrics"]["total_return"]
                     )
                 ):
                     best_combo = combo_result
@@ -1694,7 +1723,13 @@ def _generate_report_payload(
         method_map = theoretical_summary["method"]
         universe_evaluated = theoretical_summary["universe"]
         theoretical_error: str | None = None
-    except (BadRequest, NoHistoricalDataError, MemoryError, ValueError, TypeError) as exc:
+    except (
+        BadRequest,
+        NoHistoricalDataError,
+        MemoryError,
+        ValueError,
+        TypeError,
+    ) as exc:
         theoretical_summary = None
         theoretical_top = {}
         method_map = {}
@@ -1702,7 +1737,9 @@ def _generate_report_payload(
         normalized_map = _build_normalized_series_map(
             _collect_session_universe(session), start_d, end_d
         )
-        theoretical_error = getattr(exc, "description", None) or getattr(exc, "message", str(exc))
+        theoretical_error = getattr(exc, "description", None) or getattr(
+            exc, "message", str(exc)
+        )
 
     normalized_map_with_bench = dict(normalized_map)
     normalized_map_with_bench[bench_ticker] = _pd_series_to_list(bench_series_pd)
@@ -2356,9 +2393,9 @@ def _current_user_owns_persisted_session(user_id: int | None, session_id: str) -
 def _user_can_access_any_session(user_id: int | None, session_id: str) -> bool:
     if not user_id or not session_id:
         return False
-    return _current_user_owns_persisted_session(user_id, session_id) or _user_can_access_store_session(
+    return _current_user_owns_persisted_session(
         user_id, session_id
-    )
+    ) or _user_can_access_store_session(user_id, session_id)
 
 
 def _resolve_session_for_request(session_id: str) -> dict[str, Any] | None:
@@ -2513,7 +2550,9 @@ def _generate_session_id() -> str:
 def list_sessions_status():
     current_user_id = _current_user_id()
     if not current_user_id:
-        return _json_error("Debes iniciar sesión para consultar tus sesiones guardadas.", 401)
+        return _json_error(
+            "Debes iniciar sesión para consultar tus sesiones guardadas.", 401
+        )
     items = list_career_sessions_for_user(current_user_id, limit=12)
     payload = [
         {
@@ -2536,13 +2575,20 @@ def list_sessions_status():
 def latest_session_status():
     current_user_id = _current_user_id()
     if not current_user_id or _is_guest_user():
-        return _json_error("Debes iniciar sesión para cargar tu última sesión guardada.", 401)
+        return _json_error(
+            "Debes iniciar sesión para cargar tu última sesión guardada.", 401
+        )
 
     latest_persisted = get_latest_persisted_career_session_for_user(current_user_id)
     if latest_persisted:
         session_data = deserialize_career_session(latest_persisted)
         if session_data:
-            return jsonify({"session": session_data, "session_id": latest_persisted.session_id}), 200
+            return (
+                jsonify(
+                    {"session": session_data, "session_id": latest_persisted.session_id}
+                ),
+                200,
+            )
 
     latest = get_latest_career_session_for_user(current_user_id)
     if not latest:
@@ -2573,7 +2619,9 @@ def session_status(session_id: str):
 def session_turns_status(session_id: str):
     current_user_id = _current_user_id()
     if not current_user_id:
-        return _json_error("Debes iniciar sesión para consultar los turnos persistidos.", 401)
+        return _json_error(
+            "Debes iniciar sesión para consultar los turnos persistidos.", 401
+        )
     turns = list_persisted_career_turns_for_user(current_user_id, session_id)
     return jsonify({"session_id": session_id, "turns": turns}), 200
 
@@ -2582,7 +2630,9 @@ def session_turns_status(session_id: str):
 def save_session_snapshot():
     current_user_id = _current_user_id()
     if not current_user_id:
-        return _json_error("Debes iniciar sesión para guardar la sesión en Postgres.", 401)
+        return _json_error(
+            "Debes iniciar sesión para guardar la sesión en Postgres.", 401
+        )
     payload = request.get_json(silent=True) or {}
     session_payload = payload.get("session") or {}
     session_id = str(session_payload.get("session_id") or "").strip()
@@ -2596,7 +2646,16 @@ def save_session_snapshot():
         return _json_error(str(exc), 400)
     except Exception:
         return _json_error("No se pudo guardar la sesión de carrera en Postgres.", 500)
-    return jsonify({"ok": True, "session_id": record.session_id, "updated_at": record.updated_at.isoformat() + "Z"}), 200
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "session_id": record.session_id,
+                "updated_at": record.updated_at.isoformat() + "Z",
+            }
+        ),
+        200,
+    )
 
 
 @career_bp.route("/turn", methods=["POST"])
@@ -2613,7 +2672,9 @@ def close_turn():
         return _json_error("turn_n debe ser un entero.", 400)
 
     current_user_id = _current_user_id()
-    if current_user_id and not _user_can_access_any_session(current_user_id, str(session_id)):
+    if current_user_id and not _user_can_access_any_session(
+        current_user_id, str(session_id)
+    ):
         return _json_error("No tienes acceso a esta sesión de carrera.", 404)
 
     session = _get_session(session_id)
@@ -2941,7 +3002,11 @@ def close_turn():
     )
 
     session.setdefault("completed_turns", []).append(snapshot)
-    decision_payload = {"turn_n": turn_n, "alloc": deepcopy(clean_alloc), "use_dca": use_dca}
+    decision_payload = {
+        "turn_n": turn_n,
+        "alloc": deepcopy(clean_alloc),
+        "use_dca": use_dca,
+    }
     session.setdefault("decisions", []).append(decision_payload)
 
     next_turn = _next_pending_turn(session)
@@ -2968,7 +3033,11 @@ def close_turn():
             )
             persistence = {"saved": True, "backend": "postgres"}
         except Exception:
-            persistence = {"saved": False, "backend": "store", "warning": "No se pudo persistir el turno en Postgres."}
+            persistence = {
+                "saved": False,
+                "backend": "store",
+                "warning": "No se pudo persistir el turno en Postgres.",
+            }
 
     response_payload = {
         "snapshot": snapshot,

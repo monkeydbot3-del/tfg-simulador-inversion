@@ -1,6 +1,15 @@
 from datetime import datetime
 
-from peewee import AutoField, BooleanField, CharField, DateTimeField, ForeignKeyField, IntegerField, Model, TextField
+from peewee import (
+    AutoField,
+    BooleanField,
+    CharField,
+    DateTimeField,
+    ForeignKeyField,
+    IntegerField,
+    Model,
+    TextField,
+)
 
 from .db import db_proxy
 
@@ -59,7 +68,9 @@ class CareerSession(BaseModel):
 
 class CareerTurn(BaseModel):
     id = AutoField()
-    career_session = ForeignKeyField(CareerSession, backref="turns", on_delete="CASCADE")
+    career_session = ForeignKeyField(
+        CareerSession, backref="turns", on_delete="CASCADE"
+    )
     turn_index = IntegerField(index=True)
     decision_json = TextField()
     snapshot_json = TextField()
@@ -68,12 +79,14 @@ class CareerTurn(BaseModel):
     updated_at = DateTimeField(default=datetime.utcnow, index=True)
 
     class Meta:
-        indexes = ((('career_session', 'turn_index'), True),)
+        indexes = ((("career_session", "turn_index"), True),)
 
 
 class ReadinessQuizResult(BaseModel):
     id = AutoField()
-    user = ForeignKeyField(User, backref="readiness_results", on_delete="CASCADE", unique=True)
+    user = ForeignKeyField(
+        User, backref="readiness_results", on_delete="CASCADE", unique=True
+    )
     passed = BooleanField(default=False)
     score = IntegerField(default=0)
     total_questions = IntegerField(default=0)

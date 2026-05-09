@@ -57,7 +57,9 @@ HORIZON_MAX_HISTORY_YEARS = 15
 HORIZON_MAX_HISTORY_POINTS = 220
 HORIZON_MAX_MONTHLY_RETURN = 0.35
 HORIZON_HISTORY_CACHE_TTL_SECONDS = 120
-HORIZON_HISTORY_CACHE: TTLCache = TTLCache(maxsize=128, ttl=HORIZON_HISTORY_CACHE_TTL_SECONDS)
+HORIZON_HISTORY_CACHE: TTLCache = TTLCache(
+    maxsize=128, ttl=HORIZON_HISTORY_CACHE_TTL_SECONDS
+)
 READINESS_QUIZ_QUESTIONS = [
     {
         "id": "risk_return",
@@ -200,7 +202,9 @@ def home():
     if not _current_user_id() and not session.get("guest"):
         return redirect(url_for("auth.login_page"))
     current_user = get_user_by_id(_current_user_id()) if _current_user_id() else None
-    return render_template("home.html", active="home", nav_mode="landing", current_user=current_user)
+    return render_template(
+        "home.html", active="home", nav_mode="landing", current_user=current_user
+    )
 
 
 @bp.get("/inicio")
@@ -289,17 +293,27 @@ def _clear_readiness_question_set() -> None:
 def _readiness_status_payload() -> dict:
     current_user_id = _current_user_id()
     if current_user_id:
-        record = ReadinessQuizResult.select().where(ReadinessQuizResult.user == current_user_id).first()
+        record = (
+            ReadinessQuizResult.select()
+            .where(ReadinessQuizResult.user == current_user_id)
+            .first()
+        )
         passed = bool(record.passed) if record else False
         return {
             "passed": passed,
             "score": record.score if record else 0,
-            "total_questions": record.total_questions if record else READINESS_TOTAL_QUESTIONS,
+            "total_questions": (
+                record.total_questions if record else READINESS_TOTAL_QUESTIONS
+            ),
             "pass_score": READINESS_PASS_SCORE,
             "storage": "server",
             "user_authenticated": True,
             "guest": False,
-            "passed_at": record.passed_at.isoformat() + "Z" if record and record.passed_at else None,
+            "passed_at": (
+                record.passed_at.isoformat() + "Z"
+                if record and record.passed_at
+                else None
+            ),
         }
 
     guest_payload = session.get("readiness_guest") or {}
@@ -307,7 +321,9 @@ def _readiness_status_payload() -> dict:
     return {
         "passed": passed,
         "score": int(guest_payload.get("score") or 0),
-        "total_questions": int(guest_payload.get("total_questions") or READINESS_TOTAL_QUESTIONS),
+        "total_questions": int(
+            guest_payload.get("total_questions") or READINESS_TOTAL_QUESTIONS
+        ),
         "pass_score": READINESS_PASS_SCORE,
         "storage": "session",
         "user_authenticated": False,
@@ -417,7 +433,10 @@ def horizon_from_career_api(session_id: str):
 
     session_payload = _resolve_session_for_request(session_id)
     if not session_payload:
-        return jsonify({"error": "No se pudo acceder a la sesión de carrera indicada."}), 404
+        return (
+            jsonify({"error": "No se pudo acceder a la sesión de carrera indicada."}),
+            404,
+        )
 
     portfolio = session_payload.get("portfolio") or {}
     positions = portfolio.get("positions") or []
@@ -433,7 +452,12 @@ def horizon_from_career_api(session_id: str):
         assets.append({"ticker": ticker, "weight": weight})
 
     normalized_assets = _normalize_horizon_weights(assets)[:HORIZON_MAX_ASSETS]
-    final_value = portfolio.get("total_value") or portfolio.get("portfolio_value") or session_payload.get("capital") or 10000
+    final_value = (
+        portfolio.get("total_value")
+        or portfolio.get("portfolio_value")
+        or session_payload.get("capital")
+        or 10000
+    )
     try:
         initial_value = float(final_value)
     except (TypeError, ValueError):
@@ -467,16 +491,37 @@ def horizon_simulate_api():
 
     assets = _normalize_horizon_weights(assets_input)
     if not assets:
-        return jsonify({"error": "Debes seleccionar al menos un activo válido para generar el escenario experimental."}), 400
+        return (
+            jsonify(
+                {
+                    "error": "Debes seleccionar al menos un activo válido para generar el escenario experimental."
+                }
+            ),
+            400,
+        )
     if len(assets) > HORIZON_MAX_ASSETS:
-        return jsonify({"error": f"El modo Horizonte admite como máximo {HORIZON_MAX_ASSETS} activos en esta versión."}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"El modo Horizonte admite como máximo {HORIZON_MAX_ASSETS} activos en esta versión."
+                }
+            ),
+            400,
+        )
 
     try:
         horizon_years = int(payload.get("horizon") or HORIZON_DEFAULT_HORIZON_YEARS)
     except (TypeError, ValueError):
         horizon_years = 0
     if horizon_years < 1 or horizon_years > HORIZON_MAX_HORIZON_YEARS:
-        return jsonify({"error": f"Selecciona un horizonte válido entre 1 y {HORIZON_MAX_HORIZON_YEARS} años."}), 400
+        return (
+            jsonify(
+                {
+                    "error": f"Selecciona un horizonte válido entre 1 y {HORIZON_MAX_HORIZON_YEARS} años."
+                }
+            ),
+            400,
+        )
 
     try:
         initial_value = float(payload.get("initial_value") or 10000)
@@ -489,7 +534,14 @@ def horizon_simulate_api():
         from .career import _resolve_session_for_request
 
         if not _resolve_session_for_request(session_id):
-            return jsonify({"error": "No puedes usar una sesión de carrera ajena o inexistente como origen."}), 404
+            return (
+                jsonify(
+                    {
+                        "error": "No puedes usar una sesión de carrera ajena o inexistente como origen."
+                    }
+                ),
+                404,
+            )
 
     end_d = date.today()
     history_years = _get_horizon_history_years(horizon_years)
@@ -505,7 +557,9 @@ def horizon_simulate_api():
         try:
             df = _download_history_df(ticker, start_d, end_d, include_actions=False)
             price_series = _extract_market_price_series(df, ticker)
-            monthly, return_meta = _compute_horizon_monthly_returns(price_series, ticker)
+            monthly, return_meta = _compute_horizon_monthly_returns(
+                price_series, ticker
+            )
         except BacktestError as exc:
             if exc.status_code >= 500:
                 provider_temporarily_limited = True
@@ -515,19 +569,36 @@ def horizon_simulate_api():
             warnings.append(str(exc))
             continue
         except Exception:
-            warnings.append(f"{ticker} se ha excluido porque no se pudo normalizar su histórico de mercado.")
+            warnings.append(
+                f"{ticker} se ha excluido porque no se pudo normalizar su histórico de mercado."
+            )
             continue
 
         min_required_points = max(36, horizon_years * 12)
-        if price_series.empty or len(price_series) < 252 or len(monthly) < min_required_points:
-            warnings.append(f"{ticker} se ha excluido porque no dispone de una muestra histórica suficientemente amplia para este horizonte experimental.")
+        if (
+            price_series.empty
+            or len(price_series) < 252
+            or len(monthly) < min_required_points
+        ):
+            warnings.append(
+                f"{ticker} se ha excluido porque no dispone de una muestra histórica suficientemente amplia para este horizonte experimental."
+            )
             continue
 
         if return_meta.get("had_outliers"):
             had_clamped_outliers = True
-            warnings.append(f"{ticker} contiene retornos mensuales extremos en el histórico reciente. Se ha limitado su impacto para evitar una proyección experimental absurda.")
+            warnings.append(
+                f"{ticker} contiene retornos mensuales extremos en el histórico reciente. Se ha limitado su impacto para evitar una proyección experimental absurda."
+            )
 
-        valid_assets.append({"ticker": ticker, "weight": asset["weight"], "series": price_series, "monthly_points": len(monthly)})
+        valid_assets.append(
+            {
+                "ticker": ticker,
+                "weight": asset["weight"],
+                "series": price_series,
+                "monthly_points": len(monthly),
+            }
+        )
         monthly_returns.append(monthly.rename(ticker))
 
     if not valid_assets:
@@ -540,7 +611,9 @@ def horizon_simulate_api():
         return jsonify({"error": error_message, "warnings": warnings}), status_code
 
     total_valid_weight = sum(item["weight"] for item in valid_assets) or 1.0
-    valid_assets = [{**item, "weight": item["weight"] / total_valid_weight} for item in valid_assets]
+    valid_assets = [
+        {**item, "weight": item["weight"] / total_valid_weight} for item in valid_assets
+    ]
 
     hist_frames = []
     for item in valid_assets:
@@ -549,20 +622,48 @@ def horizon_simulate_api():
         if values.empty:
             continue
         normalized = values / float(values.iloc[0]) * 100
-        normalized = _downsample_horizon_series(normalized, max_points=HORIZON_MAX_HISTORY_POINTS)
+        normalized = _downsample_horizon_series(
+            normalized, max_points=HORIZON_MAX_HISTORY_POINTS
+        )
         hist_frames.append(normalized.rename(item["ticker"]))
-    hist_df = pd.concat(hist_frames, axis=1).dropna(how="all") if hist_frames else pd.DataFrame()
+    hist_df = (
+        pd.concat(hist_frames, axis=1).dropna(how="all")
+        if hist_frames
+        else pd.DataFrame()
+    )
     if hist_df.empty:
-        return jsonify({"error": "No se pudo construir la serie histórica base para el escenario experimental.", "warnings": warnings}), 400
+        return (
+            jsonify(
+                {
+                    "error": "No se pudo construir la serie histórica base para el escenario experimental.",
+                    "warnings": warnings,
+                }
+            ),
+            400,
+        )
     hist_df = hist_df.ffill().dropna(how="any")
-    hist_weights = pd.Series({item["ticker"]: item["weight"] for item in valid_assets if item["ticker"] in hist_df.columns})
+    hist_weights = pd.Series(
+        {
+            item["ticker"]: item["weight"]
+            for item in valid_assets
+            if item["ticker"] in hist_df.columns
+        }
+    )
     hist_weights = hist_weights / hist_weights.sum()
     blended_hist = hist_df.mul(hist_weights, axis=1).sum(axis=1)
 
     monthly_df = pd.concat(monthly_returns, axis=1).dropna(how="all")
     monthly_df = monthly_df.ffill().dropna(how="any")
     if monthly_df.empty:
-        return jsonify({"error": "No se pudieron combinar patrones mensuales suficientes para generar el escenario experimental.", "warnings": warnings}), 400
+        return (
+            jsonify(
+                {
+                    "error": "No se pudieron combinar patrones mensuales suficientes para generar el escenario experimental.",
+                    "warnings": warnings,
+                }
+            ),
+            400,
+        )
 
     weights = pd.Series({item["ticker"]: item["weight"] for item in valid_assets})
     available_cols = [col for col in monthly_df.columns if col in weights.index]
@@ -571,15 +672,32 @@ def horizon_simulate_api():
     weights = weights / weights.sum()
     blended_monthly = monthly_df.mul(weights, axis=1).sum(axis=1)
     if blended_monthly.empty:
-        return jsonify({"error": "No hay patrones mensuales suficientes para proyectar el escenario experimental.", "warnings": warnings}), 400
+        return (
+            jsonify(
+                {
+                    "error": "No hay patrones mensuales suficientes para proyectar el escenario experimental.",
+                    "warnings": warnings,
+                }
+            ),
+            400,
+        )
 
     future_months = horizon_years * 12
-    rng_seed = sum(sum(ord(ch) for ch in item["ticker"]) for item in valid_assets) + future_months + int(initial_value)
+    rng_seed = (
+        sum(sum(ord(ch) for ch in item["ticker"]) for item in valid_assets)
+        + future_months
+        + int(initial_value)
+    )
     rng = random.Random(rng_seed)
     sample_pool = blended_monthly.tolist()
-    simulated_returns = [float(sample_pool[rng.randrange(len(sample_pool))]) for _ in range(future_months)]
+    simulated_returns = [
+        float(sample_pool[rng.randrange(len(sample_pool))])
+        for _ in range(future_months)
+    ]
 
-    future_dates = pd.date_range(start=date.today() + timedelta(days=30), periods=future_months, freq="ME")
+    future_dates = pd.date_range(
+        start=date.today() + timedelta(days=30), periods=future_months, freq="ME"
+    )
     last_hist_value = float(blended_hist.iloc[-1]) if not blended_hist.empty else 100.0
     projected_base = [last_hist_value]
     projected_value = [float(initial_value)]
@@ -587,16 +705,36 @@ def horizon_simulate_api():
         projected_base.append(projected_base[-1] * (1 + float(ret)))
         projected_value.append(projected_value[-1] * (1 + float(ret)))
 
-    historical_series = [[idx.isoformat(), round(float(value), 4)] for idx, value in blended_hist.items()]
-    projected_series = [[blended_hist.index[-1].date().isoformat(), round(float(last_hist_value), 4)]] if not blended_hist.empty else []
+    historical_series = [
+        [idx.isoformat(), round(float(value), 4)] for idx, value in blended_hist.items()
+    ]
+    projected_series = (
+        [[blended_hist.index[-1].date().isoformat(), round(float(last_hist_value), 4)]]
+        if not blended_hist.empty
+        else []
+    )
     projected_series.extend(
-        [[future_dates[idx].date().isoformat(), round(float(projected_base[idx + 1]), 4)] for idx in range(future_months)]
+        [
+            [
+                future_dates[idx].date().isoformat(),
+                round(float(projected_base[idx + 1]), 4),
+            ]
+            for idx in range(future_months)
+        ]
     )
 
     final_value = projected_value[-1]
     scenario_total_return = (final_value / initial_value) - 1 if initial_value else 0.0
-    scenario_annualized_return = (final_value / initial_value) ** (1 / horizon_years) - 1 if initial_value and horizon_years > 0 else 0.0
-    scenario_volatility = pd.Series(simulated_returns).std() * math.sqrt(12) if len(simulated_returns) > 1 else 0.0
+    scenario_annualized_return = (
+        (final_value / initial_value) ** (1 / horizon_years) - 1
+        if initial_value and horizon_years > 0
+        else 0.0
+    )
+    scenario_volatility = (
+        pd.Series(simulated_returns).std() * math.sqrt(12)
+        if len(simulated_returns) > 1
+        else 0.0
+    )
 
     return jsonify(
         {
@@ -607,7 +745,9 @@ def horizon_simulate_api():
                 "initial_value": round(float(initial_value), 2),
                 "projected_final_value": round(float(final_value), 2),
                 "scenario_total_return": round(float(scenario_total_return), 6),
-                "scenario_annualized_return": round(float(scenario_annualized_return), 6),
+                "scenario_annualized_return": round(
+                    float(scenario_annualized_return), 6
+                ),
                 "scenario_volatility": round(float(scenario_volatility), 6),
                 "assets_used": [item["ticker"] for item in valid_assets],
                 "horizon_years": horizon_years,
@@ -621,7 +761,10 @@ def horizon_simulate_api():
             "method_description": HORIZON_METHOD_DESCRIPTION,
             "source": source,
             "session_id": session_id or None,
-            "assets": [{"ticker": item["ticker"], "weight": round(float(item["weight"]), 6)} for item in valid_assets],
+            "assets": [
+                {"ticker": item["ticker"], "weight": round(float(item["weight"]), 6)}
+                for item in valid_assets
+            ],
         }
     )
 
@@ -656,11 +799,16 @@ def readiness_questions_api():
             {
                 "id": item["id"],
                 "prompt": item["prompt"],
-                "options": [{"id": option["id"], "label": option["label"]} for option in item["options"]],
+                "options": [
+                    {"id": option["id"], "label": option["label"]}
+                    for option in item["options"]
+                ],
                 "explanation": item["explanation"],
                 "topic": item["topic"],
                 "step": index,
-                "contextTitle": "Conceptos básicos" if index <= 5 else "Cómo leer la simulación",
+                "contextTitle": (
+                    "Conceptos básicos" if index <= 5 else "Cómo leer la simulación"
+                ),
                 "contextHint": (
                     "Piensa en riesgo, diversificación, benchmark y horizonte temporal."
                     if index <= 5
@@ -686,22 +834,44 @@ def readiness_submit_api():
 
     question_set = _get_or_create_readiness_question_set()
     if len(answers) != len(question_set):
-        return jsonify({"error": "Debes responder todas las preguntas del recorrido final."}), 400
+        return (
+            jsonify(
+                {"error": "Debes responder todas las preguntas del recorrido final."}
+            ),
+            400,
+        )
 
     score = 0
     result_items = []
     question_map = {item["id"]: item for item in question_set}
     for answer in answers:
         if not isinstance(answer, dict):
-            return jsonify({"error": "Cada respuesta debe indicar pregunta y opción."}), 400
+            return (
+                jsonify({"error": "Cada respuesta debe indicar pregunta y opción."}),
+                400,
+            )
         question_id = answer.get("questionId")
         option_id = answer.get("optionId")
         question = question_map.get(question_id)
         if not question:
-            return jsonify({"error": "Se ha detectado una pregunta no válida en el intento."}), 400
-        selected_option = next((option for option in question["options"] if option["id"] == option_id), None)
-        correct_option = next((option for option in question["options"] if option["correct"]), None)
-        is_correct = bool(selected_option and correct_option and selected_option["id"] == correct_option["id"])
+            return (
+                jsonify(
+                    {"error": "Se ha detectado una pregunta no válida en el intento."}
+                ),
+                400,
+            )
+        selected_option = next(
+            (option for option in question["options"] if option["id"] == option_id),
+            None,
+        )
+        correct_option = next(
+            (option for option in question["options"] if option["correct"]), None
+        )
+        is_correct = bool(
+            selected_option
+            and correct_option
+            and selected_option["id"] == correct_option["id"]
+        )
         if is_correct:
             score += 1
         result_items.append(
@@ -1249,7 +1419,9 @@ def _registrar_analisis(datos):
                 "justificacion": registro.get("justificacion", ""),
                 "modo": registro.get("modo"),
                 "dca": registro.get("dca"),
-                "crecimiento_anual_estimado": registro.get("crecimiento_anual_estimado"),
+                "crecimiento_anual_estimado": registro.get(
+                    "crecimiento_anual_estimado"
+                ),
                 "margen_seguridad_pct": registro.get("margen_seguridad_pct"),
                 "inicio": registro.get("inicio"),
                 "fin": registro.get("fin"),
@@ -1308,9 +1480,15 @@ def listar_analisis():
     """
     user_id = _current_user_id()
     if _is_guest_user():
-        return jsonify({"error": "El modo invitado no dispone de historial guardado."}), 403
+        return (
+            jsonify({"error": "El modo invitado no dispone de historial guardado."}),
+            403,
+        )
     if not user_id:
-        return jsonify({"error": "Debes iniciar sesión para consultar tu historial."}), 401
+        return (
+            jsonify({"error": "Debes iniciar sesión para consultar tu historial."}),
+            401,
+        )
 
     ticker = request.args.get("ticker")
     desde = request.args.get("desde")
@@ -1332,9 +1510,15 @@ def exportar_analisis_csv():
     """
     user_id = _current_user_id()
     if _is_guest_user():
-        return jsonify({"error": "El modo invitado no permite exportar historial."}), 403
+        return (
+            jsonify({"error": "El modo invitado no permite exportar historial."}),
+            403,
+        )
     if not user_id:
-        return jsonify({"error": "Debes iniciar sesión para exportar tu historial."}), 401
+        return (
+            jsonify({"error": "Debes iniciar sesión para exportar tu historial."}),
+            401,
+        )
 
     ticker = request.args.get("ticker")
     desde = request.args.get("desde")
@@ -1523,7 +1707,9 @@ class BacktestError(Exception):
 
 
 class HorizonSimulationError(Exception):
-    def __init__(self, message: str, status_code: int = 400, warnings: list[str] | None = None):
+    def __init__(
+        self, message: str, status_code: int = 400, warnings: list[str] | None = None
+    ):
         super().__init__(message)
         self.status_code = status_code
         self.warnings = warnings or []
@@ -1565,7 +1751,9 @@ def _download_history_df(
             df = _normalize_price_df(df)
             if df is None or df.empty:
                 if last_rate_limit_exc is not None:
-                    raise BacktestError(provider_limited_msg, 503) from last_rate_limit_exc
+                    raise BacktestError(
+                        provider_limited_msg, 503
+                    ) from last_rate_limit_exc
                 raise BacktestError(not_found_msg, 404)
             HORIZON_HISTORY_CACHE[cache_key] = df.copy()
             return df
@@ -1626,7 +1814,9 @@ def _get_horizon_history_years(horizon_years: int) -> int:
     return max(HORIZON_MIN_HISTORY_YEARS, 7)
 
 
-def _downsample_horizon_series(series: pd.Series, max_points: int = HORIZON_MAX_HISTORY_POINTS) -> pd.Series:
+def _downsample_horizon_series(
+    series: pd.Series, max_points: int = HORIZON_MAX_HISTORY_POINTS
+) -> pd.Series:
     if series.empty or len(series) <= max_points:
         return series
     step = max(1, math.ceil(len(series) / max_points))
@@ -1637,7 +1827,9 @@ def _downsample_horizon_series(series: pd.Series, max_points: int = HORIZON_MAX_
     return sampled
 
 
-def _compute_horizon_monthly_returns(series: pd.Series, ticker: str) -> tuple[pd.Series, dict[str, bool]]:
+def _compute_horizon_monthly_returns(
+    series: pd.Series, ticker: str
+) -> tuple[pd.Series, dict[str, bool]]:
     if series.empty:
         raise HorizonSimulationError(
             f"{ticker} no dispone de una serie temporal válida para construir la simulación experimental.",
@@ -1652,7 +1844,9 @@ def _compute_horizon_monthly_returns(series: pd.Series, ticker: str) -> tuple[pd
         )
     outlier_mask = monthly.abs() > HORIZON_MAX_MONTHLY_RETURN
     had_outliers = bool(outlier_mask.any())
-    monthly = monthly.clip(lower=-HORIZON_MAX_MONTHLY_RETURN, upper=HORIZON_MAX_MONTHLY_RETURN)
+    monthly = monthly.clip(
+        lower=-HORIZON_MAX_MONTHLY_RETURN, upper=HORIZON_MAX_MONTHLY_RETURN
+    )
     if monthly.empty:
         raise HorizonSimulationError(
             f"{ticker} no genera retornos mensuales suficientes para esta simulación experimental.",

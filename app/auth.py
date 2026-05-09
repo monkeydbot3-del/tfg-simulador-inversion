@@ -1,6 +1,5 @@
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 
-from .models import User
 from .services.auth_service import authenticate_user, create_user, get_user_by_email
 
 

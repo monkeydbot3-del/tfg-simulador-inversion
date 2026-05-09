@@ -62,7 +62,9 @@ def get_latest_career_session_for_user(user_id):
     return (
         CareerSessionLink.select()
         .where(CareerSessionLink.user == user_id)
-        .order_by(CareerSessionLink.updated_at.desc(), CareerSessionLink.created_at.desc())
+        .order_by(
+            CareerSessionLink.updated_at.desc(), CareerSessionLink.created_at.desc()
+        )
         .first()
     )
 
@@ -71,20 +73,28 @@ def list_career_sessions_for_user(user_id, limit=12):
     query = (
         CareerSessionLink.select()
         .where(CareerSessionLink.user == user_id)
-        .order_by(CareerSessionLink.updated_at.desc(), CareerSessionLink.created_at.desc())
+        .order_by(
+            CareerSessionLink.updated_at.desc(), CareerSessionLink.created_at.desc()
+        )
     )
     if limit:
         query = query.limit(limit)
     return list(query)
 
 
-def upsert_career_session_state(user_id: int, session_payload: dict[str, Any]) -> CareerSession:
+def upsert_career_session_state(
+    user_id: int, session_payload: dict[str, Any]
+) -> CareerSession:
     session_payload = session_payload or {}
     if not _is_valid_session_payload(session_payload):
-        raise ValueError("La sesión de carrera no tiene un payload válido para persistencia.")
+        raise ValueError(
+            "La sesión de carrera no tiene un payload válido para persistencia."
+        )
     session_id = str(session_payload.get("session_id") or "").strip()
     if not session_id:
-        raise ValueError("session_id es obligatorio para persistir la sesión de carrera.")
+        raise ValueError(
+            "session_id es obligatorio para persistir la sesión de carrera."
+        )
 
     period = session_payload.get("period") or {}
     player = (session_payload.get("player") or "").strip() or None
@@ -93,7 +103,9 @@ def upsert_career_session_state(user_id: int, session_payload: dict[str, Any]) -
     status = "closed" if closed else "active"
     completed_turns = session_payload.get("completed_turns") or []
     current_turn = len(completed_turns) + 1
-    total_turns = int(session_payload.get("turns_total") or session_payload.get("total_turns") or 0)
+    total_turns = int(
+        session_payload.get("turns_total") or session_payload.get("total_turns") or 0
+    )
     metadata = {
         "period": period,
         "capital_initial": session_payload.get("capital_initial"),
@@ -118,7 +130,9 @@ def upsert_career_session_state(user_id: int, session_payload: dict[str, Any]) -
         "updated_at": datetime.utcnow(),
     }
 
-    record, created = CareerSession.get_or_create(session_id=session_id, defaults=defaults)
+    record, created = CareerSession.get_or_create(
+        session_id=session_id, defaults=defaults
+    )
     if not created:
         record.user = user_id
         record.display_name = player
@@ -166,10 +180,14 @@ def save_career_turn_state(
     return turn
 
 
-def get_persisted_career_session_for_user(user_id: int, session_id: str) -> CareerSession | None:
+def get_persisted_career_session_for_user(
+    user_id: int, session_id: str
+) -> CareerSession | None:
     return (
         CareerSession.select()
-        .where((CareerSession.user == user_id) & (CareerSession.session_id == session_id))
+        .where(
+            (CareerSession.user == user_id) & (CareerSession.session_id == session_id)
+        )
         .first()
     )
 
@@ -192,7 +210,9 @@ def deserialize_career_session(record: CareerSession | None) -> dict[str, Any] |
     return payload
 
 
-def list_persisted_career_turns_for_user(user_id: int, session_id: str) -> list[dict[str, Any]]:
+def list_persisted_career_turns_for_user(
+    user_id: int, session_id: str
+) -> list[dict[str, Any]]:
     session_record = get_persisted_career_session_for_user(user_id, session_id)
     if not session_record:
         return []

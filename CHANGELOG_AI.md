@@ -435,3 +435,24 @@
   - `requirements.txt`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-09
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 38, reparación del workflow de GitHub Actions y alineación de tests
+- Archivos tocados:
+  - `.github/workflows/ci.yml`
+  - `pyproject.toml`
+  - `app/auth.py`
+  - `app/__init__.py`
+  - `app/models.py`
+  - `app/routes.py`
+  - `app/career.py`
+  - `app/services/career_session_service.py`
+  - `tests/test_frontend.py`
+  - `tests/test_analisis_storage.py`
+  - `tests/test_analisis_export_csv.py`
+  - `tests/test_analisis_filtros.py`
+  - `tests/test_analisis_paginado.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

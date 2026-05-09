@@ -3063,3 +3063,150 @@ Se reforzó la frontera entre ambos tramos sin tocar la arquitectura de charts:
 - no he podido validar Render directamente desde aquí, así que la comprobación final de Yahoo y del comportamiento intermitente sigue dependiendo de tus pruebas reales
 - la caché en memoria ayuda a suavizar reintentos cortos, pero no elimina por completo la dependencia del proveedor externo
 - si el usuario percibe todavía demasiado optimismo en trayectorias concretas como AAPL, la siguiente microiteración debería centrarse en prudencia metodológica adicional, no en vender el resultado como forecast
+
+## Iteración 38 - Reparación del workflow de GitHub Actions y alineación de tests
+
+### Problema observado
+Los commits recientes en `bot/render-preview` sí estaban llegando correctamente a GitHub, pero los workflows aparecían en rojo después del push.
+
+Los commits del bloque Horizonte no estaban fallando por `git push`, sino por el pipeline de CI posterior.
+
+### Confirmación del estado local
+Se comprobó localmente:
+- rama actual: `bot/render-preview`
+- último commit local visible: `c7fb125`
+- remotos correctos: `origin` y `reference`
+- árbol de trabajo limpio al empezar el diagnóstico
+
+### Workflow inspeccionado
+Solo existe un workflow en el repo:
+- `.github/workflows/ci.yml`
+
+Ese workflow ejecuta:
+- Python `3.11`
+- instalación con `pip install -r requirements-dev.txt`
+- `ruff check .`
+- `black --check .`
+- `pytest --cov=app --cov-report=xml`
+
+### Limitación de acceso a logs remotos
+No había `gh` disponible/autenticado en este entorno, así que no se pudieron leer directamente los logs de GitHub Actions desde CLI.
+
+En lugar de inventar la causa, se reprodujo el workflow localmente en un entorno virtual limpio y se extrajeron los fallos reales paso a paso.
+
+### Causa exacta del fallo
+Hubo dos causas reales, una de infraestructura del lint y otra de alineación de tests.
+
+#### 1. Ruff y Black estaban entrando en entornos virtuales dentro del repo
+Al reproducir CI localmente, `ruff check .` falló no por código del proyecto, sino por archivos dentro de:
+- `.venv-ci/`
+- `venv/`
+
+Especialmente aparecían errores en scripts y paquetes de terceros como:
+- `pwiz.py` de peewee
+- módulos de `yaml/`
+- otros ficheros de dependencias instaladas
+
+Esto explicaba por qué el workflow se rompía en rojo aunque los commits de producto fueran correctos.
+
+#### 2. Pytest arrancaba la app sin entorno mínimo y además varios tests seguían anclados al comportamiento previo a auth
+Una vez resuelto el problema del lint, aparecieron fallos reales en tests:
+- sin variables de entorno, `create_app()` fallaba por:
+  - `SECRET_KEY no está configurada.`
+  - `DATABASE_URL no está configurada.`
+- además, algunos tests asumían todavía que:
+  - `GET /` devolvía `200` en vez de redirigir a `/login`
+  - `GET /analisis` y `GET /analisis.csv` eran accesibles sin auth o en invitado
+
+Pero eso ya no coincide con el producto actual, donde:
+- `/` redirige a login si no hay usuario autenticado ni invitado
+- el modo invitado puede usar la app, pero no consultar/exportar historial persistido
+
+### Correcciones aplicadas
+#### A. Exclusión explícita de entornos virtuales para Ruff y Black
+Se añadió `pyproject.toml` con exclusiones para:
+- `.venv`
+- `.venv-ci`
+- `venv`
+- caches y artefactos temporales
+
+Con eso, el lint y el format check pasan a evaluar el código del proyecto, no paquetes de terceros instalados dentro del repo.
+
+#### B. Limpieza menor real detectada por Ruff
+Se eliminó un import no usado en:
+- `app/auth.py`
+
+#### C. Alineación de formato con Black
+Se aplicó `black` a estos archivos para que `black --check .` dejara de romper:
+- `app/__init__.py`
+- `app/models.py`
+- `app/routes.py`
+- `app/career.py`
+- `app/services/career_session_service.py`
+
+No hubo cambio funcional buscado aquí, solo alineación con el formatter que el propio workflow exige.
+
+#### D. Variables dummy seguras en CI
+Se ajustó `.github/workflows/ci.yml` para definir en el job:
+- `SECRET_KEY: ci-secret-key`
+- `DATABASE_URL: sqlite:///ci.db`
+
+Esto no cambia producción ni Render. Solo permite que los tests creen la app en el runner de GitHub Actions con un entorno mínimo controlado.
+
+#### E. Alineación de tests con el comportamiento actual del producto
+Se actualizaron tests que estaban desfasados respecto a la app actual:
+- `tests/test_frontend.py`
+  - ahora valida que `/` redirige a `/login`
+- `tests/test_analisis_storage.py`
+- `tests/test_analisis_export_csv.py`
+- `tests/test_analisis_filtros.py`
+- `tests/test_analisis_paginado.py`
+
+En estos tests se dejó explícito el comportamiento actual:
+- invitado puede seguir entrando y generar análisis
+- pero no puede consultar/exportar historial persistido
+- esos endpoints deben responder con `403`
+
+### Archivos tocados
+- `.github/workflows/ci.yml`
+- `pyproject.toml`
+- `app/auth.py`
+- `app/__init__.py`
+- `app/models.py`
+- `app/routes.py`
+- `app/career.py`
+- `app/services/career_session_service.py`
+- `tests/test_frontend.py`
+- `tests/test_analisis_storage.py`
+- `tests/test_analisis_export_csv.py`
+- `tests/test_analisis_filtros.py`
+- `tests/test_analisis_paginado.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+Se reprodujo localmente el equivalente del workflow y quedó pasando:
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+Resultado final local:
+- `25 passed`
+- cobertura generada en `coverage.xml`
+
+### Causa raíz resumida
+La CI no estaba fallando por Modo Horizonte en sí, sino por una combinación de:
+1. lint/formato recorriendo directorios `venv` dentro del repo
+2. tests desfasados respecto al modelo actual de auth/historial
+3. ausencia de variables mínimas de entorno en el workflow
+
+### Qué debes comprobar ahora en GitHub Actions
+- que el workflow `CI` vuelva a ejecutarse en verde en `bot/render-preview`
+- que el job `build-test` pase:
+  - instalación
+  - `ruff`
+  - `black --check`
+  - `pytest`
+- que no aparezcan ya errores provenientes de `venv/` o `.venv-ci/`
+- que no aparezcan `RuntimeError` por `SECRET_KEY` o `DATABASE_URL`
