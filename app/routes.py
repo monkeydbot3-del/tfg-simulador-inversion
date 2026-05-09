@@ -2,6 +2,7 @@ import csv
 import io
 import json
 import math
+import os
 import random
 import time
 import unicodedata
@@ -25,6 +26,11 @@ from flask import (
 import pandas as pd
 import yfinance as yf
 from yfinance.exceptions import YFRateLimitError
+
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
 
 from .services.auth_service import get_user_by_id
 from .models import ReadinessQuizResult
@@ -60,6 +66,10 @@ HORIZON_HISTORY_CACHE_TTL_SECONDS = 120
 HORIZON_HISTORY_RETRY_DELAYS_SECONDS = (0.0, 0.8, 1.6)
 HORIZON_HISTORY_CACHE: TTLCache = TTLCache(
     maxsize=128, ttl=HORIZON_HISTORY_CACHE_TTL_SECONDS
+)
+AI_TUTOR_DISCLAIMER = (
+    "Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. "
+    "No constituye asesoramiento financiero ni una recomendación de inversión real."
 )
 READINESS_QUIZ_QUESTIONS = [
     {
@@ -782,12 +792,204 @@ def career_page():
     )
 
 
+def _ai_tutor_is_configured() -> bool:
+    return bool(os.environ.get("OPENAI_API_KEY")) and OpenAI is not None
+
+
+@bp.get("/api/ai/status")
+def ai_status_api():
+    return jsonify({"configured": _ai_tutor_is_configured()})
+
+
+def _build_career_ai_payload(session: dict, report: dict) -> dict:
+    meta = report.get("meta") or {}
+    portfolio_metrics = ((report.get("portfolio_equity") or {}).get("metrics") or {})
+    benchmark = report.get("benchmark") or {}
+    benchmark_metrics = benchmark.get("metrics") or {}
+    tracking = report.get("tracking") or {}
+    score = report.get("score") or {}
+    turns = report.get("turns") or []
+    theoretical = report.get("theoretical") or {}
+
+    tickers = []
+    seen = set()
+    for turn in turns:
+        for item in turn.get("alloc") or []:
+            ticker = str(item.get("ticker") or "").strip().upper()
+            if ticker and ticker not in seen:
+                seen.add(ticker)
+                tickers.append(ticker)
+
+    latest_alloc = []
+    if turns:
+        latest_turn = turns[-1] or {}
+        latest_alloc = [
+            {
+                "ticker": str(item.get("ticker") or "").strip().upper(),
+                "weight": round(float(item.get("weight") or 0.0), 4),
+            }
+            for item in (latest_turn.get("alloc") or [])
+            if item.get("ticker")
+        ]
+
+    return {
+        "simulation_type": "career_mode",
+        "session_id": meta.get("session_id"),
+        "difficulty": meta.get("difficulty"),
+        "historical_period": report.get("range") or {},
+        "player_alias": meta.get("player") or None,
+        "tickers_used": tickers[:12],
+        "latest_allocation": latest_alloc[:10],
+        "turns_total": meta.get("turns_total"),
+        "turns_closed": meta.get("turns_closed"),
+        "initial_value": meta.get("capital_initial"),
+        "final_value": meta.get("capital_current"),
+        "invested_so_far": meta.get("invested_so_far"),
+        "pnl_abs": meta.get("pnl_abs"),
+        "pnl_pct": meta.get("pnl_pct"),
+        "portfolio_metrics": {
+            "cagr": portfolio_metrics.get("CAGR"),
+            "volatility": portfolio_metrics.get("vol_annual"),
+            "max_drawdown": portfolio_metrics.get("max_drawdown"),
+            "total_return": portfolio_metrics.get("total_return"),
+        },
+        "benchmark": {
+            "ticker": benchmark.get("ticker"),
+            "cagr": benchmark_metrics.get("CAGR"),
+            "volatility": benchmark_metrics.get("vol_annual"),
+            "max_drawdown": benchmark_metrics.get("max_drawdown"),
+            "total_return": benchmark_metrics.get("total_return"),
+        },
+        "tracking": {
+            "active_return": tracking.get("active_return"),
+            "tracking_error": tracking.get("tracking_error"),
+            "information_ratio": tracking.get("information_ratio"),
+        },
+        "score": {
+            "stars": score.get("stars"),
+            "value": score.get("value"),
+            "notes": score.get("notes"),
+        },
+        "warnings": (report.get("warnings") or [])[:12],
+        "theoretical_summary": {
+            key: theoretical.get(key)
+            for key in ("k1", "k2", "k3", "method")
+            if theoretical.get(key) is not None
+        },
+        "event_counts": {
+            "turns_with_events": sum(
+                1 for turn in turns if (turn.get("events_applied") or turn.get("events_new"))
+            ),
+            "events_applied_total": sum(
+                len(turn.get("events_applied") or []) for turn in turns
+            ),
+        },
+    }
+
+
+def _generate_career_ai_analysis(ai_payload: dict) -> dict:
+    if not _ai_tutor_is_configured():
+        raise RuntimeError("El Tutor IA no está configurado en este entorno.")
+
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    system_prompt = (
+        "Eres un tutor educativo de inversión simulada dentro de una aplicación académica. "
+        "Tu tarea es explicar los resultados de una simulación histórica o experimental de forma clara, pedagógica y prudente. "
+        "No das asesoramiento financiero real, no recomiendas comprar ni vender activos, no predices el futuro y no afirmas que una estrategia vaya a funcionar en mercados reales. "
+        "Analizas únicamente los datos proporcionados por la aplicación con finalidad educativa. "
+        "Responde siempre en español, con tono claro y didáctico. "
+        "Debes incluir literalmente este disclaimer en la respuesta final: \""
+        + AI_TUTOR_DISCLAIMER
+        + "\". "
+        "Devuelve exclusivamente JSON válido con estas claves: "
+        "summary, strengths, improvements, benchmark_analysis, risk_notes, historical_context, learning_recommendations, final_advice, disclaimer. "
+        "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings. "
+        "No inventes datos no presentes en el payload. Si falta información, dilo con honestidad."
+    )
+    user_prompt = (
+        "Analiza esta simulación del Modo Carrera con finalidad educativa. "
+        "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura.\n\n"
+        f"Datos resumidos de simulación:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
+    )
+    response = client.responses.create(
+        model="gpt-4.1-mini",
+        input=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.4,
+    )
+    content = getattr(response, "output_text", "") or ""
+    parsed = json.loads(content)
+    parsed["disclaimer"] = AI_TUTOR_DISCLAIMER
+    return parsed
+
+
 @bp.get("/api/readiness/status")
 def readiness_status_api():
     payload = _readiness_status_payload()
     payload["required_score"] = READINESS_PASS_SCORE
     payload["total_questions_default"] = READINESS_TOTAL_QUESTIONS
     return jsonify(payload)
+
+
+@bp.post("/api/ai/career-analysis/<session_id>")
+def ai_career_analysis_api(session_id: str):
+    from .career import get_career_report_for_session
+
+    if not _ai_tutor_is_configured():
+        return (
+            jsonify({"error": "El Tutor IA no está configurado en este entorno."}),
+            503,
+        )
+
+    try:
+        report = get_career_report_for_session(session_id, include_series=False)
+    except Exception as exc:
+        message = getattr(exc, "description", str(exc))
+        status_code = getattr(exc, "code", 400)
+        return jsonify({"error": message}), status_code
+
+    if not report:
+        return jsonify({"error": "No puedes analizar una sesión ajena o inexistente."}), 404
+
+    ai_payload = _build_career_ai_payload({}, report)
+    try:
+        analysis = _generate_career_ai_analysis(ai_payload)
+    except RuntimeError as exc:
+        return jsonify({"error": str(exc)}), 503
+    except Exception:
+        return (
+            jsonify(
+                {
+                    "error": "No se pudo generar el análisis educativo del Tutor IA en este momento. Puedes volver a intentarlo.",
+                    "warnings": [
+                        "La generación depende de un servicio externo y puede fallar temporalmente."
+                    ],
+                }
+            ),
+            502,
+        )
+
+    sections = [
+        {"title": "Resumen general", "type": "text", "content": analysis.get("summary")},
+        {"title": "Qué has hecho bien", "type": "list", "content": analysis.get("strengths") or []},
+        {"title": "Qué podrías mejorar", "type": "list", "content": analysis.get("improvements") or []},
+        {"title": "Comparación con benchmark", "type": "text", "content": analysis.get("benchmark_analysis")},
+        {"title": "Riesgos detectados", "type": "list", "content": analysis.get("risk_notes") or []},
+        {"title": "Contexto histórico", "type": "text", "content": analysis.get("historical_context")},
+        {"title": "Conceptos para repasar", "type": "list", "content": analysis.get("learning_recommendations") or []},
+        {"title": "Conclusión educativa", "type": "text", "content": analysis.get("final_advice")},
+    ]
+    return jsonify(
+        {
+            "analysis": analysis,
+            "sections": sections,
+            "disclaimer": AI_TUTOR_DISCLAIMER,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "warnings": [],
+        }
+    )
 
 
 @bp.get("/api/readiness/questions")

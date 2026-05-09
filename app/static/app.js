@@ -1718,6 +1718,8 @@ const careerState = {
   sessionId: null,
   sessionData: null,
   report: null,
+  aiConfigured: null,
+  aiLoading: false,
   turnsForDetail: [],
   charts: { series: null, equity: null },
   latestSeriesTickers: [],
@@ -2639,6 +2641,7 @@ function initCareerPage() {
   const loadSeriesBtn = document.getElementById("career-load-series");
   const reportBtn = document.getElementById("career-report-btn");
   const reportRefreshBtn = document.getElementById("career-report-refresh");
+  const careerAiBtn = document.getElementById("career-ai-btn");
   const exportPngBtn = document.getElementById("career-export-png");
   const rankingSubmitBtn = document.getElementById("career-ranking-submit");
   const rankingRefreshBtn = document.getElementById("career-ranking-refresh");
@@ -2660,6 +2663,7 @@ function initCareerPage() {
   loadSeriesBtn?.addEventListener("click", () => loadCareerSeries());
   reportBtn?.addEventListener("click", () => renderCareerReport({ includeSeries: true }));
   reportRefreshBtn?.addEventListener("click", () => renderCareerReport({ includeSeries: true, force: true }));
+  careerAiBtn?.addEventListener("click", runCareerAiAnalysis);
   exportPngBtn?.addEventListener("click", exportCareerPng);
   rankingSubmitBtn?.addEventListener("click", submitCareerRanking);
   rankingRefreshBtn?.addEventListener("click", refreshCareerRanking);
@@ -2749,6 +2753,7 @@ function initCareerPage() {
   updateCareerAllocSummary();
   refreshCareerRanking();
   refreshCareerSavedSessions();
+  fetchCareerAiStatus();
 
   const storedSessionId = prefs.lastSessionId;
   if (storedSessionId) {
@@ -3693,6 +3698,7 @@ function renderCareerReport(options = {}) {
 }
 
 function renderCareerReportPanels(report, hasSeries) {
+  setCareerAiLoading(false);
   const starsEl = document.getElementById("career-score-stars");
   const valueEl = document.getElementById("career-score-value");
   const notesEl = document.getElementById("career-score-notes");
@@ -3747,6 +3753,83 @@ function renderCareerMetrics(report) {
           : ND
       }</li>
     `;
+  }
+}
+
+function renderCareerAiStatus(message, tone = "info") {
+  const el = document.getElementById("career-ai-status");
+  if (!el) return;
+  el.textContent = message || "";
+  el.classList.remove("is-error", "is-success");
+  if (tone === "error") el.classList.add("is-error");
+  if (tone === "success") el.classList.add("is-success");
+}
+
+function renderCareerAiSections(payload) {
+  const host = document.getElementById("career-ai-output");
+  if (!host) return;
+  const sections = Array.isArray(payload?.sections) ? payload.sections : [];
+  host.innerHTML = sections
+    .map((section) => {
+      const title = section?.title || "Sección";
+      if (section?.type === "list") {
+        const items = Array.isArray(section?.content) ? section.content.filter(Boolean) : [];
+        return `
+          <article class="career-ai-section">
+            <h5>${title}</h5>
+            <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>Sin contenido suficiente.</li>"}</ul>
+          </article>
+        `;
+      }
+      return `
+        <article class="career-ai-section">
+          <h5>${title}</h5>
+          <p>${escapeHtml(section?.content || "No hay suficiente información para desarrollar este bloque.")}</p>
+        </article>
+      `;
+    })
+    .join("");
+  host.classList.remove("hidden");
+}
+
+function setCareerAiLoading(isLoading) {
+  careerState.aiLoading = Boolean(isLoading);
+  const btn = document.getElementById("career-ai-btn");
+  if (btn) btn.disabled = isLoading || !careerState.sessionId || careerState.aiConfigured === false;
+}
+
+async function fetchCareerAiStatus() {
+  try {
+    const data = await jsonGet("/api/ai/status");
+    careerState.aiConfigured = Boolean(data?.configured);
+  } catch {
+    careerState.aiConfigured = false;
+  }
+  const btn = document.getElementById("career-ai-btn");
+  if (btn && careerState.aiConfigured === false) {
+    btn.disabled = true;
+    btn.textContent = "Tutor IA no disponible";
+  }
+  if (careerState.aiConfigured === false) {
+    renderCareerAiStatus("El Tutor IA no está configurado en este entorno.", "error");
+  }
+}
+
+async function runCareerAiAnalysis() {
+  if (careerState.aiLoading || !careerState.sessionId) return;
+  setCareerAiLoading(true);
+  renderCareerAiStatus("Analizando tu simulación...", "info");
+  try {
+    const data = await jsonPost(`/api/ai/career-analysis/${encodeURIComponent(careerState.sessionId)}`, {});
+    renderCareerAiSections(data);
+    renderCareerAiStatus(data?.disclaimer || "Análisis educativo generado.", "success");
+    mostrarToastOk("Tutor IA completado.");
+  } catch (err) {
+    const message = err?.message || "No se pudo generar el análisis del Tutor IA.";
+    renderCareerAiStatus(message, "error");
+    mostrarToastError(message);
+  } finally {
+    setCareerAiLoading(false);
   }
 }
 

@@ -22,6 +22,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - El `Modo Carrera` está operativo, con persistencia progresiva y generación de informe final estabilizada.
 - El `readiness quiz` actúa como gate real previo al `Modo Carrera`.
 - El `Modo Horizonte` existe como función experimental y educativa, accesible de forma independiente y también desde Carrera.
+- El `Tutor IA` MVP existe sobre el informe final de Carrera como capa educativa opcional, dependiente de `OPENAI_API_KEY`.
 - La CI de GitHub Actions ha sido reparada y validada localmente.
 
 ---
@@ -59,6 +60,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 
 ## 4. Funcionalidades en desarrollo
 - Validación real en Render de `Modo Horizonte` tras las últimas iteraciones.
+- Validación real en Render del `Tutor IA` con y sin `OPENAI_API_KEY`.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
@@ -127,6 +129,11 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
   - usa histórico amplio con downsampling
   - distingue ticker inválido, proveedor limitado y datos insuficientes
   - usa caché ligera `TTLCache` en memoria
+- Tutor IA:
+  - analiza solo simulaciones de Carrera
+  - envía payload compacto, no series completas gigantes
+  - requiere `OPENAI_API_KEY`
+  - debe mantener siempre disclaimer educativo y no asesorar sobre inversión real
 - CI:
   - workflow principal en `.github/workflows/ci.yml`
   - valida `ruff`, `black`, `pytest` y compilación equivalente local

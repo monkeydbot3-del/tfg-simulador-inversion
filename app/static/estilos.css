@@ -3533,14 +3533,16 @@ body {
 .horizon-disclaimer-banner,
 .horizon-disclaimer-inline,
 .horizon-edu-card,
-.career-horizon-cta {
+.career-horizon-cta,
+.career-ai-tutor {
   border-radius: 18px;
 }
 
 .horizon-warning-card,
 .horizon-disclaimer-banner,
 .horizon-disclaimer-inline,
-.career-horizon-cta {
+.career-horizon-cta,
+.career-ai-tutor {
   padding: 16px 18px;
   background: linear-gradient(180deg, rgba(255, 248, 235, 0.95), rgba(255, 255, 255, 0.88));
   border: 1px solid rgba(191, 149, 55, 0.22);
@@ -3623,6 +3625,36 @@ body {
   .horizon-hero-card__head {
     grid-template-columns: 1fr;
   }
+}
+
+.career-ai-output {
+  margin-top: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.career-ai-output.hidden {
+  display: none;
+}
+
+.career-ai-section {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.career-ai-section h5 {
+  margin: 0 0 8px;
+}
+
+.career-ai-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.career-ai-disclaimer {
+  margin-top: 12px;
 }
 
 @media (max-width: 720px) {

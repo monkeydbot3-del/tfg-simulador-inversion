@@ -3402,3 +3402,195 @@ Backoff actual:
 - La validación real en Render sigue siendo imprescindible para confirmar el patrón exacto del proveedor en producción.
 - Algunos vacíos del proveedor podrían seguir entrando en la categoría genérica de inestabilidad/proveedor en vez de rate limit explícito, pero eso es preferible a marcar un ticker válido como inválido.
 - Los reintentos añaden una pequeña espera en casos malos, pero es un coste asumible frente a la mejora clara de UX.
+
+## Iteración 42 - Tutor IA educativo para informe final de Carrera
+
+### Objetivo
+Añadir una capa de análisis educativo con IA sobre el informe final del Modo Carrera, sin convertir la app en un asesor financiero y manteniendo un framing estrictamente académico y prudente.
+
+### Alcance del MVP
+La primera versión se integra solo en el informe final de Carrera.
+
+No se ha implementado todavía:
+- chat libre con IA
+- recomendaciones de activos
+- optimización automática de cartera
+- predicción futura con IA
+- persistencia del análisis en base de datos
+
+### Enfoque de producto
+El `Tutor IA` actúa como un profesor que corrige una simulación ya realizada.
+
+Analiza:
+- resultado general de la partida
+- fortalezas observables
+- debilidades o riesgos
+- comparación con benchmark
+- conceptos que conviene repasar
+
+No debe:
+- recomendar comprar o vender activos reales
+- hablar como asesor financiero
+- prometer rentabilidades futuras
+- presentar predicciones como hechos
+
+### Disclaimer obligatorio
+Se fijó como texto obligatorio visible en UI y en la respuesta generada:
+
+`Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. No constituye asesoramiento financiero ni una recomendación de inversión real.`
+
+### Integración técnica
+#### Configuración
+- Variable de entorno requerida: `OPENAI_API_KEY`
+- Si no existe, la app no se rompe.
+- Se añadió un endpoint ligero de estado:
+  - `GET /api/ai/status`
+
+#### Dependencia añadida
+- `openai==1.109.1`
+
+#### Endpoint principal añadido
+- `POST /api/ai/career-analysis/<session_id>`
+
+Ese endpoint:
+- valida acceso a la sesión a través de la misma lógica segura de Carrera
+- resuelve el informe final sin exponer sesiones ajenas
+- construye un payload compacto
+- llama a la IA solo si `OPENAI_API_KEY` está disponible
+- devuelve JSON estructurado con:
+  - `analysis`
+  - `sections`
+  - `disclaimer`
+  - `generated_at`
+  - `warnings`
+
+### Seguridad y acceso
+- usuarios autenticados: solo pueden analizar sesiones propias
+- invitado: solo puede analizar la sesión accesible por el flujo actual; no se confía solo en localStorage
+- si la sesión no existe o no es accesible, el endpoint devuelve error controlado
+
+### Datos enviados a la IA
+Se envía un resumen compacto de simulación, no series históricas gigantes.
+
+Campos principales enviados:
+- tipo de simulación (`career_mode`)
+- `session_id`
+- dificultad
+- periodo histórico
+- alias del jugador si existe
+- tickers usados
+- asignación más reciente
+- turnos totales y cerrados
+- valor inicial y final
+- invertido acumulado
+- PnL absoluto y porcentual
+- métricas agregadas de portfolio:
+  - CAGR
+  - volatilidad
+  - max drawdown
+  - retorno total
+- métricas agregadas de benchmark
+- métricas de tracking:
+  - active return
+  - tracking error
+  - information ratio
+- score final y notas
+- warnings del informe
+- resumen teórico compacto si existe
+- conteo agregado de eventos
+
+No se envían datos personales innecesarios ni series completas de mercado.
+
+### Prompt y control de comportamiento
+La llamada a IA usa un prompt de sistema explícito para forzar:
+- español
+- tono didáctico
+- prudencia
+- ausencia de asesoramiento financiero real
+- ausencia de recomendaciones de compra/venta
+- ausencia de predicción futura
+- salida JSON estructurada
+- honestidad si faltan datos
+
+### UI añadida
+En `app/templates/career.html`, dentro del informe final de Carrera, se añadió una card nueva:
+- título: `Tutor IA`
+- subtítulo: `Recibe una explicación educativa de tu simulación.`
+- texto explicativo de profesor/corrección
+- botón: `Analizar con IA`
+- disclaimer visible
+- estado de carga y zona de resultado estructurada
+
+El render final muestra bloques para:
+- Resumen general
+- Qué has hecho bien
+- Qué podrías mejorar
+- Comparación con benchmark
+- Riesgos detectados
+- Contexto histórico
+- Conceptos para repasar
+- Conclusión educativa
+
+No se muestra JSON crudo al usuario.
+
+### Comportamiento sin API key
+Si falta `OPENAI_API_KEY`:
+- la app sigue arrancando
+- el informe final no se rompe
+- `GET /api/ai/status` devuelve que el Tutor IA no está configurado
+- el botón se deshabilita y la UI muestra un mensaje claro:
+  - `El Tutor IA no está configurado en este entorno.`
+
+### Comportamiento ante error de API
+Si falla la API externa:
+- se devuelve un error amable
+- el informe final no se rompe
+- el usuario puede volver a intentarlo
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `requirements.txt`
+- `app/routes.py`
+- `app/career.py`
+- `app/templates/career.html`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura de contexto obligatorio antes de empezar.
+- Revisión de:
+  - `app/career.py`
+  - `app/routes.py`
+  - `app/models.py`
+  - `app/templates/career.html`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `requirements.txt`
+- Validación sintáctica:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Validación por inspección de los casos mínimos:
+  - sin `OPENAI_API_KEY`
+  - con `OPENAI_API_KEY`
+  - error de API
+  - ownership de sesión
+  - invitado
+  - responsive básico por estructura de card
+
+### Limitaciones actuales
+- El análisis no se persiste en base de datos.
+- El modelo usado está fijado de forma simple para este MVP.
+- No hay caching todavía del último análisis generado.
+- La respuesta depende de un servicio externo y puede variar ligeramente entre llamadas.
+
+### Riesgos pendientes
+- Conviene validar en Render el parsing real del JSON devuelto por OpenAI en este entorno concreto.
+- Si el modelo devolviera texto fuera del JSON esperado, podría hacer falta una capa extra de robustez de parsing en una iteración posterior.
+- Sigue siendo importante revisar manualmente que el tono final no derive hacia lenguaje de recomendación financiera.
+
+### Siguiente paso recomendado
+- validar en Render el Tutor IA con y sin `OPENAI_API_KEY`
+- revisar tono real de 3 o 4 respuestas sobre sesiones distintas
+- si hace falta, endurecer todavía más el prompt o añadir post-validación de frases prohibidas
+- solo después valorar una extensión futura a análisis histórico o a otras zonas de la app

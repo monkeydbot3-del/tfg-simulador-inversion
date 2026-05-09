@@ -2411,6 +2411,38 @@ def _resolve_session_for_request(session_id: str) -> dict[str, Any] | None:
     return _get_session(session_id)
 
 
+def get_career_report_for_session(
+    session_id: str, bench_ticker: str | None = None, include_series: bool = False
+) -> dict[str, Any] | None:
+    session = _resolve_session_for_request(session_id)
+    if not session:
+        return None
+    _ensure_session_defaults(session)
+
+    period = session.get("period") or {}
+    start_iso = period.get("start")
+    end_iso = period.get("end")
+    if not start_iso or not end_iso:
+        raise BadRequest("La sesión no tiene periodo configurado.")
+
+    start_d = date.fromisoformat(start_iso)
+    end_d = date.fromisoformat(end_iso)
+    if end_d < start_d:
+        raise BadRequest("El periodo de la sesión no es válido.")
+
+    bench = (bench_ticker or session.get("bench") or "^GSPC").strip().upper()
+    report_payload, _context = _generate_report_payload(
+        session,
+        bench,
+        include_series,
+        start_d,
+        end_d,
+        start_iso,
+        end_iso,
+    )
+    return report_payload
+
+
 @career_bp.route("/session", methods=["POST"])
 def create_session():
     payload = request.get_json(silent=True) or {}
