@@ -468,9 +468,20 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `442064b`
 - Título: Iteración 40, limpieza de artefactos locales de CI en workspace
 - Archivos tocados:
   - `.gitignore`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-09
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 41, reintentos internos y mejor UX de carga en Modo Horizonte
+- Archivos tocados:
+  - `app/routes.py`
+  - `app/static/app.js`
+  - `app/templates/horizon.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

@@ -1894,6 +1894,7 @@ const horizonState = {
   assets: [],
   chart: null,
   result: null,
+  isLoading: false,
 };
 
 async function fetchReadinessStatus() {
@@ -2259,6 +2260,7 @@ function renderHorizonChart(payload) {
 }
 
 function setHorizonLoading(isLoading) {
+  horizonState.isLoading = Boolean(isLoading);
   const loading = document.getElementById("horizon-loading");
   const btn = document.getElementById("horizon-generate-btn");
   const rerun = document.getElementById("horizon-rerun-btn");
@@ -2328,13 +2330,14 @@ function collectHorizonPayload() {
 }
 
 async function runHorizonSimulation() {
+  if (horizonState.isLoading) return;
   if (!horizonState.acknowledged) {
     openHorizonModal();
     return;
   }
   const payload = collectHorizonPayload();
   setHorizonLoading(true);
-  renderHorizonStatusMessage("Generando escenario experimental con datos históricos… Si la fuente de mercado responde con demora o limita temporalmente las peticiones, puedes reintentar.", "info");
+  renderHorizonStatusMessage("Obteniendo datos de mercado y generando escenario experimental. Si la fuente limita temporalmente la petición, reintentaremos automáticamente.", "info");
   try {
     const data = await jsonPost("/api/horizon/simulate", payload);
     horizonState.result = data;

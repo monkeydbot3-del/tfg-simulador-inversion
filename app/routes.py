@@ -57,6 +57,7 @@ HORIZON_MAX_HISTORY_YEARS = 15
 HORIZON_MAX_HISTORY_POINTS = 220
 HORIZON_MAX_MONTHLY_RETURN = 0.35
 HORIZON_HISTORY_CACHE_TTL_SECONDS = 120
+HORIZON_HISTORY_RETRY_DELAYS_SECONDS = (0.0, 0.8, 1.6)
 HORIZON_HISTORY_CACHE: TTLCache = TTLCache(
     maxsize=128, ttl=HORIZON_HISTORY_CACHE_TTL_SECONDS
 )
@@ -1721,12 +1722,16 @@ def _download_history_df(
     ticker_clean = (ticker or "").strip().upper()
     not_found_msg = (
         f"No se encontraron datos para el ticker '{ticker_clean}'. "
-        "Asegúrate de usar el símbolo bursátil (ej: AAPL) y no el nombre de la empresa."
+        "Asegúrate de usar el símbolo bursátil correcto."
     )
     provider_limited_msg = (
         "La fuente de datos de mercado ha limitado temporalmente la petición. "
-        "El ticker puede ser válido, pero no hemos podido obtener sus datos ahora mismo. "
+        "Hemos reintentado varias veces, pero no hemos podido obtener datos ahora mismo. "
         "Espera unos segundos y vuelve a intentarlo."
+    )
+    generic_provider_msg = (
+        f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento. "
+        "Hemos reintentado automáticamente la descarga, pero la fuente sigue sin responder de forma estable."
     )
     if not ticker_clean:
         raise BacktestError(not_found_msg, 404)
@@ -1736,8 +1741,13 @@ def _download_history_df(
     if cached is not None:
         return cached.copy()
 
-    last_rate_limit_exc = None
-    for attempt in range(2):
+    saw_rate_limit = False
+    saw_transient_empty = False
+    last_exception = None
+
+    for attempt, delay_seconds in enumerate(HORIZON_HISTORY_RETRY_DELAYS_SECONDS, start=1):
+        if delay_seconds > 0:
+            time.sleep(delay_seconds)
         try:
             df = yf.download(
                 ticker_clean,
@@ -1750,30 +1760,34 @@ def _download_history_df(
             )
             df = _normalize_price_df(df)
             if df is None or df.empty:
-                if last_rate_limit_exc is not None:
-                    raise BacktestError(
-                        provider_limited_msg, 503
-                    ) from last_rate_limit_exc
-                raise BacktestError(not_found_msg, 404)
+                saw_transient_empty = True
+                last_exception = BacktestError("Descarga vacía o sin datos normalizables", 503)
+                continue
+            extracted_series = _extract_market_price_series(df, ticker_clean)
+            if extracted_series.empty:
+                saw_transient_empty = True
+                last_exception = BacktestError("Serie histórica vacía tras normalización", 503)
+                continue
             HORIZON_HISTORY_CACHE[cache_key] = df.copy()
             return df
         except YFRateLimitError as exc:
-            last_rate_limit_exc = exc
-            if attempt == 0:
-                time.sleep(0.8)
+            saw_rate_limit = True
+            last_exception = exc
+            continue
+        except BacktestError as exc:
+            last_exception = exc
+            if exc.status_code >= 500:
                 continue
-            raise BacktestError(provider_limited_msg, 503) from exc
-        except BacktestError:
             raise
         except Exception as exc:
-            if last_rate_limit_exc is not None:
-                raise BacktestError(provider_limited_msg, 503) from exc
-            raise BacktestError(
-                f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento.",
-                503,
-            ) from exc
+            last_exception = exc
+            continue
 
-    raise BacktestError(provider_limited_msg, 503) from last_rate_limit_exc
+    if saw_rate_limit:
+        raise BacktestError(provider_limited_msg, 503) from last_exception
+    if saw_transient_empty:
+        raise BacktestError(generic_provider_msg, 503) from last_exception
+    raise BacktestError(not_found_msg, 404) from last_exception
 
 
 def _extract_market_price_series(df: pd.DataFrame, ticker: str) -> pd.Series:

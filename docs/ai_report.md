@@ -3304,3 +3304,101 @@ No llegaron a subirse al repositorio, pero sí podían ensuciar futuras iteracio
 ### Resultado esperado
 - `git status` más limpio en iteraciones futuras.
 - Menor ruido operativo al trabajar sobre `bot/render-preview`.
+
+## Iteración 41 - Reintentos internos y mejor UX de carga en Modo Horizonte
+
+### Objetivo
+Corregir la mala sensación de producto en Horizonte cuando el primer intento falla por un problema transitorio del proveedor, pero el segundo intento manual sí funciona.
+
+### Problema observado
+En Render, al generar un escenario con activos como `AAPL`, el primer click podía fallar por descarga temporal/rate limit y el segundo click funcionar. Eso hacía que el usuario percibiera la app como rota, aunque la fuente externa acabara respondiendo poco después.
+
+### Causa probable
+La descarga histórica se estaba resolviendo demasiado pronto como error final en algunos casos transitorios:
+- `YFRateLimitError`
+- descarga vacía en el primer intento
+- serie vacía tras normalización
+- respuestas inestables del proveedor que funcionaban en un segundo intento real
+
+El retry previo era demasiado ligero para este patrón real de Render.
+
+### Cambios aplicados
+#### Backend en `app/routes.py`
+- Se amplió la estrategia de reintentos internos en `_download_history_df(...)`.
+- Se añadieron reintentos controlados con backoff corto:
+  - intento 1 inmediato
+  - intento 2 tras `0.8s`
+  - intento 3 tras `1.6s`
+- Los reintentos ya no se activan solo por excepción explícita, sino también cuando:
+  - el DataFrame descargado viene vacío
+  - la serie queda vacía tras normalización
+- Solo se devuelve error al frontend después de agotar todos los intentos.
+- Se mantiene la caché ligera existente y solo se cachean descargas válidas.
+- No se cachean respuestas vacías o fallidas.
+
+#### Diferenciación final de errores
+- Si tras varios intentos se detecta patrón de limitación del proveedor, se devuelve un mensaje claro de proveedor temporalmente limitado.
+- Si lo que ocurre son vacíos/inestabilidad transitoria sin datos válidos, se devuelve un error 503 genérico de proveedor, no de ticker inválido.
+- Solo se devuelve mensaje de ticker inválido cuando, tras agotar los intentos, no hay señales de limitación/inestabilidad transitoria.
+- Esto evita clasificar erróneamente `AAPL` como ticker inválido cuando el problema real es Yahoo/rate limit.
+
+#### Frontend en `app/static/app.js`
+- Se añadió estado interno `isLoading` en `horizonState`.
+- `runHorizonSimulation()` ahora corta de inmediato si ya hay una simulación en curso.
+- Se desactivan botones durante la carga mediante `setHorizonLoading(...)`.
+- Se actualizó el mensaje de estado para informar de que la app reintentará automáticamente si la fuente limita temporalmente la petición.
+- Si el backend termina fallando, el frontend sigue mostrando el mensaje real recibido del servidor.
+
+#### Template en `app/templates/horizon.html`
+- Se actualizó el texto visible del estado de carga para que la espera se perciba como parte del comportamiento normal y no como un fallo inmediato.
+
+### Estrategia de reintentos final
+La descarga histórica de Horizonte ahora reintenta internamente estos casos:
+- `YFRateLimitError`
+- DataFrame vacío
+- serie histórica vacía tras normalización
+- excepciones transitorias no clasificadas que impiden completar la descarga
+
+Backoff actual:
+- intento 1: inmediato
+- intento 2: `0.8s`
+- intento 3: `1.6s`
+
+### Caché
+- Se mantiene `TTLCache` como caché ligera en memoria.
+- La caché sigue inicializándose después de definir sus constantes, evitando regresión del `NameError` previo.
+- Si una descarga es válida, se guarda en caché.
+- Si el usuario repite ticker/rango, se puede reutilizar esa respuesta válida.
+- Descargas vacías o fallidas no se guardan como si fueran válidas.
+
+### UX resultante
+- El usuario ya no debería ver un error en el primer fallo transitorio si un reintento interno posterior consigue datos válidos.
+- Mientras carga, el estado comunica explícitamente que la app está obteniendo datos y reintentando automáticamente si la fuente limita temporalmente.
+- Los botones de generar y regenerar quedan desactivados durante la operación para evitar clics repetidos y peticiones simultáneas.
+
+### Archivos tocados
+- `app/routes.py`
+- `app/static/app.js`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura de `CURRENT_STATE.md`, `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md`.
+- Revisión específica de:
+  - `_download_history_df(...)`
+  - `POST /api/horizon/simulate`
+  - flujo frontend de carga/error en Horizonte
+- Validación sintáctica:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Validación por inspección del comportamiento esperado en los casos pedidos:
+  - AAPL con fallo transitorio inicial
+  - proveedor realmente limitado
+  - ticker inválido real
+  - clicks repetidos
+  - reutilización de caché válida
+
+### Riesgos pendientes
+- La validación real en Render sigue siendo imprescindible para confirmar el patrón exacto del proveedor en producción.
+- Algunos vacíos del proveedor podrían seguir entrando en la categoría genérica de inestabilidad/proveedor en vez de rate limit explícito, pero eso es preferible a marcar un ticker válido como inválido.
+- Los reintentos añaden una pequeña espera en casos malos, pero es un coste asumible frente a la mejora clara de UX.
