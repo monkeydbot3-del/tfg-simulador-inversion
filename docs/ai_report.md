@@ -3210,3 +3210,57 @@ La CI no estaba fallando por Modo Horizonte en sí, sino por una combinación de
   - `pytest`
 - que no aparezcan ya errores provenientes de `venv/` o `.venv-ci/`
 - que no aparezcan `RuntimeError` por `SECRET_KEY` o `DATABASE_URL`
+
+## Iteración 39 - Resumen operativo vivo con CURRENT_STATE.md
+
+### Objetivo
+Reducir el coste cognitivo de cada nueva iteración creando un archivo corto y operativo que permita ubicarse rápido en el estado real del proyecto antes de releer la documentación larga.
+
+### Contexto
+El proyecto ya tiene bastante historial, varias capas funcionales y un volumen creciente de documentación acumulada. Eso hace útil disponer de un resumen vivo, pequeño y accionable que sirva como punto de entrada estable antes de profundizar en el resto del contexto.
+
+El usuario pidió explícitamente crear `CURRENT_STATE.md` sin sustituir:
+- `BOT_INSTRUCTIONS.md`
+- `PROJECT_CONTEXT.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Cambios aplicados
+- Creado `CURRENT_STATE.md` en la raíz del repo del proyecto.
+- Diseñado como resumen corto, claro y operativo, con estructura fija para orientar iteraciones futuras.
+- El contenido se ha limitado a lo esencial y se ha organizado en 8 bloques:
+  1. estado actual estable de la app
+  2. últimos commits importantes
+  3. funcionalidades ya cerradas
+  4. funcionalidades en desarrollo
+  5. bugs abiertos o pendientes
+  6. reglas críticas que no se pueden romper
+  7. arquitectura relevante actual
+  8. siguiente paso recomendado
+- Añadido también un bloque final de `Uso recomendado en futuras iteraciones` para dejar explícito cómo encajarlo en el flujo de trabajo del bot.
+
+### Decisiones tomadas
+- Mantener el archivo corto y muy orientado a ejecución, no a narrativa histórica.
+- No duplicar todo el detalle de `CHANGELOG_AI.md` ni de `docs/ai_report.md`, sino condensar solo lo que acelera la orientación inicial.
+- Dejar por escrito que `CURRENT_STATE.md` debe leerse primero, pero que no reemplaza la relectura obligatoria del resto de documentos críticos.
+- Priorizar información viva: estado, restricciones, puntos sensibles y siguiente movimiento recomendado.
+
+### Riesgos / límites
+- Si no se mantiene al día tras iteraciones importantes, perderá valor rápidamente.
+- No debe crecer hasta convertirse en otra documentación larga, porque perdería precisamente su función principal.
+- No sustituye la trazabilidad fina ni el detalle técnico de las iteraciones previas.
+
+### Comprobaciones realizadas
+- Relectura de `BOT_INSTRUCTIONS.md`, `PROJECT_CONTEXT.md`, `CHANGELOG_AI.md` y `docs/ai_report.md` antes de crear el resumen.
+- Revisión del estado real del repo y de los commits recientes para que el contenido de `CURRENT_STATE.md` refleje la situación actual.
+- Revisión manual del archivo final para mantenerlo breve, claro y útil como punto de entrada.
+
+### Uso esperado a partir de ahora
+En futuras iteraciones, la secuencia recomendada pasa a ser:
+1. leer `CURRENT_STATE.md`
+2. releer `BOT_INSTRUCTIONS.md`
+3. releer `PROJECT_CONTEXT.md`
+4. releer `CHANGELOG_AI.md`
+5. releer `docs/ai_report.md`
+
+Con eso se acelera la orientación inicial sin perder contexto profundo ni trazabilidad.

@@ -438,7 +438,7 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `7afcf41`
 - Título: Iteración 38, reparación del workflow de GitHub Actions y alineación de tests
 - Archivos tocados:
   - `.github/workflows/ci.yml`
@@ -454,5 +454,14 @@
   - `tests/test_analisis_export_csv.py`
   - `tests/test_analisis_filtros.py`
   - `tests/test_analisis_paginado.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-09
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 39, resumen operativo vivo con CURRENT_STATE.md
+- Archivos tocados:
+  - `CURRENT_STATE.md`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
