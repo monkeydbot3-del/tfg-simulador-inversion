@@ -2140,17 +2140,18 @@ function renderHorizonMetrics(payload) {
   const assetsEl = document.getElementById("horizon-metric-assets");
   if (portfolioEl) {
     portfolioEl.innerHTML = `
-      <li>Inicial: ${fmtMoney(metrics.initial_value)}</li>
-      <li>Final simulado: ${fmtMoney(metrics.projected_final_value)}</li>
-      <li>Retorno total: ${fmtPct((metrics.simulated_total_return || 0) * 100)}</li>
+      <li>Valor inicial del escenario: ${fmtMoney(metrics.initial_value)}</li>
+      <li>Final simulado en este escenario: ${fmtMoney(metrics.projected_final_value)}</li>
+      <li>Retorno total del escenario: ${fmtPct((metrics.scenario_total_return || 0) * 100)}</li>
+      <li class="muted">No es rentabilidad esperada.</li>
     `;
   }
   if (riskEl) {
     riskEl.innerHTML = `
       <li>Horizonte: ${metrics.horizon_years || ND} años</li>
       <li>Histórico usado: ${metrics.history_years_used || ND} años</li>
-      <li>Retorno anualizado: ${fmtPct((metrics.simulated_annualized_return || 0) * 100)}</li>
-      <li>Volatilidad simulada: ${fmtPct((metrics.simulated_volatility || 0) * 100)}</li>
+      <li>Retorno anualizado del escenario: ${fmtPct((metrics.scenario_annualized_return || 0) * 100)}</li>
+      <li>Volatilidad del escenario: ${fmtPct((metrics.scenario_volatility || 0) * 100)}</li>
       <li>Muestras mensuales: ${metrics.monthly_samples_used || ND}</li>
       <li>Retornos extremos limitados: ${metrics.extreme_returns_limited ? "Sí" : "No"}</li>
     `;
@@ -2175,11 +2176,17 @@ function renderHorizonChart(payload) {
   if (!canvas) return;
   const historical = payload?.historical_series || [];
   const projected = payload?.projected_series || [];
-  const labels = [...historical.map((item) => formatHorizonChartLabel(item[0])), ...projected.map((item) => formatHorizonChartLabel(item[0]))];
+  const labels = Array.from(
+    new Set([
+      ...historical.map((item) => formatHorizonChartLabel(item[0])),
+      ...projected.map((item) => formatHorizonChartLabel(item[0])),
+    ])
+  );
   const historicalMap = new Map(historical.map((item) => [formatHorizonChartLabel(item[0]), Number(item[1])]));
   const projectedMap = new Map(projected.map((item) => [formatHorizonChartLabel(item[0]), Number(item[1])]));
   const historicalData = labels.map((label) => (historicalMap.has(label) ? historicalMap.get(label) : null));
   const projectedData = labels.map((label) => (projectedMap.has(label) ? projectedMap.get(label) : null));
+  const transitionLabel = historical.length ? formatHorizonChartLabel(historical[historical.length - 1][0]) : null;
   if (empty) empty.classList.add("hidden");
 
   const datasets = [
@@ -2202,6 +2209,13 @@ function renderHorizonChart(payload) {
     },
   ];
 
+  const pluginConfig = transitionLabel ? {
+    boundaries: [transitionLabel],
+    color: "#0f172a",
+    lineWidth: 1,
+    lineDash: [4, 4],
+  } : undefined;
+
   if (!horizonState.chart) {
     horizonState.chart = new Chart(canvas.getContext("2d"), {
       type: "line",
@@ -2218,6 +2232,7 @@ function renderHorizonChart(payload) {
               },
             },
           },
+          careerTurnBoundaries: pluginConfig,
         },
         scales: {
           x: {
@@ -2235,6 +2250,10 @@ function renderHorizonChart(payload) {
   } else {
     horizonState.chart.data.labels = labels;
     horizonState.chart.data.datasets = datasets;
+    if (!horizonState.chart.options.plugins) {
+      horizonState.chart.options.plugins = {};
+    }
+    horizonState.chart.options.plugins.careerTurnBoundaries = pluginConfig;
     horizonState.chart.update();
   }
 }
@@ -2323,7 +2342,7 @@ async function runHorizonSimulation() {
     renderHorizonMetrics(data);
     renderHorizonWarnings(data.warnings || []);
     renderHorizonStatusMessage(
-      `Escenario experimental generado con una base histórica amplia cuando está disponible (${data?.metrics?.history_years_used || "varios"} años usados en esta simulación). Recuerda que sigue siendo una simulación educativa sin validez predictiva.`,
+      `Escenario experimental generado con una base histórica amplia cuando está disponible (${data?.metrics?.history_years_used || "varios"} años usados en esta simulación). ${data?.scenario_note || "Recuerda que sigue siendo una simulación educativa sin validez predictiva."}`,
       "success"
     );
     const rerun = document.getElementById("horizon-rerun-btn");

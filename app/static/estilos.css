@@ -3582,6 +3582,10 @@ body {
   min-height: 360px;
 }
 
+.horizon-transition-note {
+  margin: 10px 0 0;
+}
+
 .horizon-status-message {
   margin: 0 0 12px;
   padding: 12px 14px;

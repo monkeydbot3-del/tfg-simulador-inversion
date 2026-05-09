@@ -9,6 +9,8 @@ import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from cachetools import TTLCache
+
 from flask import (
     Blueprint,
     Response,
@@ -54,6 +56,8 @@ HORIZON_DEFAULT_HISTORY_YEARS = 10
 HORIZON_MAX_HISTORY_YEARS = 15
 HORIZON_MAX_HISTORY_POINTS = 220
 HORIZON_MAX_MONTHLY_RETURN = 0.35
+HORIZON_HISTORY_CACHE_TTL_SECONDS = 120
+HORIZON_HISTORY_CACHE: TTLCache = TTLCache(maxsize=128, ttl=HORIZON_HISTORY_CACHE_TTL_SECONDS)
 READINESS_QUIZ_QUESTIONS = [
     {
         "id": "risk_return",
@@ -576,19 +580,23 @@ def horizon_simulate_api():
     simulated_returns = [float(sample_pool[rng.randrange(len(sample_pool))]) for _ in range(future_months)]
 
     future_dates = pd.date_range(start=date.today() + timedelta(days=30), periods=future_months, freq="ME")
-    projected_base = [100.0]
+    last_hist_value = float(blended_hist.iloc[-1]) if not blended_hist.empty else 100.0
+    projected_base = [last_hist_value]
     projected_value = [float(initial_value)]
     for ret in simulated_returns:
         projected_base.append(projected_base[-1] * (1 + float(ret)))
         projected_value.append(projected_value[-1] * (1 + float(ret)))
 
     historical_series = [[idx.isoformat(), round(float(value), 4)] for idx, value in blended_hist.items()]
-    projected_series = [[future_dates[idx].date().isoformat(), round(float(projected_base[idx + 1]), 4)] for idx in range(future_months)]
+    projected_series = [[blended_hist.index[-1].date().isoformat(), round(float(last_hist_value), 4)]] if not blended_hist.empty else []
+    projected_series.extend(
+        [[future_dates[idx].date().isoformat(), round(float(projected_base[idx + 1]), 4)] for idx in range(future_months)]
+    )
 
     final_value = projected_value[-1]
-    total_return = (final_value / initial_value) - 1 if initial_value else 0.0
-    annualized = (final_value / initial_value) ** (1 / horizon_years) - 1 if initial_value and horizon_years > 0 else 0.0
-    volatility = pd.Series(simulated_returns).std() * math.sqrt(12) if len(simulated_returns) > 1 else 0.0
+    scenario_total_return = (final_value / initial_value) - 1 if initial_value else 0.0
+    scenario_annualized_return = (final_value / initial_value) ** (1 / horizon_years) - 1 if initial_value and horizon_years > 0 else 0.0
+    scenario_volatility = pd.Series(simulated_returns).std() * math.sqrt(12) if len(simulated_returns) > 1 else 0.0
 
     return jsonify(
         {
@@ -598,9 +606,9 @@ def horizon_simulate_api():
             "metrics": {
                 "initial_value": round(float(initial_value), 2),
                 "projected_final_value": round(float(final_value), 2),
-                "simulated_total_return": round(float(total_return), 6),
-                "simulated_annualized_return": round(float(annualized), 6),
-                "simulated_volatility": round(float(volatility), 6),
+                "scenario_total_return": round(float(scenario_total_return), 6),
+                "scenario_annualized_return": round(float(scenario_annualized_return), 6),
+                "scenario_volatility": round(float(scenario_volatility), 6),
                 "assets_used": [item["ticker"] for item in valid_assets],
                 "horizon_years": horizon_years,
                 "history_years_used": history_years,
@@ -608,6 +616,7 @@ def horizon_simulate_api():
                 "monthly_samples_used": len(blended_monthly),
                 "extreme_returns_limited": had_clamped_outliers,
             },
+            "scenario_note": "Este resultado corresponde a una trayectoria generada aleatoriamente a partir de retornos históricos. No representa una expectativa ni una previsión.",
             "warnings": warnings,
             "method_description": HORIZON_METHOD_DESCRIPTION,
             "source": source,
@@ -1523,13 +1532,23 @@ class HorizonSimulationError(Exception):
 def _download_history_df(
     ticker: str, start_d: date, end_d: date, include_actions: bool = True
 ) -> pd.DataFrame:
-    ticker_clean = (ticker or "").strip()
+    ticker_clean = (ticker or "").strip().upper()
     not_found_msg = (
         f"No se encontraron datos para el ticker '{ticker_clean}'. "
         "Asegúrate de usar el símbolo bursátil (ej: AAPL) y no el nombre de la empresa."
     )
+    provider_limited_msg = (
+        "La fuente de datos de mercado ha limitado temporalmente la petición. "
+        "El ticker puede ser válido, pero no hemos podido obtener sus datos ahora mismo. "
+        "Espera unos segundos y vuelve a intentarlo."
+    )
     if not ticker_clean:
         raise BacktestError(not_found_msg, 404)
+
+    cache_key = (ticker_clean, str(start_d), str(end_d), bool(include_actions))
+    cached = HORIZON_HISTORY_CACHE.get(cache_key)
+    if cached is not None:
+        return cached.copy()
 
     last_rate_limit_exc = None
     for attempt in range(2):
@@ -1543,31 +1562,30 @@ def _download_history_df(
                 actions=include_actions,
                 progress=False,
             )
-            break
+            df = _normalize_price_df(df)
+            if df is None or df.empty:
+                if last_rate_limit_exc is not None:
+                    raise BacktestError(provider_limited_msg, 503) from last_rate_limit_exc
+                raise BacktestError(not_found_msg, 404)
+            HORIZON_HISTORY_CACHE[cache_key] = df.copy()
+            return df
         except YFRateLimitError as exc:
             last_rate_limit_exc = exc
             if attempt == 0:
                 time.sleep(0.8)
                 continue
-            raise BacktestError(
-                "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo.",
-                503,
-            ) from exc
+            raise BacktestError(provider_limited_msg, 503) from exc
+        except BacktestError:
+            raise
         except Exception as exc:
+            if last_rate_limit_exc is not None:
+                raise BacktestError(provider_limited_msg, 503) from exc
             raise BacktestError(
                 f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento.",
                 503,
             ) from exc
-    else:
-        raise BacktestError(
-            "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo.",
-            503,
-        ) from last_rate_limit_exc
 
-    df = _normalize_price_df(df)
-    if df is None or df.empty:
-        raise BacktestError(not_found_msg, 404)
-    return df
+    raise BacktestError(provider_limited_msg, 503) from last_rate_limit_exc
 
 
 def _extract_market_price_series(df: pd.DataFrame, ticker: str) -> pd.Series:

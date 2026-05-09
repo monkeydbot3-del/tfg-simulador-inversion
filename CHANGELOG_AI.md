@@ -422,3 +422,16 @@
   - `app/templates/horizon.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-09
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 37, continuidad visual del escenario y errores de proveedor más claros en Horizonte
+- Archivos tocados:
+  - `app/routes.py`
+  - `app/static/app.js`
+  - `app/templates/horizon.html`
+  - `app/static/estilos.css`
+  - `requirements.txt`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`

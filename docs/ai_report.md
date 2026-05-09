@@ -2889,3 +2889,177 @@ Además:
 - validar en Render el caso real de Apple y comparar visualmente si la parte azul ya refleja una historia más amplia
 - revisar si los warnings por retornos extremos aparecen solo cuando realmente aportan valor
 - si el resultado es convincente, cerrar Modo Horizonte como bloque metodológicamente defendible dentro del TFG
+
+## Iteración 37 - Continuidad visual del escenario y errores de proveedor más claros en Modo Horizonte
+
+### Problemas observados en Render
+Probando `AAPL`, horizonte `5 años`, valor inicial `10000`, seguían apareciendo dos defectos importantes:
+- en el primer intento, Yahoo podía devolver `YFRateLimitError`, pero la UX acababa pareciendo un ticker inválido o sin datos
+- cuando la simulación sí salía, el tramo verde del escenario arrancaba otra vez cerca de base 100 aunque el histórico azul terminara muy por encima, rompiendo la continuidad visual y metodológica
+
+### Por qué fallaba el primer intento
+La causa no era un ticker incorrecto, sino la respuesta temporal del proveedor externo.
+
+El flujo anterior ya hacía un retry ligero, pero seguía habiendo un caso ambiguo:
+- `yf.download(...)` podía fallar por limitación temporal
+- el dataframe normalizado podía terminar vacío
+- el sistema acababa degradando ese vacío como si fuera un caso de ticker sin datos
+
+Eso hacía que un `AAPL` válido pudiera mostrarse al usuario como si el problema fuese suyo, cuando en realidad el bloqueo venía de Yahoo Finance.
+
+### Cómo se diferencia ahora rate limit de ticker inválido
+En `app/routes.py` se endureció `_download_history_df(...)` para separar tres situaciones:
+
+#### 1. Ticker inválido o sin datos reales
+Se mantiene el mensaje:
+- `No se encontraron datos para el ticker 'XYZ'...`
+
+Esto solo se usa cuando:
+- el ticker viene vacío
+- o tras normalizar la descarga no hay datos y no existe señal previa de rate limit
+
+#### 2. Proveedor temporalmente limitado
+Ahora se usa explícitamente el mensaje pedido por el usuario:
+- `La fuente de datos de mercado ha limitado temporalmente la petición. El ticker puede ser válido, pero no hemos podido obtener sus datos ahora mismo. Espera unos segundos y vuelve a intentarlo.`
+
+Esto se activa cuando:
+- `yf.download(...)` lanza `YFRateLimitError`
+- o cuando, tras un fallo de ese tipo, la descarga posterior sigue llegando vacía y por tanto no es seguro tratarlo como ticker inválido
+
+#### 3. Datos insuficientes para el experimento
+Se mantiene separado el caso en que sí hay ticker válido y descarga correcta, pero el histórico no alcanza el mínimo metodológico requerido para el horizonte.
+
+Resultado:
+- ya no se mezcla proveedor limitado con ticker inválido
+- se mantiene respuesta controlada sin 500
+- el status global sigue siendo `503` cuando el bloqueo viene del proveedor
+
+### Caché ligera añadida
+Se añadió una caché ligera en memoria, simple y acotada:
+- dependencia pequeña: `cachetools`
+- `TTLCache`
+- TTL: `120` segundos
+- clave: `(ticker, start_d, end_d, include_actions)`
+
+Con esto:
+- se evita redescargar el mismo histórico una y otra vez en clicks muy seguidos
+- se reduce presión sobre Yahoo en pruebas repetidas
+- no se persiste nada en base de datos
+- no se abre complejidad arquitectónica nueva
+
+### Por qué la proyección empezaba en base 100
+La causa estaba en cómo se construía `projected_series`:
+- la serie histórica se normalizaba correctamente y podía terminar, por ejemplo, cerca de `2800`
+- pero el tramo futuro arrancaba con `projected_base = [100.0]`
+- después acumulaba retornos simulados desde ese 100
+
+Eso no afectaba al cálculo en euros, porque el valor monetario se seguía calculando sobre `initial_value`, pero sí rompía por completo la lectura visual del gráfico.
+
+### Cómo continúa ahora desde el último valor histórico
+Se cambió la construcción del escenario en `POST /api/horizon/simulate`:
+- `last_hist_value = float(blended_hist.iloc[-1])`
+- `projected_base` ya no empieza en `100.0`, sino en `last_hist_value`
+- `projected_series` añade primero un punto de continuidad con la misma fecha/valor final del histórico
+- a partir de ahí se aplican los retornos simulados mes a mes
+
+Efecto práctico:
+- el primer punto del escenario experimental coincide con el último punto histórico
+- desaparece el salto falso de `2800 -> 100`
+- la línea verde se cose visualmente con la azul
+
+Importante:
+- el cálculo en euros sigue siendo independiente del nivel base del gráfico
+- el usuario sigue introduciendo `10000 €` como capital inicial del escenario
+- el valor final monetario se calcula como `initial_value * factor_acumulado_del_escenario`
+
+### Cómo se calculan ahora las métricas
+Se renombraron y aclararon las métricas para evitar lectura de predicción o expectativa:
+- `Final simulado en este escenario`
+- `Retorno total del escenario`
+- `Retorno anualizado del escenario`
+- `Volatilidad del escenario`
+- nota explícita: `No es rentabilidad esperada.`
+
+Además:
+- `scenario_total_return` se calcula sobre el escenario simulado
+- `scenario_annualized_return` se calcula sobre `final_value / initial_value` del propio escenario
+- `scenario_volatility` se calcula sobre `simulated_returns`
+
+Es decir, no se mezclan con el histórico completo visible del gráfico.
+
+### Mejoras de microcopy y disclaimer
+Se añadió también una nota específica devuelta por backend:
+- `Este resultado corresponde a una trayectoria generada aleatoriamente a partir de retornos históricos. No representa una expectativa ni una previsión.`
+
+Y la UI la reutiliza en el mensaje de éxito del panel, reforzando el encuadre didáctico y no predictivo del modo.
+
+### Mejoras de claridad en la gráfica
+Se reforzó la frontera entre ambos tramos sin tocar la arquitectura de charts:
+- la línea verde empieza donde termina la azul
+- se reutiliza el plugin `careerTurnBoundaries` para pintar una línea vertical en la fecha de transición
+- se añade texto visible bajo el gráfico:
+  - `A partir de la línea divisoria comienza el tramo ficticio del escenario experimental.`
+- se mantiene la leyenda:
+  - `Datos históricos`
+  - `Escenario experimental`
+
+### Archivos tocados
+- `app/routes.py`
+- `app/static/app.js`
+- `app/templates/horizon.html`
+- `app/static/estilos.css`
+- `requirements.txt`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/routes.py`
+  - `POST /api/horizon/simulate`
+  - `_download_history_df(...)`
+  - construcción de `historical_series`
+  - construcción de `projected_series`
+  - métricas del escenario
+  - `app/static/app.js`
+  - `app/templates/horizon.html`
+  - `app/static/estilos.css`
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debes probar ahora en Render
+#### Caso A, `AAPL`, `5 años`, `10000`
+- si Yahoo responde, debe generar escenario
+- la serie azul debe verse amplia
+- la línea verde debe empezar en el último valor histórico
+- las métricas deben mostrar lenguaje de escenario, no de expectativa
+- disclaimer visible
+
+#### Caso B, primer intento con rate limit
+- si aparece `YFRateLimitError`, debe verse el mensaje de proveedor limitado
+- no debe decir que `AAPL` es inválido
+- no debe haber 500
+
+#### Caso C, segundo intento
+- si ya responde, la simulación debe salir
+- no debe haber salto visual de histórico alto a base 100
+
+#### Caso D, ticker inválido real
+- debe mostrarse mensaje de ticker inválido o sin datos
+- no debe confundirse con rate limit
+
+#### Caso E, desde Carrera
+- debe seguir funcionando la precarga
+- el escenario debe continuar correctamente desde el último punto histórico del blend
+
+#### Caso F, responsive
+- revisar gráfico, avisos y métricas en móvil
+
+### Riesgos pendientes
+- no he podido validar Render directamente desde aquí, así que la comprobación final de Yahoo y del comportamiento intermitente sigue dependiendo de tus pruebas reales
+- la caché en memoria ayuda a suavizar reintentos cortos, pero no elimina por completo la dependencia del proveedor externo
+- si el usuario percibe todavía demasiado optimismo en trayectorias concretas como AAPL, la siguiente microiteración debería centrarse en prudencia metodológica adicional, no en vender el resultado como forecast
