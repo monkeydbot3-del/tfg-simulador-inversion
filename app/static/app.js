@@ -2148,8 +2148,11 @@ function renderHorizonMetrics(payload) {
   if (riskEl) {
     riskEl.innerHTML = `
       <li>Horizonte: ${metrics.horizon_years || ND} años</li>
+      <li>Histórico usado: ${metrics.history_years_used || ND} años</li>
       <li>Retorno anualizado: ${fmtPct((metrics.simulated_annualized_return || 0) * 100)}</li>
       <li>Volatilidad simulada: ${fmtPct((metrics.simulated_volatility || 0) * 100)}</li>
+      <li>Muestras mensuales: ${metrics.monthly_samples_used || ND}</li>
+      <li>Retornos extremos limitados: ${metrics.extreme_returns_limited ? "Sí" : "No"}</li>
     `;
   }
   if (assetsEl) {
@@ -2206,7 +2209,16 @@ function renderHorizonChart(payload) {
       options: {
         responsive: true,
         interaction: { mode: "index", intersect: false },
-        plugins: { legend: { display: true } },
+        plugins: {
+          legend: { display: true },
+          tooltip: {
+            callbacks: {
+              title(items) {
+                return items?.[0]?.label || "";
+              },
+            },
+          },
+        },
         scales: {
           x: {
             ticks: {
@@ -2311,7 +2323,7 @@ async function runHorizonSimulation() {
     renderHorizonMetrics(data);
     renderHorizonWarnings(data.warnings || []);
     renderHorizonStatusMessage(
-      "Escenario experimental generado. Recuerda que se trata de una simulación educativa sin validez predictiva.",
+      `Escenario experimental generado con una base histórica amplia cuando está disponible (${data?.metrics?.history_years_used || "varios"} años usados en esta simulación). Recuerda que sigue siendo una simulación educativa sin validez predictiva.`,
       "success"
     );
     const rerun = document.getElementById("horizon-rerun-btn");

@@ -2737,3 +2737,155 @@ En `app/static/app.js`:
 ### Siguientes pasos recomendados
 - si este ajuste deja estable el flujo, pasar a fase de validación real en Render y cerrar Horizonte como bloque funcionalmente maduro
 - no seguir tocando backend salvo que aparezca un bug real nuevo reproducible
+
+## Iteración 36 - Mejora metodológica de la base histórica en Modo Horizonte
+
+### Problema observado en Render
+Probando `AAPL`, horizonte `5 años`, valor inicial `10000`, se observó esto:
+- primer intento: error controlado por descarga/no datos útiles
+- segundo intento: genera escenario
+- la gráfica histórica azul parecía demasiado plana y corta, arrancando aproximadamente cerca del último año disponible
+
+Eso hacía que la base histórica visible y la muestra de retornos no fueran suficientemente defendibles para una proyección experimental a 5 años.
+
+### Por qué la gráfica anterior parecía tan plana y corta
+La causa principal no era que se descargara solo 1 año exacto, sino que en el render histórico de Horizonte se hacía esto:
+- se descargaba una ventana relativamente amplia
+- pero luego se aplicaba `tail(hist_length)` con `hist_length` derivado de unas ~260 sesiones diarias como máximo
+- en la práctica, eso dejaba visible aproximadamente el último año bursátil
+
+Para un activo como Apple, ese recorte hacía perder gran parte de su trayectoria histórica de largo plazo y dejaba una serie azul corta y visualmente poco representativa.
+
+### Criterio histórico anterior
+Antes de esta iteración:
+- Horizonte estaba descargando aproximadamente `8 años` (`end_d - 365 * 8`)
+- pero solo mostraba el último tramo recortado por `tail(...)`
+- para el gráfico, el histórico final visible quedaba muy comprimido a alrededor de 1 año
+
+### Criterio histórico nuevo
+Ahora se usa un criterio explícito y documentado:
+- horizonte `<= 1 año` → al menos `5 años` de histórico si están disponibles
+- horizonte `>= 3 años` → al menos `10 años` de histórico si están disponibles
+- horizonte `>= 5 años` → `15 años` de histórico si están disponibles
+- límite superior razonable para Horizonte: `15 años`
+
+Constantes añadidas en `app/routes.py`:
+- `HORIZON_MIN_HISTORY_YEARS = 5`
+- `HORIZON_DEFAULT_HISTORY_YEARS = 10`
+- `HORIZON_MAX_HISTORY_YEARS = 15`
+- `HORIZON_MAX_HISTORY_POINTS = 220`
+- `HORIZON_MAX_MONTHLY_RETURN = 0.35`
+
+### Cambio de método visible al usuario
+La explicación del método se ha reforzado para dejar claro que:
+- se utiliza una muestra histórica suficientemente amplia cuando está disponible
+- aun así, el resultado sigue siendo solo una trayectoria hipotética sin validez predictiva
+
+### Cambios en normalización y uso de series
+Se mantiene la normalización robusta introducida antes:
+- prioridad a `Adj Close`
+- fallback a `Close`
+- conversión a `Series`
+- `pd.to_numeric(..., errors="coerce")`
+- `pd.to_datetime(..., errors="coerce")`
+- descarte de `NaT`
+- eliminación de duplicados
+- ordenación del índice
+- validación final de `DatetimeIndex`
+
+Además, en esta iteración:
+- la descarga se hace una sola vez por ticker dentro de cada simulación
+- esa misma serie normalizada se reutiliza para histórico y retornos mensuales
+- se elimina redundancia innecesaria de descarga/cálculo
+
+### Cómo se calculan ahora los retornos
+Ahora el cálculo mensual se hace así:
+- serie temporal válida de precios ajustados si están disponibles
+- `resample("ME").last()`
+- `pct_change()`
+- limpieza de `NaN`, `inf`, `-inf`
+- uso de acumulación estándar:
+  - `valor_t = valor_t-1 * (1 + retorno)`
+
+### Limitación de outliers extremos
+Sí, se ha añadido una limitación controlada de retornos extremos en el modo experimental.
+
+Criterio aplicado:
+- si el retorno mensual absoluto supera `35%`, se limita a `±35%`
+- esto no pretende falsear el histórico, sino evitar que un dato extremo, malformado o muy singular destruya la estabilidad de la trayectoria experimental
+
+Además:
+- si se detectan esos extremos, se añade warning visible para el usuario
+- la respuesta expone también si hubo `extreme_returns_limited`
+
+### Cambios visuales/funcionales en el gráfico
+- la parte histórica azul ahora usa una base mucho más amplia cuando existe
+- el gráfico sigue en base 100
+- la serie histórica se downsamplea para mantener legibilidad sin volver el payload enorme
+- se conservan las etiquetas diferenciadas entre:
+  - `Datos históricos`
+  - `Escenario experimental`
+- el mensaje de éxito en UI informa de cuántos años históricos se usaron en la simulación
+- en métricas se muestra ahora:
+  - años de histórico usados
+  - muestras mensuales usadas
+  - si se limitaron retornos extremos
+
+### Archivos tocados
+- `app/routes.py`
+- `app/static/app.js`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- relectura obligatoria de:
+  - `BOT_INSTRUCTIONS.md`
+  - `PROJECT_CONTEXT.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+- revisión específica de:
+  - `app/routes.py`
+  - endpoint `POST /api/horizon/simulate`
+  - `_download_history_df(...)`
+  - normalización de series y retornos mensuales
+  - `app/static/app.js`
+  - `app/templates/horizon.html`
+  - `app/static/estilos.css`
+- validación sintáctica ejecutada con:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Qué debe probarse en Render
+#### Caso A, `AAPL`, `5 años`, `10000`
+- el histórico azul debe verse claramente más largo y representativo
+- no debería parecer solo un último año casi plano
+- la simulación debe seguir saliendo sin 500
+- si falla proveedor, mensaje amable
+
+#### Caso B, `AAPL`, `1 año`, `10000`
+- debe seguir funcionando
+- debe usar igualmente una base histórica suficiente para muestrear
+
+#### Caso C, ticker inválido
+- error controlado
+- sin 500
+
+#### Caso D, 5 activos
+- no debe matar el worker
+- no debe disparar cálculos pesados absurdos
+
+#### Caso E, desde Carrera
+- debe seguir funcionando la entrada desde informe final
+
+#### Caso F, responsive
+- gráfico y formulario siguen bien en móvil
+
+### Riesgos pendientes
+- sigue existiendo dependencia de Yahoo Finance para la disponibilidad efectiva del histórico
+- la limitación de retornos extremos mejora estabilidad metodológica, pero conviene validar visualmente que no “aplane” demasiado algunos activos muy volátiles
+- puede merecer una futura microiteración para marcar visualmente la frontera histórico/futuro aún más fuerte dentro del chart
+
+### Siguientes pasos recomendados
+- validar en Render el caso real de Apple y comparar visualmente si la parte azul ya refleja una historia más amplia
+- revisar si los warnings por retornos extremos aparecen solo cuando realmente aportan valor
+- si el resultado es convincente, cerrar Modo Horizonte como bloque metodológicamente defendible dentro del TFG

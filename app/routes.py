@@ -45,8 +45,15 @@ HORIZON_DISCLAIMER_TEXT = (
 )
 HORIZON_METHOD_DESCRIPTION = (
     "Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. "
-    "No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa."
+    "No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa. "
+    "Para construir el escenario se utiliza una muestra de rentabilidades históricas suficientemente amplia cuando está disponible. "
+    "Aun así, el resultado es solo una trayectoria hipotética y no una estimación fiable del futuro."
 )
+HORIZON_MIN_HISTORY_YEARS = 5
+HORIZON_DEFAULT_HISTORY_YEARS = 10
+HORIZON_MAX_HISTORY_YEARS = 15
+HORIZON_MAX_HISTORY_POINTS = 220
+HORIZON_MAX_MONTHLY_RETURN = 0.35
 READINESS_QUIZ_QUESTIONS = [
     {
         "id": "risk_return",
@@ -481,18 +488,20 @@ def horizon_simulate_api():
             return jsonify({"error": "No puedes usar una sesión de carrera ajena o inexistente como origen."}), 404
 
     end_d = date.today()
-    start_d = end_d - timedelta(days=365 * 8)
+    history_years = _get_horizon_history_years(horizon_years)
+    start_d = end_d - timedelta(days=365 * history_years)
     warnings = []
     valid_assets = []
     monthly_returns = []
     provider_temporarily_limited = False
+    had_clamped_outliers = False
 
     for asset in assets:
         ticker = asset["ticker"]
         try:
             df = _download_history_df(ticker, start_d, end_d, include_actions=False)
             price_series = _extract_market_price_series(df, ticker)
-            monthly = _compute_horizon_monthly_returns(df, ticker)
+            monthly, return_meta = _compute_horizon_monthly_returns(price_series, ticker)
         except BacktestError as exc:
             if exc.status_code >= 500:
                 provider_temporarily_limited = True
@@ -505,11 +514,16 @@ def horizon_simulate_api():
             warnings.append(f"{ticker} se ha excluido porque no se pudo normalizar su histórico de mercado.")
             continue
 
-        if price_series.empty or len(price_series) < 120:
-            warnings.append(f"{ticker} se ha excluido porque no dispone de un historial útil para esta simulación experimental.")
+        min_required_points = max(36, horizon_years * 12)
+        if price_series.empty or len(price_series) < 252 or len(monthly) < min_required_points:
+            warnings.append(f"{ticker} se ha excluido porque no dispone de una muestra histórica suficientemente amplia para este horizonte experimental.")
             continue
 
-        valid_assets.append({"ticker": ticker, "weight": asset["weight"], "series": price_series})
+        if return_meta.get("had_outliers"):
+            had_clamped_outliers = True
+            warnings.append(f"{ticker} contiene retornos mensuales extremos en el histórico reciente. Se ha limitado su impacto para evitar una proyección experimental absurda.")
+
+        valid_assets.append({"ticker": ticker, "weight": asset["weight"], "series": price_series, "monthly_points": len(monthly)})
         monthly_returns.append(monthly.rename(ticker))
 
     if not valid_assets:
@@ -524,14 +538,14 @@ def horizon_simulate_api():
     total_valid_weight = sum(item["weight"] for item in valid_assets) or 1.0
     valid_assets = [{**item, "weight": item["weight"] / total_valid_weight} for item in valid_assets]
 
-    hist_length = min(260, max(90, horizon_years * 52))
     hist_frames = []
     for item in valid_assets:
-        series = item["series"].tail(hist_length)
+        series = item["series"]
         values = pd.to_numeric(series, errors="coerce").dropna()
         if values.empty:
             continue
         normalized = values / float(values.iloc[0]) * 100
+        normalized = _downsample_horizon_series(normalized, max_points=HORIZON_MAX_HISTORY_POINTS)
         hist_frames.append(normalized.rename(item["ticker"]))
     hist_df = pd.concat(hist_frames, axis=1).dropna(how="all") if hist_frames else pd.DataFrame()
     if hist_df.empty:
@@ -559,7 +573,7 @@ def horizon_simulate_api():
     rng_seed = sum(sum(ord(ch) for ch in item["ticker"]) for item in valid_assets) + future_months + int(initial_value)
     rng = random.Random(rng_seed)
     sample_pool = blended_monthly.tolist()
-    simulated_returns = [sample_pool[rng.randrange(len(sample_pool))] for _ in range(future_months)]
+    simulated_returns = [float(sample_pool[rng.randrange(len(sample_pool))]) for _ in range(future_months)]
 
     future_dates = pd.date_range(start=date.today() + timedelta(days=30), periods=future_months, freq="ME")
     projected_base = [100.0]
@@ -589,6 +603,10 @@ def horizon_simulate_api():
                 "simulated_volatility": round(float(volatility), 6),
                 "assets_used": [item["ticker"] for item in valid_assets],
                 "horizon_years": horizon_years,
+                "history_years_used": history_years,
+                "history_points_displayed": len(blended_hist),
+                "monthly_samples_used": len(blended_monthly),
+                "extreme_returns_limited": had_clamped_outliers,
             },
             "warnings": warnings,
             "method_description": HORIZON_METHOD_DESCRIPTION,
@@ -1580,20 +1598,49 @@ def _extract_market_price_series(df: pd.DataFrame, ticker: str) -> pd.Series:
     return series
 
 
-def _compute_horizon_monthly_returns(df: pd.DataFrame, ticker: str) -> pd.Series:
-    series = _extract_market_price_series(df, ticker)
+def _get_horizon_history_years(horizon_years: int) -> int:
+    if horizon_years <= 1:
+        return max(HORIZON_MIN_HISTORY_YEARS, 5)
+    if horizon_years >= 5:
+        return HORIZON_MAX_HISTORY_YEARS
+    if horizon_years >= 3:
+        return HORIZON_DEFAULT_HISTORY_YEARS
+    return max(HORIZON_MIN_HISTORY_YEARS, 7)
+
+
+def _downsample_horizon_series(series: pd.Series, max_points: int = HORIZON_MAX_HISTORY_POINTS) -> pd.Series:
+    if series.empty or len(series) <= max_points:
+        return series
+    step = max(1, math.ceil(len(series) / max_points))
+    sampled = series.iloc[::step].copy()
+    if sampled.index[-1] != series.index[-1]:
+        sampled = pd.concat([sampled, series.iloc[[-1]]])
+        sampled = sampled[~sampled.index.duplicated(keep="last")]
+    return sampled
+
+
+def _compute_horizon_monthly_returns(series: pd.Series, ticker: str) -> tuple[pd.Series, dict[str, bool]]:
     if series.empty:
         raise HorizonSimulationError(
             f"{ticker} no dispone de una serie temporal válida para construir la simulación experimental.",
             400,
         )
-    monthly = series.resample("ME").last().pct_change().dropna()
+    monthly = series.resample("ME").last().pct_change()
+    monthly = monthly.replace([math.inf, -math.inf], pd.NA).dropna()
     if monthly.empty:
         raise HorizonSimulationError(
             f"{ticker} no genera retornos mensuales suficientes para esta simulación experimental.",
             400,
         )
-    return monthly
+    outlier_mask = monthly.abs() > HORIZON_MAX_MONTHLY_RETURN
+    had_outliers = bool(outlier_mask.any())
+    monthly = monthly.clip(lower=-HORIZON_MAX_MONTHLY_RETURN, upper=HORIZON_MAX_MONTHLY_RETURN)
+    if monthly.empty:
+        raise HorizonSimulationError(
+            f"{ticker} no genera retornos mensuales suficientes para esta simulación experimental.",
+            400,
+        )
+    return monthly, {"had_outliers": had_outliers}
 
 
 def _compute_price_summary(
