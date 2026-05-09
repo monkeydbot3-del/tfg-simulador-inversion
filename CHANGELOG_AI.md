@@ -459,9 +459,18 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `3f10cec`
 - Título: Iteración 39, resumen operativo vivo con CURRENT_STATE.md
 - Archivos tocados:
   - `CURRENT_STATE.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-09
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 40, limpieza de artefactos locales de CI en workspace
+- Archivos tocados:
+  - `.gitignore`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

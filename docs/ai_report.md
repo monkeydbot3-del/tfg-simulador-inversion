@@ -3264,3 +3264,43 @@ En futuras iteraciones, la secuencia recomendada pasa a ser:
 5. releer `docs/ai_report.md`
 
 Con eso se acelera la orientación inicial sin perder contexto profundo ni trazabilidad.
+
+## Iteración 40 - Limpieza de artefactos locales de CI en workspace
+
+### Objetivo
+Evitar que los artefactos locales generados durante la reproducción del workflow de CI vuelvan a aparecer como cambios pendientes en el workspace.
+
+### Contexto
+Tras la reparación del workflow de GitHub Actions y la validación local equivalente, quedaron varios artefactos sin trackear en el repo local:
+- `.venv-ci/`
+- `ci.db`
+- `coverage.xml`
+
+No llegaron a subirse al repositorio, pero sí podían ensuciar futuras iteraciones y hacer más ruidoso `git status`.
+
+### Cambios aplicados
+- Revisión del `.gitignore` existente.
+- Confirmación de que ya estaban ignorados:
+  - `.coverage`
+  - `htmlcov/`
+- Añadidas nuevas entradas a `.gitignore` para cubrir también:
+  - `.venv-ci/`
+  - `ci.db`
+  - `coverage.xml`
+
+### Decisiones tomadas
+- Mantener la iteración como limpieza estricta de workspace, sin tocar lógica de producto ni configuración funcional.
+- Ignorar específicamente los artefactos locales de reproducción de CI en lugar de borrar trazabilidad útil del repo.
+- Aprovechar para dejar cubiertos tanto artefactos actuales como los habituales de cobertura local.
+
+### Riesgos / límites
+- Ninguno funcional relevante: el cambio afecta solo a gestión de ficheros no versionados del entorno local.
+- Si en el futuro se quisieran conservar artefactos de cobertura como parte de otro flujo, habría que definirlo explícitamente, pero no es el caso actual.
+
+### Comprobaciones realizadas
+- Revisión manual de `.gitignore`.
+- Ejecución de `git status --short` tras el cambio para comprobar que el workspace deja de mostrar los artefactos locales de CI como pendientes.
+
+### Resultado esperado
+- `git status` más limpio en iteraciones futuras.
+- Menor ruido operativo al trabajar sobre `bot/render-preview`.
