@@ -425,7 +425,7 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `d0fbc5d`
 - Título: Iteración 37, continuidad visual del escenario y errores de proveedor más claros en Horizonte
 - Archivos tocados:
   - `app/routes.py`
