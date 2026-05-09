@@ -488,7 +488,7 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `0feeaee`
 - Título: Iteración 42, Tutor IA educativo para informe final de Carrera
 - Archivos tocados:
   - `CURRENT_STATE.md`
@@ -498,5 +498,16 @@
   - `app/templates/career.html`
   - `app/static/app.js`
   - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-09
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 43, manejo controlado de fallos de proveedor en autoplay de Carrera
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/career.py`
+  - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

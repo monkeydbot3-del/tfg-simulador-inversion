@@ -76,7 +76,8 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Pendiente comprobar en producción que, cuando Yahoo limita peticiones, el mensaje mostrado es el de proveedor limitado y no el de ticker inválido.
 - Pendiente confirmar visualmente en Render que la transición azul/verde del gráfico de Horizonte se entiende bien en móvil.
 - Pendiente comprobar en GitHub Actions que el workflow remoto aparece en verde tras el commit `7afcf41`.
-- No hay ahora mismo un bug funcional cerrado confirmado en local dentro del núcleo de análisis o Carrera, pero sigue faltando validación manual externa.
+- Bug urgente detectado en Render: `POST /api/career/turn` podía acabar en 500 durante autoplay cuando Yahoo/yfinance devolvía limitación temporal del proveedor para un ticker de la cartera.
+- La corrección de ese flujo está en curso y debe validar que Carrera trate los errores de proveedor como respuesta controlada, no como error interno 500.
 
 ---
 

@@ -35,6 +35,7 @@ from .services.career_session_service import (
 
 try:
     from app.routes import (
+        BacktestError,
         _download_history_df,
         _extract_series,
         _series_with_date_index,
@@ -43,6 +44,12 @@ try:
     )
 except Exception:  # pragma: no cover
     import yfinance as yf
+
+    class BacktestError(Exception):
+        def __init__(self, message: str, status_code: int = 400):
+            super().__init__(message)
+            self.message = message
+            self.status_code = status_code
 
     def _download_history_df(  # type: ignore[override]
         ticker: str, start_d: date, end_d: date, include_actions: bool = True
@@ -2796,6 +2803,30 @@ def close_turn():
             "message": msg,
         }
         return jsonify(payload), 200
+    except BacktestError as exc:
+        raw_message = getattr(exc, "message", str(exc))
+        status_code = int(getattr(exc, "status_code", 503) or 503)
+        upper_message = raw_message.upper()
+        provider_limited = status_code >= 500
+        ticker = None
+        for item in clean_alloc:
+            candidate = str(item.get("ticker") or "").strip().upper()
+            if candidate and candidate in upper_message:
+                ticker = candidate
+                break
+        if ticker is None and len(clean_alloc) == 1:
+            ticker = str(clean_alloc[0].get("ticker") or "").strip().upper() or None
+        error_type = "market_data_provider" if provider_limited else "invalid_ticker"
+        retryable = provider_limited
+        payload = {
+            "ok": False,
+            "error": raw_message,
+            "message": raw_message,
+            "error_type": error_type,
+            "retryable": retryable,
+            "ticker": ticker,
+        }
+        return jsonify(payload), status_code
     turn_return_market = sum(
         item["weight"] * base_returns.get(item["ticker"], 0.0) for item in clean_alloc
     )

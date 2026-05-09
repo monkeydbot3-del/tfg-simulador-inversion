@@ -3594,3 +3594,128 @@ Si falla la API externa:
 - revisar tono real de 3 o 4 respuestas sobre sesiones distintas
 - si hace falta, endurecer todavía más el prompt o añadir post-validación de frases prohibidas
 - solo después valorar una extensión futura a análisis histórico o a otras zonas de la app
+
+## Iteración 43 - Manejo controlado de fallos de proveedor en autoplay de Carrera
+
+### Objetivo
+Corregir un bug urgente de producción en `Modo Carrera` donde el autoplay de turnos podía romperse con `500` al fallar temporalmente la descarga de datos de mercado.
+
+### Problema observado en Render
+Durante `Simular todos los turnos automáticamente`, el backend lanzaba:
+- `POST /api/career/turn -> 500`
+
+Causa visible en logs:
+- `_download_history_df(...)` lanzaba `BacktestError(503)` al fallar Yahoo/yfinance para tickers como `TCEHY`
+- esa excepción subía por `_adj_close_series(...)` y `_returns_by_ticker(...)`
+- `close_turn()` no la capturaba
+- Flask/Render la convertían finalmente en error interno `500`
+
+El problema no era un bug interno de cálculo de Carrera, sino un fallo externo del proveedor de datos mal gestionado por este endpoint.
+
+### Causa raíz
+Tras el hardening reciente de `Modo Horizonte`, `_download_history_df(...)` pasó a diferenciar mejor:
+- ticker inválido
+- proveedor temporalmente limitado
+- respuesta inestable o vacía
+
+Eso estaba bien, pero `Modo Carrera` todavía solo capturaba `NoHistoricalDataError` y no `BacktestError`.
+
+Por tanto, una limitación temporal del proveedor en un turno de Carrera acababa escapando como excepción no controlada.
+
+### Cambios aplicados en backend
+#### `app/career.py`
+- Se importó `BacktestError` desde `app.routes` en el bloque reutilizado de helpers históricos.
+- Se añadió fallback local de `BacktestError` en el bloque `except Exception` de importación para mantener compatibilidad defensiva.
+- En `close_turn()` se añadió captura explícita de `BacktestError`.
+
+Ahora, cuando falla el proveedor:
+- no se devuelve 500
+- se respeta el `status_code` del error original, por ejemplo `503`
+- se responde con JSON controlado
+
+Payload devuelto en estos casos:
+- `ok: false`
+- `error`
+- `message`
+- `error_type`
+- `retryable`
+- `ticker`
+
+Criterio actual:
+- si `status_code >= 500` → `error_type = market_data_provider`, `retryable = true`
+- si no → `error_type = invalid_ticker`, `retryable = false`
+
+Con esto, un rate limit de Yahoo para `TCEHY` deja de parecer un fallo interno del servidor.
+
+### Cambios aplicados en frontend
+#### `app/static/app.js`
+- Se ajustó `handleCareerAutoPlay()` para que, si el backend devuelve un error controlado del proveedor:
+  - el autoplay se detenga
+  - no se sigan lanzando peticiones repetidas a `/api/career/turn`
+  - se muestre un mensaje humano y específico
+  - la UI vuelva a quedar en estado usable
+- Se añadió mensaje de UX más claro para proveedor limitado, por ejemplo:
+  - `La fuente de datos de mercado está temporalmente limitada para TCEHY. La simulación automática se ha detenido para evitar resultados incompletos. Puedes reintentarlo más tarde o cambiar ese activo.`
+- Se mantiene la reactivación de controles en `finally`, así que el botón vuelve a quedar disponible.
+- Se evita mostrar simplemente `Error 500`.
+
+### Revisión del 401 de `/api/career/sessions`
+Se revisó también el caso de:
+- `GET /api/career/sessions -> 401`
+
+Conclusión:
+- es compatible con el caso esperado de invitado o usuario sin acceso persistido
+- no era el bug crítico principal
+- se ajustó `refreshCareerSavedSessions()` para tratar `401` de forma silenciosa y normal, sin ruido innecesario en consola salvo otros errores distintos
+
+### Comportamiento final esperado
+#### Caso A, proveedor limitado en `/api/career/turn`
+- ya no devuelve `500`
+- devuelve respuesta controlada, típicamente `503`
+- JSON con mensaje claro y semántica de retry
+
+#### Caso B, autoplay
+- si falla un turno por proveedor, se detiene
+- no entra en bucle de peticiones repetidas
+- no deja el turno parcialmente cerrado
+- la UI queda estable y el usuario puede reintentar más tarde
+
+#### Caso C, ticker inválido real
+- se mantiene posibilidad de respuesta diferenciada como `invalid_ticker` si el error no viene del proveedor temporalmente limitado
+
+#### Caso D, Carrera normal
+- los tickers válidos con datos disponibles siguen cerrando turno igual que antes
+
+#### Caso E, Horizonte
+- no se tocó la semántica central de `_download_history_df(...)`
+- Horizonte mantiene retry interno, caché ligera y distinción entre proveedor limitado y ticker inválido
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/career.py`
+- `app/static/app.js`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura de contexto obligatorio antes de empezar.
+- Revisión específica de:
+  - `app/career.py`
+  - `close_turn`
+  - `_returns_by_ticker`
+  - `_adj_close_series`
+  - `_download_history_df`
+  - `handleCareerAutoPlay`
+  - `jsonPost`
+- Validación sintáctica:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Validación por inspección del flujo:
+  - proveedor limitado en turnos de Carrera
+  - parada limpia de autoplay
+  - no mostrar `Error 500`
+  - tratamiento silencioso del `401` en sesiones guardadas
+
+### Riesgos pendientes
+- Falta validar en Render el caso real con el mismo ticker problemático (`TCEHY`) para confirmar el payload exacto visible en frontend.
+- El campo `ticker` en la respuesta se infiere desde el mensaje y la asignación actual; funciona para este MVP, pero podría endurecerse más si en el futuro se quiere trazabilidad exacta por ticker fallido en carteras múltiples.
+- Conviene verificar en producción que no aparecen efectos laterales en cierre manual de turno, no solo en autoplay.

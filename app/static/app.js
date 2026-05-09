@@ -3115,7 +3115,10 @@ async function refreshCareerSavedSessions() {
   try {
     const data = await jsonGet("/api/career/sessions");
     renderCareerSavedSessions(data?.sessions || []);
-  } catch {
+  } catch (err) {
+    if (err?.status !== 401) {
+      console.warn("No se pudieron cargar las sesiones guardadas de Carrera:", err);
+    }
     renderCareerSavedSessions([]);
   }
 }
@@ -3494,6 +3497,7 @@ async function handleCareerAutoPlay() {
 
   try {
     const useDca = Boolean(document.getElementById("career-use-dca")?.checked);
+    let completedTurns = 0;
     while (true) {
       const currentPending = (careerState.sessionData?.turns || []).find((t) => t.status === "pending");
       if (!currentPending) break;
@@ -3532,6 +3536,7 @@ async function handleCareerAutoPlay() {
         mostrarToastError(`${message}${suffix}`.trim());
         break;
       }
+      completedTurns += 1;
 
       const snapshot = data?.snapshot;
       const nextAlloc = buildNextAllocFromSnapshot(snapshot);
@@ -3547,12 +3552,25 @@ async function handleCareerAutoPlay() {
       await handleCareerLoadSession(careerState.sessionId, { silent: true });
     }
 
-    await renderCareerReport({ includeSeries: true });
-    await loadCareerSeries();
-    mostrarToastOk("Simulación automática de turnos completada.");
+    if (completedTurns > 0) {
+      await renderCareerReport({ includeSeries: true });
+      await loadCareerSeries();
+      mostrarToastOk("Simulación automática de turnos completada.");
+    }
   } catch (err) {
     console.error("Error en autoplay de carrera:", err);
-    mostrarToastError(err?.message || "No se pudo completar la simulación automática.");
+    const ticker = err?.body?.ticker || null;
+    const errorType = err?.body?.error_type || null;
+    const retryable = Boolean(err?.body?.retryable);
+    let message = err?.message || "No se pudo completar la simulación automática.";
+    if (errorType === "market_data_provider") {
+      message = ticker
+        ? `La fuente de datos de mercado está temporalmente limitada para ${ticker}. La simulación automática se ha detenido para evitar resultados incompletos. Puedes reintentarlo más tarde o cambiar ese activo.`
+        : "La fuente de datos de mercado está temporalmente limitada. La simulación automática se ha detenido para evitar resultados incompletos. Puedes reintentarlo más tarde.";
+    } else if (retryable && ticker) {
+      message = `No se pudieron obtener datos de mercado para ${ticker}. La simulación automática se ha detenido para evitar resultados incompletos. Puedes reintentarlo más tarde.`;
+    }
+    mostrarToastError(message);
   } finally {
     careerState.autoplayRunning = false;
     setCareerTurnActionsEnabled(true);
