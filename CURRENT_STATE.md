@@ -83,7 +83,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 ---
 
 ## 6. Reglas críticas que no se pueden romper
-- Trabajar solo en este repo: `/root/.openclaw/workspace/tfg-web-ci-python-bot`.
+- Trabajar solo en este repo de presentación: `/root/.openclaw/workspace/tfg-web-ci-python-bot` (remote esperado: `simulador-inversion-tfg`).
 - Usar el repo original solo como referencia.
 - No tocar nunca `main` ni ramas principales.
 - Rama fija actual de trabajo: `bot/render-preview`.

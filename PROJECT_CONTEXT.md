@@ -75,12 +75,12 @@ Una mejora es valiosa si:
 - puede explicarse bien en el TFG o ante un tribunal
 
 ## Repositorios
-Repositorio de trabajo del bot:
-- git@github.com:monkeydbot3-del/tfg-web-ci-python-bot.git
+Repositorio de trabajo actual:
+- git@github.com:monkeydbot3-del/simulador-inversion-tfg.git
 
 Repositorio original de referencia:
 - git@github.com:sanlaja/tfg-web-ci-python.git
 
 Regla:
-- siempre trabajar en el repo del bot
+- siempre trabajar en el repositorio actual de presentación
 - usar el repo original solo como referencia

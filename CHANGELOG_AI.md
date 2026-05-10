@@ -523,7 +523,7 @@
 
 ## 2026-05-10
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `52dd294`
 - Título: Iteración 45, precarga real de resultados de Carrera al continuar en Modo Horizonte
 - Archivos tocados:
   - `CURRENT_STATE.md`
@@ -531,5 +531,16 @@
   - `app/static/app.js`
   - `app/static/estilos.css`
   - `app/templates/horizon.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-10
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 46, actualización de referencias del repositorio para la presentación final
+- Archivos tocados:
+  - `README.md`
+  - `PROJECT_CONTEXT.md`
+  - `CURRENT_STATE.md`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

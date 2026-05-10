@@ -14,7 +14,7 @@ El proyecto se acababa de clonar en el workspace del bot y todavía no existía 
 - Se crean `CHANGELOG_AI.md` y `docs/ai_report.md` para documentar el trabajo posterior.
 
 ### Decisiones tomadas
-- Usar el repo del bot como único repo de trabajo.
+- Usar el repositorio de trabajo actual como único repo de trabajo.
 - Tratar el repo original solo como referencia.
 - No modificar la lógica de negocio en esta fase.
 
@@ -4032,3 +4032,81 @@ Se mantiene:
 - La UI no expone edición manual de pesos por separado, aunque sí los conserva internamente si vienen desde Carrera y el usuario no altera la lista de tickers.
 - Si el usuario cambia manualmente los tickers tras la precarga, los pesos heredados dejan de enviarse, lo cual es intencional para evitar asignaciones incoherentes, pero conviene verificar que la UX se entienda bien.
 - Conviene comprobar visualmente en móvil que la nueva card de metadatos no empuja demasiado el formulario principal.
+
+## Iteración 46 - Actualización de referencias del repositorio para la presentación final
+
+### Objetivo
+Preparar el proyecto para la presentación final del TFG actualizando referencias documentales al nombre antiguo del repositorio y alineando el remote principal con el nuevo nombre público.
+
+### Contexto
+El repositorio de GitHub se renombra para la fase de presentación a:
+- `simulador-inversion-tfg`
+
+Se buscó evitar que en README, contexto y documentación interna siguieran apareciendo referencias poco elegantes o demasiado técnicas como:
+- `tfg-web-ci-python-bot`
+- `repo del bot`
+- la URL antigua del remote
+
+### Revisión realizada
+Se revisaron explícitamente:
+- `README.md`
+- `PROJECT_CONTEXT.md`
+- `CURRENT_STATE.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+- `git remote -v`
+
+### Cambios aplicados
+#### `README.md`
+- Título ajustado a un nombre presentable:
+  - `Simulador de Inversión - TFG`
+- Se actualizó la referencia del apartado de CI para mencionar el repositorio:
+  - `simulador-inversion-tfg`
+
+#### `PROJECT_CONTEXT.md`
+- Se sustituyó la referencia al repo antiguo por el repositorio actual de presentación:
+  - `git@github.com:monkeydbot3-del/simulador-inversion-tfg.git`
+- Se suavizó el lenguaje de `repo del bot` hacia una formulación más neutra y presentable.
+
+#### `CURRENT_STATE.md`
+- Se actualizó la regla crítica para dejar claro que el repo de trabajo local sigue siendo el mismo directorio, pero que el remote esperado de presentación es `simulador-inversion-tfg`.
+
+#### `CHANGELOG_AI.md`
+- Se registró esta iteración y se cerró la iteración anterior con su commit definitivo.
+
+#### `docs/ai_report.md`
+- Se sustituyeron menciones de `repo del bot` por formulación más neutra en el arranque del informe.
+- Se documentó esta adaptación para la presentación final.
+
+### Remote
+Se comprobó `git remote -v`.
+
+Estado inicial detectado:
+- `origin` seguía apuntando a:
+  - `git@github.com:monkeydbot3-del/tfg-web-ci-python-bot.git`
+
+Para la presentación final, se actualizó el remote principal al nuevo nombre del repositorio:
+- `git@github.com:monkeydbot3-del/simulador-inversion-tfg.git`
+
+Se mantuvo sin cambios el remote de referencia:
+- `git@github.com:sanlaja/tfg-web-ci-python.git`
+
+### Validaciones realizadas
+- `git remote -v`
+- `git status --short`
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+### Archivos tocados
+- `README.md`
+- `PROJECT_CONTEXT.md`
+- `CURRENT_STATE.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Riesgos pendientes
+- Conviene comprobar en GitHub que el rename del repo conserva correctamente:
+  - Actions
+  - rama `bot/render-preview`
+  - permisos de push
+  - enlaces del repositorio
+- Conviene revisar en Render si existía alguna referencia manual al repo anterior en documentación o despliegue, aunque normalmente el servicio seguirá funcionando si no depende del nombre visible del repo.
