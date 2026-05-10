@@ -536,11 +536,20 @@
 
 ## 2026-05-10
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `f6df768`
 - Título: Iteración 46, actualización de referencias del repositorio para la presentación final
 - Archivos tocados:
   - `README.md`
   - `PROJECT_CONTEXT.md`
   - `CURRENT_STATE.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-10
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 47, evitar petición de sesiones guardadas en modo invitado
+- Archivos tocados:
+  - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

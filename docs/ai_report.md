@@ -4110,3 +4110,91 @@ Se mantuvo sin cambios el remote de referencia:
   - permisos de push
   - enlaces del repositorio
 - Conviene revisar en Render si existía alguna referencia manual al repo anterior en documentación o despliegue, aunque normalmente el servicio seguirá funcionando si no depende del nombre visible del repo.
+
+## Iteración 47 - Evitar petición de sesiones guardadas en modo invitado
+
+### Objetivo
+Eliminar el microbug visual/técnico por el que `Modo Carrera` seguía lanzando `GET /api/career/sessions` en modo invitado, generando un `401` esperable pero feo en DevTools.
+
+### Contexto
+Durante pruebas de `Tutor IA` en `Modo Carrera` como invitado, se veía repetidamente:
+- `GET /api/career/sessions -> 401`
+
+Esto no implicaba un fallo real del Tutor IA.
+De hecho, el endpoint:
+- `POST /api/ai/career-analysis/<session_id>`
+seguía devolviendo `200` correctamente.
+
+El problema era puramente de experiencia técnica y limpieza visual en frontend.
+
+### Causa exacta
+`refreshCareerSavedSessions()` en `app/static/app.js` se ejecutaba también para invitado o anónimo.
+
+La app ya exponía correctamente en `base.html`:
+- `data-user-id`
+- `data-is-guest`
+
+Pero esa información no se estaba usando para evitar la llamada de red.
+
+Resultado:
+- el backend respondía `401` como comportamiento esperado para invitados
+- el frontend lo capturaba sin hacer `console.warn` en ese caso
+- pero la petición HTTP seguía existiendo y se veía en DevTools, dando sensación de error innecesario
+
+### Cambios aplicados
+#### `app/static/app.js`
+Se añadieron helpers mínimos para identidad de Carrera:
+- `isAuthenticatedCareerUser()`
+- `isGuestCareerUser()`
+
+Después, `refreshCareerSavedSessions()` se endureció así:
+- si el usuario es invitado, no llama a `/api/career/sessions`
+- si no hay usuario autenticado, tampoco llama a `/api/career/sessions`
+- en ambos casos muestra un estado normal en UI:
+  - `Las sesiones guardadas están disponibles al iniciar sesión.`
+
+Además, si por cualquier motivo se recibe igualmente un `401`:
+- se trata como estado esperado
+- no se registra como error
+- se muestra el mismo mensaje amable de UI
+
+#### Render de sesiones guardadas
+`renderCareerSavedSessions()` ahora acepta un `emptyMessage` opcional para poder mostrar un estado informativo sin fingir que hay una lista real de sesiones.
+
+### Comportamiento final
+#### Invitado o anónimo
+- no se hace petición a `/api/career/sessions`
+- no aparece `401` en consola/network por este flujo
+- la UI muestra:
+  - `Las sesiones guardadas están disponibles al iniciar sesión.`
+
+#### Usuario autenticado
+- el flujo sigue igual
+- `GET /api/career/sessions` se sigue usando normalmente
+- `Tus sesiones` continúa cargando como antes
+
+#### Tutor IA
+- no se ha tocado su lógica
+- el análisis IA de Carrera sigue completamente independiente de este ajuste
+
+### Archivos tocados
+- `app/static/app.js`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura de contexto obligatorio antes de empezar.
+- Revisión específica de:
+  - `base.html`
+  - `app/static/app.js`
+  - `refreshCareerSavedSessions()`
+  - helpers de identidad frontend
+- Validación sintáctica:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Validación por inspección del flujo:
+  - invitado ya no debería disparar la petición de sesiones guardadas
+  - autenticado sigue conservando el flujo habitual
+
+### Riesgos pendientes
+- Conviene comprobar en Render que el panel `Tus sesiones` muestra el mensaje informativo correcto en invitado.
+- Conviene confirmar manualmente que un usuario autenticado sigue viendo sus sesiones persistidas sin regresión.

@@ -1771,6 +1771,14 @@ function getCareerIdentity() {
   return "anon";
 }
 
+function isAuthenticatedCareerUser() {
+  return Boolean(document.body?.dataset?.userId || "");
+}
+
+function isGuestCareerUser() {
+  return String(document.body?.dataset?.isGuest || "false") === "true";
+}
+
 function loadReadinessLocalState() {
   try {
     const raw = localStorage.getItem(READINESS_STORAGE_KEY);
@@ -3149,10 +3157,18 @@ function handleCareerCreate() {
     .finally(() => careerSetLoading(btn, false));
 }
 
-function renderCareerSavedSessions(items = []) {
+function renderCareerSavedSessions(items = [], options = {}) {
   const wrap = document.getElementById("career-saved-sessions");
   const list = document.getElementById("career-saved-sessions-list");
   if (!wrap || !list) return;
+
+  const emptyMessage = options?.emptyMessage || "";
+  if ((!Array.isArray(items) || !items.length) && emptyMessage) {
+    wrap.classList.remove("hidden");
+    list.innerHTML = `<p class="muted">${emptyMessage}</p>`;
+    return;
+  }
+
   if (!Array.isArray(items) || !items.length) {
     wrap.classList.add("hidden");
     list.innerHTML = "";
@@ -3178,13 +3194,24 @@ function renderCareerSavedSessions(items = []) {
 }
 
 async function refreshCareerSavedSessions() {
+  if (isGuestCareerUser() || !isAuthenticatedCareerUser()) {
+    renderCareerSavedSessions([], {
+      emptyMessage: "Las sesiones guardadas están disponibles al iniciar sesión.",
+    });
+    return;
+  }
+
   try {
     const data = await jsonGet("/api/career/sessions");
     renderCareerSavedSessions(data?.sessions || []);
   } catch (err) {
-    if (err?.status !== 401) {
-      console.warn("No se pudieron cargar las sesiones guardadas de Carrera:", err);
+    if (err?.status === 401) {
+      renderCareerSavedSessions([], {
+        emptyMessage: "Las sesiones guardadas están disponibles al iniciar sesión.",
+      });
+      return;
     }
+    console.warn("No se pudieron cargar las sesiones guardadas de Carrera:", err);
     renderCareerSavedSessions([]);
   }
 }
