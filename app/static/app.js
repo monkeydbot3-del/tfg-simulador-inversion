@@ -3867,6 +3867,57 @@ function renderCareerMetrics(report) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function normalizeCareerAiListContent(content) {
+  if (Array.isArray(content)) {
+    return content
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean);
+  }
+  if (typeof content === "string") {
+    const value = content.trim();
+    return value ? [value] : [];
+  }
+  if (content && typeof content === "object") {
+    return Object.values(content)
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function normalizeCareerAiTextContent(content) {
+  if (typeof content === "string") {
+    const value = content.trim();
+    return value || "No hay suficiente información para desarrollar este bloque.";
+  }
+  if (Array.isArray(content)) {
+    const items = content
+      .map((item) => String(item ?? "").trim())
+      .filter(Boolean);
+    return items.join(" ") || "No hay suficiente información para desarrollar este bloque.";
+  }
+  if (content && typeof content === "object") {
+    try {
+      const serialized = JSON.stringify(content);
+      return serialized && serialized !== "{}"
+        ? serialized
+        : "No hay suficiente información para desarrollar este bloque.";
+    } catch {
+      return "No hay suficiente información para desarrollar este bloque.";
+    }
+  }
+  return "No hay suficiente información para desarrollar este bloque.";
+}
+
 function renderCareerAiStatus(message, tone = "info") {
   const el = document.getElementById("career-ai-status");
   if (!el) return;
@@ -3879,27 +3930,47 @@ function renderCareerAiStatus(message, tone = "info") {
 function renderCareerAiSections(payload) {
   const host = document.getElementById("career-ai-output");
   if (!host) return;
+
   const sections = Array.isArray(payload?.sections) ? payload.sections : [];
-  host.innerHTML = sections
-    .map((section) => {
-      const title = section?.title || "Sección";
-      if (section?.type === "list") {
-        const items = Array.isArray(section?.content) ? section.content.filter(Boolean) : [];
-        return `
-          <article class="career-ai-section">
-            <h5>${title}</h5>
-            <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>Sin contenido suficiente.</li>"}</ul>
-          </article>
-        `;
-      }
-      return `
-        <article class="career-ai-section">
-          <h5>${title}</h5>
-          <p>${escapeHtml(section?.content || "No hay suficiente información para desarrollar este bloque.")}</p>
-        </article>
-      `;
-    })
-    .join("");
+  const fallbackAnalysis = normalizeCareerAiTextContent(payload?.analysis || payload?.message || "");
+  const safeDisclaimer = String(
+    payload?.disclaimer ||
+      "Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. No constituye asesoramiento financiero ni una recomendación de inversión real."
+  ).trim();
+
+  const renderedSections = sections.length
+    ? sections
+        .map((section) => {
+          const title = escapeHtml(section?.title || "Sección");
+          if (section?.type === "list") {
+            const items = normalizeCareerAiListContent(section?.content);
+            return `
+              <article class="career-ai-section">
+                <h5>${title}</h5>
+                <ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("") || "<li>Sin contenido suficiente.</li>"}</ul>
+              </article>
+            `;
+          }
+          return `
+            <article class="career-ai-section">
+              <h5>${title}</h5>
+              <p>${escapeHtml(normalizeCareerAiTextContent(section?.content))}</p>
+            </article>
+          `;
+        })
+        .join("")
+    : `
+      <article class="career-ai-section">
+        <h5>Resumen educativo</h5>
+        <p>${escapeHtml(fallbackAnalysis)}</p>
+      </article>
+    `;
+
+  host.innerHTML = `${renderedSections}
+    <article class="career-ai-section career-ai-section--disclaimer">
+      <h5>Disclaimer</h5>
+      <p>${escapeHtml(safeDisclaimer)}</p>
+    </article>`;
   host.classList.remove("hidden");
 }
 

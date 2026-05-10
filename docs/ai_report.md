@@ -4198,3 +4198,116 @@ Además, si por cualquier motivo se recibe igualmente un `401`:
 ### Riesgos pendientes
 - Conviene comprobar en Render que el panel `Tus sesiones` muestra el mensaje informativo correcto en invitado.
 - Conviene confirmar manualmente que un usuario autenticado sigue viendo sus sesiones persistidas sin regresión.
+
+## Iteración 48 - Renderizado seguro y estable de la respuesta del Tutor IA
+
+### Objetivo
+Corregir un bug claro de frontend en `Modo Carrera` por el que el `Tutor IA` fallaba al mostrar la respuesta, incluso cuando backend y OpenAI estaban funcionando correctamente.
+
+### Contexto
+La validación real en Render mostraba que el backend sí estaba sano:
+- `GET /api/ai/status` devolvía `200`
+- `POST /api/ai/career-analysis/<session_id>` devolvía `200`
+
+Por tanto:
+- `OPENAI_API_KEY` estaba bien configurada
+- OpenAI estaba respondiendo
+- el endpoint del Tutor IA estaba generando contenido
+
+El fallo era exclusivamente de frontend.
+
+### Causa exacta
+En `app/static/app.js`, `renderCareerAiSections()` usaba:
+- `escapeHtml(...)`
+
+pero esa función no existía en el archivo.
+
+Resultado:
+- al pulsar `Analizar con IA`
+- el backend devolvía `200`
+- el frontend intentaba renderizar la respuesta
+- JavaScript lanzaba `escapeHtml is not defined`
+- el error aparecía dentro de la card y también como toast rojo
+
+### Cambios aplicados
+#### Helper de escaping seguro
+Se añadió en `app/static/app.js` un helper reutilizable:
+- `escapeHtml(value)`
+
+Este helper escapa correctamente:
+- `&`
+- `<`
+- `>`
+- `"`
+- `'`
+
+Con eso se evita inyectar texto de IA sin sanear cuando se usa `innerHTML`.
+
+#### Renderizado más robusto del Tutor IA
+Además del helper, se endureció el renderizado para casos reales de payload imperfecto.
+
+Se añadieron:
+- `normalizeCareerAiListContent(content)`
+- `normalizeCareerAiTextContent(content)`
+
+Con estas funciones, la UI ya no rompe si:
+- `analysis` viene como string
+- `analysis` viene como objeto
+- `section.content` viene como lista
+- `section.content` viene como string
+- una lista viene vacía
+- `sections` viene vacía o ausente
+
+#### Fallback útil
+Si no llegan secciones válidas:
+- la UI muestra una sección fallback `Resumen educativo`
+- usando `analysis` o `message` del payload si existen
+- sin mostrar JSON crudo directamente al usuario
+
+#### Disclaimer obligatorio
+El disclaimer del Tutor IA ahora se sigue mostrando incluso si el payload viene incompleto.
+
+Se fuerza como fallback:
+- `Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. No constituye asesoramiento financiero ni una recomendación de inversión real.`
+
+Además, se añade una sección visual específica de disclaimer dentro del bloque renderizado.
+
+### Seguridad
+La garantía de escaping seguro se mantiene así:
+- todo contenido que entra en `innerHTML` desde la respuesta del Tutor IA pasa por `escapeHtml(...)`
+- no se inserta texto de IA sin escapar
+- se evita un vector XSS accidental en el render del análisis
+
+### Ajustes visuales
+#### `app/static/estilos.css`
+Se añadieron pequeños ajustes para el bloque del Tutor IA:
+- `white-space: pre-wrap` en párrafos de secciones
+- estilo diferenciado para la sección de disclaimer
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura de contexto obligatorio antes de empezar.
+- Revisión específica de:
+  - `app/static/app.js`
+  - `renderCareerAiSections()`
+  - `jsonPost()`
+  - `app/templates/career.html`
+  - `app/static/estilos.css`
+- Validación sintáctica:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Validación técnica completa equivalente a CI:
+  - `ruff check .`
+  - `black --check .`
+  - `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+- Resultado local:
+  - `25 passed`
+
+### Riesgos pendientes
+- Conviene validar en Render un caso real con respuesta larga del Tutor IA para confirmar que la legibilidad sigue siendo buena en móvil.
+- Sería útil comprobar con 2 o 3 simulaciones distintas que nunca aparecen frases demasiado cercanas a recomendación de compra/venta, aunque eso depende más del prompt/backend que de este fix visual.

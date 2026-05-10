@@ -3691,6 +3691,16 @@ body {
   padding-left: 18px;
 }
 
+.career-ai-section p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.career-ai-section--disclaimer {
+  border-color: rgba(191, 149, 55, 0.28);
+  background: rgba(255, 248, 235, 0.78);
+}
+
 .career-ai-disclaimer {
   margin-top: 12px;
 }
