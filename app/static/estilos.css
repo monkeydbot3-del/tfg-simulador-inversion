@@ -3549,6 +3549,7 @@ body {
 }
 
 .horizon-source-banner,
+.horizon-source-meta,
 .horizon-method-card,
 .horizon-edu-card,
 .horizon-hero-note {
@@ -3561,6 +3562,7 @@ body {
 .horizon-disclaimer-inline,
 .horizon-warning-card,
 .horizon-source-banner,
+.horizon-source-meta,
 .horizon-method-card,
 .horizon-hero-note {
   margin-top: 12px;
@@ -3606,6 +3608,42 @@ body {
   color: #166534;
   background: rgba(236, 253, 243, 0.92);
   border-color: rgba(134, 239, 172, 0.32);
+}
+
+.horizon-source-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.horizon-source-meta__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.horizon-source-meta__item {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(102, 138, 76, 0.12);
+}
+
+.horizon-source-meta__item span {
+  display: block;
+  font-size: 0.78rem;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.horizon-source-meta__item strong {
+  display: block;
+  color: #0f172a;
+}
+
+@media (max-width: 720px) {
+  .horizon-source-meta__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .horizon-disclaimer-modal__dialog {

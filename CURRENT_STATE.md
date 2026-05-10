@@ -60,6 +60,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 
 ## 4. Funcionalidades en desarrollo
 - Validación real en Render de `Modo Horizonte` tras las últimas iteraciones.
+- Corrección de la integración real entre `Modo Carrera` y `Modo Horizonte` para que la continuación experimental precargue la cartera y el contexto final de la partida.
 - Validación real en Render del `Tutor IA` con y sin `OPENAI_API_KEY`.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.

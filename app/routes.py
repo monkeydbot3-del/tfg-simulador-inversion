@@ -440,7 +440,7 @@ def horizon_accept_disclaimer_api():
 
 @bp.get("/api/horizon/from-career/<session_id>")
 def horizon_from_career_api(session_id: str):
-    from .career import _resolve_session_for_request
+    from .career import _resolve_session_for_request, _session_analysis_range
 
     session_payload = _resolve_session_for_request(session_id)
     if not session_payload:
@@ -449,10 +449,20 @@ def horizon_from_career_api(session_id: str):
             404,
         )
 
-    portfolio = session_payload.get("portfolio") or {}
-    positions = portfolio.get("positions") or []
+    warnings: list[str] = []
+
+    latest_alloc = []
+    completed_turns = session_payload.get("completed_turns") or []
+    if completed_turns:
+        last_snapshot = completed_turns[-1] or {}
+        latest_alloc = last_snapshot.get("alloc") or []
+    if not latest_alloc:
+        decisions = session_payload.get("decisions") or []
+        if decisions:
+            latest_alloc = (decisions[-1] or {}).get("alloc") or []
+
     assets = []
-    for position in positions:
+    for position in latest_alloc:
         ticker = str(position.get("ticker") or "").strip().upper()
         if not ticker or ticker == "CASH":
             continue
@@ -462,24 +472,81 @@ def horizon_from_career_api(session_id: str):
             weight = 0.0
         assets.append({"ticker": ticker, "weight": weight})
 
+    if not assets:
+        portfolio = session_payload.get("portfolio") or {}
+        positions = portfolio.get("positions") or []
+        for position in positions:
+            ticker = str(position.get("ticker") or "").strip().upper()
+            if not ticker or ticker == "CASH":
+                continue
+            try:
+                weight = float(position.get("weight") or 0)
+            except (TypeError, ValueError):
+                weight = 0.0
+            assets.append({"ticker": ticker, "weight": weight})
+
+    had_explicit_weights = any(float(item.get("weight") or 0) > 0 for item in assets)
     normalized_assets = _normalize_horizon_weights(assets)[:HORIZON_MAX_ASSETS]
+    if normalized_assets and not had_explicit_weights:
+        warnings.append(
+            "No se encontraron pesos finales exactos; se han usado pesos equivalentes."
+        )
+
+    tickers = [item["ticker"] for item in normalized_assets]
+    weights = [round(float(item["weight"]), 6) for item in normalized_assets]
+
     final_value = (
-        portfolio.get("total_value")
-        or portfolio.get("portfolio_value")
+        session_payload.get("capital_current")
         or session_payload.get("capital")
-        or 10000
+        or session_payload.get("capital_initial")
     )
+    if completed_turns:
+        final_value = (completed_turns[-1] or {}).get("portfolio_value") or final_value
+
     try:
         initial_value = float(final_value)
     except (TypeError, ValueError):
         initial_value = 10000.0
+        warnings.append(
+            "No se encontró valor final de cartera; se usa valor inicial por defecto."
+        )
+    else:
+        if initial_value <= 0:
+            initial_value = 10000.0
+            warnings.append(
+                "No se encontró valor final de cartera; se usa valor inicial por defecto."
+            )
+
+    try:
+        _start_d, projection_end_d, career_period_start, career_period_end = (
+            _session_analysis_range(session_payload)
+        )
+    except Exception:
+        period = session_payload.get("period") or {}
+        career_period_start = str(period.get("start") or "")
+        career_period_end = str(period.get("end") or career_period_start or "")
+        projection_end_d = None
+
+    projection_start = (
+        projection_end_d.isoformat()
+        if projection_end_d is not None
+        else (career_period_end or None)
+    )
 
     return jsonify(
         {
+            "ok": True,
             "source": "career",
             "session_id": session_id,
+            "display_name": "Continuación desde Modo Carrera",
+            "tickers": tickers,
+            "weights": weights,
             "assets": normalized_assets,
             "initial_value": max(initial_value, 1000.0),
+            "career_period_start": career_period_start or None,
+            "career_period_end": career_period_end or None,
+            "projection_start": projection_start,
+            "warnings": warnings,
             "disclaimer": HORIZON_DISCLAIMER_TEXT,
             "method_description": HORIZON_METHOD_DESCRIPTION,
         }
@@ -490,15 +557,23 @@ def horizon_from_career_api(session_id: str):
 def horizon_simulate_api():
     payload = request.get_json(silent=True) or {}
     tickers_raw = payload.get("tickers")
+    weights_raw = payload.get("weights")
     assets_raw = payload.get("assets")
     source = str(payload.get("source") or "manual").strip().lower() or "manual"
     session_id = str(payload.get("session_id") or "").strip()
+    projection_start_raw = str(payload.get("projection_start") or "").strip()
 
     assets_input = []
     if isinstance(assets_raw, list) and assets_raw:
         assets_input = assets_raw
     elif isinstance(tickers_raw, list):
-        assets_input = [{"ticker": item} for item in tickers_raw]
+        if isinstance(weights_raw, list) and len(weights_raw) == len(tickers_raw):
+            assets_input = [
+                {"ticker": ticker, "weight": weight}
+                for ticker, weight in zip(tickers_raw, weights_raw)
+            ]
+        else:
+            assets_input = [{"ticker": item} for item in tickers_raw]
 
     assets = _normalize_horizon_weights(assets_input)
     if not assets:
@@ -554,7 +629,14 @@ def horizon_simulate_api():
                 404,
             )
 
-    end_d = date.today()
+    projection_start = None
+    if projection_start_raw:
+        try:
+            projection_start = date.fromisoformat(projection_start_raw)
+        except ValueError:
+            projection_start = None
+
+    end_d = projection_start or date.today()
     history_years = _get_horizon_history_years(horizon_years)
     start_d = end_d - timedelta(days=365 * history_years)
     warnings = []
@@ -706,9 +788,8 @@ def horizon_simulate_api():
         for _ in range(future_months)
     ]
 
-    future_dates = pd.date_range(
-        start=date.today() + timedelta(days=30), periods=future_months, freq="ME"
-    )
+    future_anchor = end_d + timedelta(days=30)
+    future_dates = pd.date_range(start=future_anchor, periods=future_months, freq="ME")
     last_hist_value = float(blended_hist.iloc[-1]) if not blended_hist.empty else 100.0
     projected_base = [last_hist_value]
     projected_value = [float(initial_value)]
@@ -772,6 +853,9 @@ def horizon_simulate_api():
             "method_description": HORIZON_METHOD_DESCRIPTION,
             "source": source,
             "session_id": session_id or None,
+            "projection_start": (
+                projection_start.isoformat() if projection_start else None
+            ),
             "assets": [
                 {"ticker": item["ticker"], "weight": round(float(item["weight"]), 6)}
                 for item in valid_assets

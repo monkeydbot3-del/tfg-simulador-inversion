@@ -1894,6 +1894,9 @@ const horizonState = {
   source: "manual",
   sessionId: null,
   assets: [],
+  weights: [],
+  projectionStart: null,
+  sourceMeta: null,
   chart: null,
   result: null,
   isLoading: false,
@@ -2295,23 +2298,65 @@ async function acceptHorizonDisclaimer() {
   setHorizonLoading(false);
 }
 
+function renderHorizonSourceMeta(meta) {
+  const banner = document.getElementById("horizon-source-banner");
+  const metaEl = document.getElementById("horizon-source-meta");
+  if (!banner || !metaEl) return;
+
+  if (!meta || horizonState.source !== "career") {
+    banner.innerHTML = `<strong>Entrada independiente</strong><p class="muted">Puedes construir un escenario manualmente o venir desde el informe final de Carrera.</p>`;
+    metaEl.classList.add("hidden");
+    metaEl.innerHTML = "";
+    return;
+  }
+
+  banner.innerHTML = `
+    <strong>Continuación desde Modo Carrera</strong>
+    <p class="muted">Este escenario parte de la cartera final de tu partida. Los activos y el valor inicial se han precargado automáticamente, pero puedes ajustarlos antes de generar la proyección experimental.</p>
+    <p class="muted">Esta continuación es experimental y no predice el futuro.</p>
+  `;
+
+  const assetsCount = Array.isArray(meta.tickers) ? meta.tickers.length : 0;
+  metaEl.innerHTML = `
+    <div class="horizon-source-meta__grid">
+      <div class="horizon-source-meta__item"><span>Sesión de origen</span><strong>${meta.session_id || "No disponible"}</strong></div>
+      <div class="horizon-source-meta__item"><span>Periodo de carrera</span><strong>${meta.career_period_start || "-"} → ${meta.career_period_end || "-"}</strong></div>
+      <div class="horizon-source-meta__item"><span>Fecha final usada</span><strong>${meta.projection_start || meta.career_period_end || "No disponible"}</strong></div>
+      <div class="horizon-source-meta__item"><span>Activos cargados</span><strong>${assetsCount ? `${assetsCount} activos` : "Sin activos"}</strong></div>
+      <div class="horizon-source-meta__item"><span>Valor inicial usado</span><strong>${fmtEur(meta.initial_value)}</strong></div>
+      <div class="horizon-source-meta__item"><span>Origen</span><strong>${meta.display_name || "Continuación desde Carrera"}</strong></div>
+    </div>
+  `;
+  metaEl.classList.remove("hidden");
+}
+
 async function preloadHorizonFromCareer() {
   const params = new URLSearchParams(window.location.search);
   const source = params.get("source");
   const sessionId = params.get("session_id");
-  if (source !== "career" || !sessionId) return;
+  if (source !== "career" || !sessionId) return false;
+
+  renderHorizonStatusMessage("Cargando datos de tu carrera...", "info");
   const data = await jsonGet(`/api/horizon/from-career/${encodeURIComponent(sessionId)}`);
   horizonState.source = "career";
   horizonState.sessionId = sessionId;
   horizonState.assets = data.assets || [];
+  horizonState.weights = data.weights || [];
+  horizonState.projectionStart = data.projection_start || null;
+  horizonState.sourceMeta = data;
+
   const tickersInput = document.getElementById("horizon-tickers");
   const initialValueInput = document.getElementById("horizon-initial-value");
-  const banner = document.getElementById("horizon-source-banner");
-  if (tickersInput) tickersInput.value = (data.assets || []).map((item) => item.ticker).join(", ");
+  if (tickersInput) tickersInput.value = (data.tickers || []).join(", ");
   if (initialValueInput && data.initial_value) initialValueInput.value = Math.round(Number(data.initial_value));
-  if (banner) {
-    banner.innerHTML = `<strong>Origen: informe final de Carrera</strong><p class="muted">Se han precargado los tickers de la cartera final para construir una continuación ficticia sin validez predictiva.</p>`;
-  }
+
+  renderHorizonSourceMeta(data);
+  renderHorizonWarnings(data.warnings || []);
+  renderHorizonStatusMessage(
+    "Se han cargado automáticamente los datos finales de tu partida de Carrera. Puedes ajustarlos antes de generar la proyección experimental.",
+    "success"
+  );
+  return true;
 }
 
 function collectHorizonPayload() {
@@ -2322,12 +2367,19 @@ function collectHorizonPayload() {
     .split(",")
     .map((item) => item.trim().toUpperCase())
     .filter(Boolean);
+
+  const weights = Array.isArray(horizonState.weights) && horizonState.weights.length === tickers.length
+    ? horizonState.weights
+    : [];
+
   return {
     tickers,
+    weights,
     horizon,
     initial_value: initialValue,
     source: horizonState.source || "manual",
     session_id: horizonState.sessionId || null,
+    projection_start: horizonState.projectionStart || null,
   };
 }
 
@@ -2370,6 +2422,10 @@ async function initHorizonPage() {
   horizonState.acknowledged = String(app.dataset.acknowledged || "false") === "true" || Boolean(local.acknowledged);
   horizonState.source = "manual";
   horizonState.sessionId = null;
+  horizonState.assets = [];
+  horizonState.weights = [];
+  horizonState.projectionStart = null;
+  horizonState.sourceMeta = null;
 
   const acceptCheck = document.getElementById("horizon-disclaimer-check");
   const acceptBtn = document.getElementById("horizon-disclaimer-accept");
@@ -2399,10 +2455,20 @@ async function initHorizonPage() {
   if (generateBtn) generateBtn.addEventListener("click", () => runHorizonSimulation());
   if (rerunBtn) rerunBtn.addEventListener("click", () => runHorizonSimulation());
 
+  let preloadedFromCareer = false;
   try {
-    await preloadHorizonFromCareer();
+    preloadedFromCareer = await preloadHorizonFromCareer();
   } catch (err) {
+    renderHorizonSourceMeta(null);
+    renderHorizonStatusMessage(
+      err?.message || "No se pudieron precargar los datos de Carrera. Puedes usar Horizonte manualmente.",
+      "error"
+    );
     mostrarToastError(err?.message || "No se pudieron precargar los datos de Carrera.");
+  }
+
+  if (!preloadedFromCareer) {
+    renderHorizonSourceMeta(null);
   }
 
   if (!horizonState.acknowledged) {

@@ -3814,3 +3814,221 @@ No era un fallo funcional del producto ni de la nueva integración con OpenAI.
   - `ruff`
   - `pytest`
   - generación de `coverage.xml`
+
+## Iteración 45 - Precarga real de resultados de Carrera al continuar en Modo Horizonte
+
+### Objetivo
+Corregir la integración incompleta entre el informe final de `Modo Carrera` y `Modo Horizonte` para que, al pulsar `Abrir Modo Horizonte`, la pantalla se comporte como una continuación experimental real de la partida y no como una entrada casi vacía.
+
+### Bug detectado
+El CTA desde Carrera ya abría correctamente una URL con:
+- `source=career`
+- `session_id=<id>`
+
+Pero al aterrizar en `/modo-horizonte`, la experiencia seguía siendo casi equivalente a entrar manualmente desde home.
+
+### Causa exacta
+La integración estaba solo a medio hacer.
+
+#### Lo que sí existía
+- el CTA del informe final construía correctamente:
+  - `/modo-horizonte?source=career&session_id=<id>`
+- el frontend de Horizonte sí leía esos query params
+- el frontend sí llamaba a:
+  - `GET /api/horizon/from-career/<session_id>`
+
+#### Lo que faltaba realmente
+1. El backend `from-career` devolvía muy poca información:
+   - `assets`
+   - `initial_value`
+   - disclaimer y descripción metodológica
+
+2. No devolvía datos de contexto clave:
+   - tickers en formato directo
+   - pesos finales explícitos
+   - periodo de carrera
+   - fecha final usada como arranque conceptual
+   - warnings/fallbacks
+   - nombre visual de la continuación
+
+3. Además, la extracción de cartera final dependía primero de `portfolio.positions`, que no siempre representa la mejor foto final real de una carrera ya cerrada.
+
+4. El frontend solo rellenaba:
+   - input de tickers
+   - valor inicial
+
+   y además solo cambiaba un pequeño texto del banner, sin enseñar contexto útil ni guardar metadata suficiente para la simulación posterior.
+
+5. La simulación de Horizonte seguía tratándolo casi como entrada manual, porque no recibía:
+   - `weights`
+   - `projection_start`
+
+Resultado: aunque técnicamente había un enlace desde Carrera, la continuación no se sentía ni se construía como continuidad real de la partida.
+
+### Cambios aplicados en backend
+#### `GET /api/horizon/from-career/<session_id>`
+Se mantuvo la validación de ownership reutilizando:
+- `_resolve_session_for_request(session_id)`
+
+Esto significa que:
+- usuario autenticado solo puede resolver sus sesiones accesibles
+- una sesión ajena no se devuelve
+- si la sesión no existe o no es accesible, responde error
+- invitado solo accede a lo que su sesión actual/store permita resolver
+
+#### Mejora de resolución de cartera final
+Ahora el endpoint intenta extraer la mejor cartera final disponible en este orden:
+1. `completed_turns[-1].alloc`
+2. `decisions[-1].alloc`
+3. `portfolio.positions` como fallback
+
+Con esto se prioriza la asignación final real de la partida, no una estructura secundaria potencialmente menos fiel.
+
+#### Datos que ahora devuelve
+El payload ahora incluye:
+- `ok`
+- `source`
+- `session_id`
+- `display_name`
+- `tickers`
+- `weights`
+- `assets`
+- `initial_value`
+- `career_period_start`
+- `career_period_end`
+- `projection_start`
+- `warnings`
+- disclaimer y método
+
+Además:
+- `projection_start` se deriva de `_session_analysis_range(session)` para usar la fecha final coherente de la carrera cerrada
+- `initial_value` intenta usar `capital_current` o el `portfolio_value` del último turno cerrado
+
+#### Fallbacks controlados
+Si no hay pesos finales explícitos:
+- se normaliza con pesos equivalentes
+- se añade warning:
+  - `No se encontraron pesos finales exactos; se han usado pesos equivalentes.`
+
+Si no hay valor final usable:
+- se usa `10000`
+- se añade warning:
+  - `No se encontró valor final de cartera; se usa valor inicial por defecto.`
+
+### Cambios aplicados en simulación de Horizonte
+#### `POST /api/horizon/simulate`
+Cuando la entrada viene desde Carrera, ahora puede recibir y usar además de los tickers:
+- `weights`
+- `projection_start`
+- `source`
+- `session_id`
+- `initial_value`
+
+Cambios concretos:
+- si llegan `tickers` y `weights` alineados, se reconstruyen `assets` con pesos reales
+- si llega `projection_start`, el histórico base se ancla a esa fecha en lugar de usar siempre `date.today()`
+- la parte futura del gráfico arranca desde ese cierre/final conceptual de Carrera
+- el valor inicial en euros del escenario pasa a respetar el valor final precargado de Carrera si existe
+
+### Cambios aplicados en frontend
+#### `app/static/app.js`
+Se amplió `horizonState` para guardar:
+- `weights`
+- `projectionStart`
+- `sourceMeta`
+
+#### Precarga al entrar desde Carrera
+`preloadHorizonFromCareer()` ahora:
+- detecta `source=career` y `session_id`
+- muestra estado de carga:
+  - `Cargando datos de tu carrera...`
+- llama al endpoint `from-career`
+- rellena el input de tickers
+- rellena el valor inicial con el valor final de carrera si existe
+- guarda `weights` y `projectionStart`
+- muestra warnings si los hay
+- deja el formulario editable para el usuario
+- informa con mensaje de éxito reutilizable
+
+Si falla la precarga:
+- no rompe la página
+- muestra mensaje amable
+- deja Horizonte disponible en modo manual
+
+#### Payload al generar escenario
+`collectHorizonPayload()` ahora envía:
+- `tickers`
+- `weights` si siguen alineados
+- `initial_value`
+- `source`
+- `session_id`
+- `projection_start`
+
+### Cambios de UI/UX
+#### Banner de continuidad real
+Se mantuvo el modo independiente como estado por defecto, pero ahora, cuando el origen es Carrera, aparece una superficie mucho más útil.
+
+Nuevo bloque visual en Horizonte:
+- título: `Continuación desde Modo Carrera`
+- explicación de que activos y valor inicial se han precargado automáticamente
+- recordatorio de que la continuación es experimental y no predictiva
+
+#### Metadatos visibles de origen
+Se añadió una card/resumen con:
+- sesión de origen
+- periodo de carrera
+- fecha final usada
+- número de activos cargados
+- valor inicial usado
+- etiqueta/origen de la continuación
+
+También se añadieron estilos responsive para móvil.
+
+### Comportamiento preservado
+#### Entrada independiente
+Si el usuario entra desde home o navegación:
+- no se fuerza `source=career`
+- no se llama a precarga de Carrera
+- banner base sigue mostrando `Entrada independiente`
+- el formulario sigue funcionando manualmente como antes
+
+#### Carrera
+No se tocó el CTA base ni el informe final de forma arriesgada.
+Se mantiene:
+- informe final
+- Tutor IA
+- exportaciones
+- persistencia de sesiones
+- uso por invitado
+- ownership de sesiones
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/routes.py`
+- `app/static/app.js`
+- `app/static/estilos.css`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- Relectura de contexto obligatorio antes de empezar.
+- Revisión específica del flujo:
+  - CTA de Carrera en frontend
+  - query params `source=career` y `session_id`
+  - `GET /api/horizon/from-career/<session_id>`
+  - `POST /api/horizon/simulate`
+  - `app/templates/horizon.html`
+  - `app/static/app.js`
+  - ownership reutilizado desde Carrera
+- Validación sintáctica:
+  - `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- Validación estática mínima:
+  - `ruff check app/routes.py`
+  - `black --check app/routes.py`
+
+### Riesgos pendientes
+- Falta validación manual real en Render del caso completo desde una carrera cerrada.
+- La UI no expone edición manual de pesos por separado, aunque sí los conserva internamente si vienen desde Carrera y el usuario no altera la lista de tickers.
+- Si el usuario cambia manualmente los tickers tras la precarga, los pesos heredados dejan de enviarse, lo cual es intencional para evitar asignaciones incoherentes, pero conviene verificar que la UX se entienda bien.
+- Conviene comprobar visualmente en móvil que la nueva card de metadatos no empuja demasiado el formulario principal.

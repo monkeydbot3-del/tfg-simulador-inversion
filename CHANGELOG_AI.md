@@ -514,9 +514,22 @@
 
 ## 2026-05-10
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `81253b8`
 - Título: Iteración 44, restauración de CI tras cambios de Horizonte, Tutor IA y Carrera
 - Archivos tocados:
   - `app/routes.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-10
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 45, precarga real de resultados de Carrera al continuar en Modo Horizonte
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/routes.py`
+  - `app/static/app.js`
+  - `app/static/estilos.css`
+  - `app/templates/horizon.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
