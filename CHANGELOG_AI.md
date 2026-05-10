@@ -556,11 +556,22 @@
 
 ## 2026-05-10
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e9cb196`
 - Título: Iteración 48, renderizado seguro y estable de la respuesta del Tutor IA
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/app.js`
   - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-10
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 49, cache busting simple para assets estáticos
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/__init__.py`
+  - `app/templates/base.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

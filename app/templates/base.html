@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Simulador de inversión y análisis{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='estilos.css', v=asset_version) }}" />
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}" />
 </head>
 {% set _nav_mode = nav_mode or 'practice' %}
@@ -73,6 +73,6 @@
   </div>
 
   <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" integrity="sha384-e6cc9LaIG7xZ3XD5B+jtr1NhTWPQGQdRCh6xiZ+ZFUtWCpg4ycv3Sh+SkZoopvUY" crossorigin="anonymous"></script>
-  <script defer src="{{ url_for('static', filename='app.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='app.js', v=asset_version) }}"></script>
 </body>
 </html>

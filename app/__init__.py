@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import matplotlib
 
@@ -21,6 +22,13 @@ from .models import (
 from .routes import bp as main_bp
 
 
+ASSET_VERSION = (
+    os.environ.get("APP_VERSION")
+    or os.environ.get("RENDER_GIT_COMMIT")
+    or datetime.utcnow().strftime("%Y%m%d%H%M%S")
+)
+
+
 def create_app() -> Flask:
     secret_key = os.environ.get("SECRET_KEY")
     if not secret_key:
@@ -28,7 +36,12 @@ def create_app() -> Flask:
 
     app = Flask(__name__)
     app.config["SECRET_KEY"] = secret_key
+    app.config["ASSET_VERSION"] = ASSET_VERSION
     database = init_db()
+
+    @app.context_processor
+    def inject_asset_version():
+        return {"asset_version": app.config.get("ASSET_VERSION", "dev")}
 
     @app.before_request
     def _before_request():

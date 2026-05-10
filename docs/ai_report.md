@@ -4311,3 +4311,84 @@ Se añadieron pequeños ajustes para el bloque del Tutor IA:
 ### Riesgos pendientes
 - Conviene validar en Render un caso real con respuesta larga del Tutor IA para confirmar que la legibilidad sigue siendo buena en móvil.
 - Sería útil comprobar con 2 o 3 simulaciones distintas que nunca aparecen frases demasiado cercanas a recomendación de compra/venta, aunque eso depende más del prompt/backend que de este fix visual.
+
+## Iteración 49 - Cache busting simple para assets estáticos
+
+### Objetivo
+Evitar que tras nuevos deploys en Render el navegador siga sirviendo versiones antiguas de `app.js` o `estilos.css`, especialmente después de fixes de frontend como el del Tutor IA.
+
+### Contexto
+Tras el fix del Tutor IA (`e9cb196`), en Render se observó este comportamiento:
+- en navegador normal seguía apareciendo `escapeHtml is not defined`
+- en incógnito funcionaba correctamente
+
+Eso encajaba con un problema típico de caché del navegador:
+- el backend ya servía la versión nueva
+- pero el navegador seguía reutilizando un `app.js` antiguo
+
+### Solución aplicada
+Se añadió cache busting simple y seguro para los assets estáticos principales.
+
+#### Cálculo de `asset_version`
+En `app/__init__.py` ahora se calcula una versión global en este orden:
+1. `APP_VERSION`
+2. `RENDER_GIT_COMMIT`
+3. timestamp de arranque como fallback
+
+La idea es:
+- en producción puede usarse una versión explícita si existe
+- en Render puede aprovecharse el commit si está disponible
+- si no hay nada, la app sigue arrancando igualmente con un valor de fallback válido
+
+#### Exposición a templates
+Se añadió un `context_processor` para inyectar:
+- `asset_version`
+
+Así todos los templates pueden usar esa versión sin tocar lógica de producto.
+
+#### Aplicación en `base.html`
+Se actualizó la carga de:
+- `app/static/estilos.css`
+- `app/static/app.js`
+
+Ahora se sirven como:
+- `/static/estilos.css?v=<asset_version>`
+- `/static/app.js?v=<asset_version>`
+
+Con esto, cuando cambia `asset_version`, el navegador deja de reutilizar el asset cacheado anterior.
+
+### Alcance
+No se cambiaron:
+- nombres de archivos
+- pipeline de frontend
+- lógica del producto
+- dependencias
+
+Es una solución deliberadamente pequeña y robusta.
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/__init__.py`
+- `app/templates/base.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado local:
+- `25 passed`
+
+### Cómo comprobarlo en Render
+- abrir la app tras deploy
+- inspeccionar el HTML renderizado o la pestaña Network
+- confirmar que `app.js` y `estilos.css` incluyen `?v=...`
+- hacer hard refresh y confirmar que ya no se reutiliza una versión obsoleta del frontend
+- validar específicamente el caso del Tutor IA para verificar que no reaparece un `app.js` viejo con el error `escapeHtml is not defined`
+
+### Riesgos pendientes
+- El favicon no se versiona todavía, porque el problema observado afectaba a `app.js` y `estilos.css`; si hiciera falta más adelante, se puede extender el mismo patrón.
+- El fallback actual usa timestamp de arranque y genera una advertencia menor por `datetime.utcnow()` en tests; no rompe nada, pero podría pulirse en una iteración futura si se quiere dejar el código completamente limpio de esa advertencia concreta.
