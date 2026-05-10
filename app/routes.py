@@ -803,7 +803,7 @@ def ai_status_api():
 
 def _build_career_ai_payload(session: dict, report: dict) -> dict:
     meta = report.get("meta") or {}
-    portfolio_metrics = ((report.get("portfolio_equity") or {}).get("metrics") or {})
+    portfolio_metrics = (report.get("portfolio_equity") or {}).get("metrics") or {}
     benchmark = report.get("benchmark") or {}
     benchmark_metrics = benchmark.get("metrics") or {}
     tracking = report.get("tracking") or {}
@@ -878,7 +878,9 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
         },
         "event_counts": {
             "turns_with_events": sum(
-                1 for turn in turns if (turn.get("events_applied") or turn.get("events_new"))
+                1
+                for turn in turns
+                if (turn.get("events_applied") or turn.get("events_new"))
             ),
             "events_applied_total": sum(
                 len(turn.get("events_applied") or []) for turn in turns
@@ -898,9 +900,9 @@ def _generate_career_ai_analysis(ai_payload: dict) -> dict:
         "No das asesoramiento financiero real, no recomiendas comprar ni vender activos, no predices el futuro y no afirmas que una estrategia vaya a funcionar en mercados reales. "
         "Analizas únicamente los datos proporcionados por la aplicación con finalidad educativa. "
         "Responde siempre en español, con tono claro y didáctico. "
-        "Debes incluir literalmente este disclaimer en la respuesta final: \""
+        'Debes incluir literalmente este disclaimer en la respuesta final: "'
         + AI_TUTOR_DISCLAIMER
-        + "\". "
+        + '". '
         "Devuelve exclusivamente JSON válido con estas claves: "
         "summary, strengths, improvements, benchmark_analysis, risk_notes, historical_context, learning_recommendations, final_advice, disclaimer. "
         "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings. "
@@ -951,7 +953,10 @@ def ai_career_analysis_api(session_id: str):
         return jsonify({"error": message}), status_code
 
     if not report:
-        return jsonify({"error": "No puedes analizar una sesión ajena o inexistente."}), 404
+        return (
+            jsonify({"error": "No puedes analizar una sesión ajena o inexistente."}),
+            404,
+        )
 
     ai_payload = _build_career_ai_payload({}, report)
     try:
@@ -972,14 +977,46 @@ def ai_career_analysis_api(session_id: str):
         )
 
     sections = [
-        {"title": "Resumen general", "type": "text", "content": analysis.get("summary")},
-        {"title": "Qué has hecho bien", "type": "list", "content": analysis.get("strengths") or []},
-        {"title": "Qué podrías mejorar", "type": "list", "content": analysis.get("improvements") or []},
-        {"title": "Comparación con benchmark", "type": "text", "content": analysis.get("benchmark_analysis")},
-        {"title": "Riesgos detectados", "type": "list", "content": analysis.get("risk_notes") or []},
-        {"title": "Contexto histórico", "type": "text", "content": analysis.get("historical_context")},
-        {"title": "Conceptos para repasar", "type": "list", "content": analysis.get("learning_recommendations") or []},
-        {"title": "Conclusión educativa", "type": "text", "content": analysis.get("final_advice")},
+        {
+            "title": "Resumen general",
+            "type": "text",
+            "content": analysis.get("summary"),
+        },
+        {
+            "title": "Qué has hecho bien",
+            "type": "list",
+            "content": analysis.get("strengths") or [],
+        },
+        {
+            "title": "Qué podrías mejorar",
+            "type": "list",
+            "content": analysis.get("improvements") or [],
+        },
+        {
+            "title": "Comparación con benchmark",
+            "type": "text",
+            "content": analysis.get("benchmark_analysis"),
+        },
+        {
+            "title": "Riesgos detectados",
+            "type": "list",
+            "content": analysis.get("risk_notes") or [],
+        },
+        {
+            "title": "Contexto histórico",
+            "type": "text",
+            "content": analysis.get("historical_context"),
+        },
+        {
+            "title": "Conceptos para repasar",
+            "type": "list",
+            "content": analysis.get("learning_recommendations") or [],
+        },
+        {
+            "title": "Conclusión educativa",
+            "type": "text",
+            "content": analysis.get("final_advice"),
+        },
     ]
     return jsonify(
         {
@@ -1947,7 +1984,9 @@ def _download_history_df(
     saw_transient_empty = False
     last_exception = None
 
-    for attempt, delay_seconds in enumerate(HORIZON_HISTORY_RETRY_DELAYS_SECONDS, start=1):
+    for attempt, delay_seconds in enumerate(
+        HORIZON_HISTORY_RETRY_DELAYS_SECONDS, start=1
+    ):
         if delay_seconds > 0:
             time.sleep(delay_seconds)
         try:
@@ -1963,12 +2002,16 @@ def _download_history_df(
             df = _normalize_price_df(df)
             if df is None or df.empty:
                 saw_transient_empty = True
-                last_exception = BacktestError("Descarga vacía o sin datos normalizables", 503)
+                last_exception = BacktestError(
+                    "Descarga vacía o sin datos normalizables", 503
+                )
                 continue
             extracted_series = _extract_market_price_series(df, ticker_clean)
             if extracted_series.empty:
                 saw_transient_empty = True
-                last_exception = BacktestError("Serie histórica vacía tras normalización", 503)
+                last_exception = BacktestError(
+                    "Serie histórica vacía tras normalización", 503
+                )
                 continue
             HORIZON_HISTORY_CACHE[cache_key] = df.copy()
             return df

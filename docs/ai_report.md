@@ -3719,3 +3719,98 @@ Conclusión:
 - Falta validar en Render el caso real con el mismo ticker problemático (`TCEHY`) para confirmar el payload exacto visible en frontend.
 - El campo `ticker` en la respuesta se infiere desde el mensaje y la asignación actual; funciona para este MVP, pero podría endurecerse más si en el futuro se quiere trazabilidad exacta por ticker fallido en carteras múltiples.
 - Conviene verificar en producción que no aparecen efectos laterales en cierre manual de turno, no solo en autoplay.
+
+## Iteración 44 - Restauración de CI tras cambios de Horizonte, Tutor IA y Carrera
+
+### Objetivo
+Diagnosticar por qué GitHub Actions volvió a ponerse en rojo tras los commits recientes de Horizonte, Tutor IA y Carrera, y restaurar el workflow sin tocar lógica de producto innecesaria.
+
+### Contexto
+La CI había quedado verde tras:
+- `7afcf41` — `fix(ci): repair github actions workflow`
+- `3f10cec` — `docs: add current project state summary`
+- `442064b` — `chore: ignore local ci artifacts`
+
+Pero después aparecieron nuevos runs rojos tras:
+- `0edebdb` — `fix(horizon): retry transient market data failures before surfacing errors`
+- `0feeaee` — `feat(ai): add educational simulation tutor`
+- `f3a4568` — `fix(career): handle market data provider failures during autoplay`
+
+### Comprobación de estado local
+Se confirmó al inicio:
+- rama actual: `bot/render-preview`
+- último commit local: `f3a4568`
+- sin cambios sucios previos a la nueva iteración
+
+### Revisión del workflow
+Se revisó `.github/workflows/ci.yml` y la configuración seguía siendo la correcta:
+- instalación con `requirements-dev.txt`
+- `ruff check .`
+- `black --check .`
+- `pytest --cov=app --cov-report=xml`
+- variables dummy seguras de entorno para CI
+
+También se revisó `pyproject.toml`, que seguía excluyendo correctamente entornos virtuales y caches.
+
+### Reproducción local exacta del CI
+Se reprodujo localmente el workflow completo en entorno virtual limpio.
+
+Resultado real:
+- `ruff check .` → OK
+- `black --check .` → FAIL
+- archivo afectado: `app/routes.py`
+
+Mensaje exacto clave:
+- `would reformat /root/.openclaw/workspace/tfg-web-ci-python-bot/app/routes.py`
+
+Esto confirmó que la causa del rojo no era:
+- dependencia `openai`
+- variable `OPENAI_API_KEY`
+- tests desalineados
+- `py_compile`
+- lógica de Tutor IA
+- lógica de Carrera
+- lógica de Horizonte
+
+Era simplemente un desalineado de formato Black introducido en cambios recientes.
+
+### Corrección aplicada
+- Se aplicó `black` únicamente sobre `app/routes.py`.
+- No se modificó lógica de producto.
+- No se tocaron tests ni workflow.
+
+### Validación final realizada
+Tras el reformat, se volvió a ejecutar el equivalente completo del workflow:
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+
+Resultado:
+- Ruff OK
+- Black OK
+- Pytest OK (`25 passed`)
+- py_compile OK
+
+### Herramientas remotas
+No había `gh` disponible en este entorno, así que no se pudieron consultar logs remotos directamente desde GitHub Actions CLI.
+
+Aun así, la reproducción local del workflow fue suficiente para identificar la causa exacta y corregirla de forma mínima.
+
+### Archivos tocados
+- `app/routes.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Causa raíz resumida
+El CI volvió a fallar porque `black --check .` detectó que `app/routes.py` no estaba formateado según Black tras los cambios recientes.
+
+No era un fallo funcional del producto ni de la nueva integración con OpenAI.
+
+### Qué comprobar ahora en GitHub Actions
+- que el workflow `CI` vuelva a salir en verde sobre `bot/render-preview`
+- que el paso que antes fallaba (`Format check (black)`) ya pase
+- que también se mantengan verdes:
+  - `ruff`
+  - `pytest`
+  - generación de `coverage.xml`

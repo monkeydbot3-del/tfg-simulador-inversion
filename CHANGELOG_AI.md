@@ -503,11 +503,20 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `f3a4568`
 - Título: Iteración 43, manejo controlado de fallos de proveedor en autoplay de Carrera
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/career.py`
   - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-10
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 44, restauración de CI tras cambios de Horizonte, Tutor IA y Carrera
+- Archivos tocados:
+  - `app/routes.py`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
