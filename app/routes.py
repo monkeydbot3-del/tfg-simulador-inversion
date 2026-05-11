@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import logging
 import math
 import os
 import random
@@ -38,6 +39,7 @@ from .services.history_service import list_analysis_for_user, save_analysis_for_
 
 
 bp = Blueprint("main", __name__)
+logger = logging.getLogger(__name__)
 
 READINESS_PASS_SCORE = 7
 READINESS_TOTAL_QUESTIONS = 10
@@ -885,7 +887,70 @@ def ai_status_api():
     return jsonify({"configured": _ai_tutor_is_configured()})
 
 
+def _sanitize_ai_value(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, str)):
+        return value
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    if isinstance(value, datetime):
+        return value.isoformat() + "Z"
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {
+            str(key): _sanitize_ai_value(item)
+            for key, item in value.items()
+            if _sanitize_ai_value(item) is not None
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [
+            item
+            for item in (_sanitize_ai_value(item) for item in value)
+            if item is not None
+        ]
+    return str(value)
+
+
+def _safe_round_number(value, digits: int = 4):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(number) or math.isinf(number):
+        return None
+    return round(number, digits)
+
+
+def _extract_json_object_from_text(raw_text: str) -> dict | None:
+    text = (raw_text or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = json.loads(text)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    snippet = text[start : end + 1]
+    try:
+        parsed = json.loads(snippet)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        return None
+
+
 def _build_career_ai_payload(session: dict, report: dict) -> dict:
+    report = report or {}
     meta = report.get("meta") or {}
     portfolio_metrics = (report.get("portfolio_equity") or {}).get("metrics") or {}
     benchmark = report.get("benchmark") or {}
@@ -893,12 +958,19 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
     tracking = report.get("tracking") or {}
     score = report.get("score") or {}
     turns = report.get("turns") or []
+    if not isinstance(turns, list):
+        turns = []
     theoretical = report.get("theoretical") or {}
+    warnings = []
 
     tickers = []
     seen = set()
     for turn in turns:
+        if not isinstance(turn, dict):
+            continue
         for item in turn.get("alloc") or []:
+            if not isinstance(item, dict):
+                continue
             ticker = str(item.get("ticker") or "").strip().upper()
             if ticker and ticker not in seen:
                 seen.add(ticker)
@@ -906,17 +978,22 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
 
     latest_alloc = []
     if turns:
-        latest_turn = turns[-1] or {}
+        latest_turn = turns[-1] if isinstance(turns[-1], dict) else {}
         latest_alloc = [
             {
                 "ticker": str(item.get("ticker") or "").strip().upper(),
-                "weight": round(float(item.get("weight") or 0.0), 4),
+                "weight": _safe_round_number(item.get("weight"), 4),
             }
             for item in (latest_turn.get("alloc") or [])
-            if item.get("ticker")
+            if isinstance(item, dict) and item.get("ticker")
         ]
 
-    return {
+    if not latest_alloc:
+        warnings.append(
+            "Hay datos limitados en esta sesión, por lo que el análisis se centra en las métricas disponibles."
+        )
+
+    payload = {
         "simulation_type": "career_mode",
         "session_id": meta.get("session_id"),
         "difficulty": meta.get("difficulty"),
@@ -954,7 +1031,7 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
             "value": score.get("value"),
             "notes": score.get("notes"),
         },
-        "warnings": (report.get("warnings") or [])[:12],
+        "warnings": ((report.get("warnings") or [])[:12]) + warnings,
         "theoretical_summary": {
             key: theoretical.get(key)
             for key in ("k1", "k2", "k3", "method")
@@ -964,13 +1041,17 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
             "turns_with_events": sum(
                 1
                 for turn in turns
-                if (turn.get("events_applied") or turn.get("events_new"))
+                if isinstance(turn, dict)
+                and (turn.get("events_applied") or turn.get("events_new"))
             ),
             "events_applied_total": sum(
-                len(turn.get("events_applied") or []) for turn in turns
+                len(turn.get("events_applied") or [])
+                for turn in turns
+                if isinstance(turn, dict)
             ),
         },
     }
+    return _sanitize_ai_value(payload) or {}
 
 
 def _generate_career_ai_analysis(ai_payload: dict) -> dict:
@@ -997,6 +1078,13 @@ def _generate_career_ai_analysis(ai_payload: dict) -> dict:
         "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura.\n\n"
         f"Datos resumidos de simulación:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
     )
+    logger.info(
+        "ai.tutor.openai_start",
+        extra={
+            "session_id": ai_payload.get("session_id"),
+            "turns_closed": ai_payload.get("turns_closed"),
+        },
+    )
     response = client.responses.create(
         model="gpt-4.1-mini",
         input=[
@@ -1006,9 +1094,50 @@ def _generate_career_ai_analysis(ai_payload: dict) -> dict:
         temperature=0.4,
     )
     content = getattr(response, "output_text", "") or ""
-    parsed = json.loads(content)
+    logger.info(
+        "ai.tutor.openai_done",
+        extra={
+            "session_id": ai_payload.get("session_id"),
+            "content_length": len(content),
+        },
+    )
+
+    parsed = _extract_json_object_from_text(content)
+    if not parsed:
+        fallback_text = content.strip()
+        if fallback_text:
+            logger.warning(
+                "ai.tutor.parse_fallback",
+                extra={
+                    "session_id": ai_payload.get("session_id"),
+                    "content_length": len(fallback_text),
+                },
+            )
+            parsed = {
+                "summary": fallback_text,
+                "strengths": [],
+                "improvements": [],
+                "benchmark_analysis": "La respuesta del proveedor no llegó en formato estructurado completo. Se muestra un resumen textual con los datos disponibles.",
+                "risk_notes": [],
+                "historical_context": "Los datos de la sesión se han interpretado de forma limitada debido al formato de respuesta recibido.",
+                "learning_recommendations": [],
+                "final_advice": "Puedes volver a intentarlo si quieres obtener una estructura más completa del análisis educativo.",
+                "disclaimer": AI_TUTOR_DISCLAIMER,
+            }
+        else:
+            raise ValueError(
+                "La respuesta del proveedor de IA llegó vacía o no contenía JSON utilizable."
+            )
+
+    logger.info(
+        "ai.tutor.parse_done",
+        extra={
+            "session_id": ai_payload.get("session_id"),
+            "keys": sorted(parsed.keys())[:12],
+        },
+    )
     parsed["disclaimer"] = AI_TUTOR_DISCLAIMER
-    return parsed
+    return _sanitize_ai_value(parsed) or {"disclaimer": AI_TUTOR_DISCLAIMER}
 
 
 @bp.get("/api/readiness/status")
@@ -1023,35 +1152,168 @@ def readiness_status_api():
 def ai_career_analysis_api(session_id: str):
     from .career import get_career_report_for_session
 
+    logger.info("ai.tutor.start", extra={"session_id": session_id})
+
     if not _ai_tutor_is_configured():
         return (
-            jsonify({"error": "El Tutor IA no está configurado en este entorno."}),
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "El Tutor IA no está configurado en este entorno.",
+                    "error_type": "ai_not_configured",
+                    "retryable": False,
+                    "details": "Falta configuración del proveedor IA en este despliegue.",
+                }
+            ),
             503,
         )
 
     try:
         report = get_career_report_for_session(session_id, include_series=False)
+        logger.info(
+            "ai.tutor.report_ready",
+            extra={"session_id": session_id, "has_report": bool(report)},
+        )
     except Exception as exc:
         message = getattr(exc, "description", str(exc))
         status_code = getattr(exc, "code", 400)
-        return jsonify({"error": message}), status_code
-
-    if not report:
-        return (
-            jsonify({"error": "No puedes analizar una sesión ajena o inexistente."}),
-            404,
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "report",
+                "status_code": status_code,
+                "message": message[:200],
+            },
         )
-
-    ai_payload = _build_career_ai_payload({}, report)
-    try:
-        analysis = _generate_career_ai_analysis(ai_payload)
-    except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 503
-    except Exception:
         return (
             jsonify(
                 {
-                    "error": "No se pudo generar el análisis educativo del Tutor IA en este momento. Puedes volver a intentarlo.",
+                    "ok": False,
+                    "error": message
+                    or "Primero genera el informe final de la carrera antes de usar el Tutor IA.",
+                    "error_type": "career_report_unavailable",
+                    "retryable": False,
+                    "details": "No se pudo preparar el informe base de la sesión para el Tutor IA.",
+                }
+            ),
+            status_code,
+        )
+
+    if not report:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "session_resolve",
+                "status_code": 404,
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "No puedes analizar una sesión ajena o inexistente.",
+                    "error_type": "session_not_found",
+                    "retryable": False,
+                    "details": "La sesión indicada no existe o no es accesible para este usuario.",
+                }
+            ),
+            404,
+        )
+
+    turns = report.get("turns") or []
+    if not isinstance(turns, list) or not turns:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "report_validation",
+                "status_code": 422,
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "Esta sesión no contiene datos suficientes para generar un análisis IA.",
+                    "error_type": "insufficient_session_data",
+                    "retryable": False,
+                    "details": "La sesión no tiene turnos o métricas suficientes para un análisis educativo estable.",
+                }
+            ),
+            422,
+        )
+
+    ai_payload = _build_career_ai_payload({}, report)
+    logger.info(
+        "ai.tutor.summary_ready",
+        extra={
+            "session_id": session_id,
+            "tickers": len(ai_payload.get("tickers_used") or []),
+            "turns_closed": ai_payload.get("turns_closed"),
+            "warnings": len(ai_payload.get("warnings") or []),
+        },
+    )
+    try:
+        analysis = _generate_career_ai_analysis(ai_payload)
+    except RuntimeError as exc:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "config",
+                "status_code": 503,
+                "message": str(exc)[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": str(exc),
+                    "error_type": "ai_not_configured",
+                    "retryable": False,
+                    "details": "El Tutor IA no está disponible en este entorno.",
+                }
+            ),
+            503,
+        )
+    except ValueError as exc:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "parse",
+                "status_code": 502,
+                "message": str(exc)[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "El proveedor de IA no respondió correctamente. Puedes intentarlo de nuevo más tarde.",
+                    "error_type": "ai_parse_error",
+                    "retryable": True,
+                    "details": "La respuesta del proveedor no se pudo interpretar de forma segura para esta sesión.",
+                }
+            ),
+            502,
+        )
+    except Exception:
+        logger.exception(
+            "ai.tutor.error",
+            extra={"session_id": session_id, "phase": "openai_or_analysis"},
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "No se pudo generar el análisis IA para esta sesión.",
+                    "error_type": "ai_analysis_error",
+                    "retryable": True,
+                    "details": "El proveedor de IA no respondió correctamente. Puedes intentarlo de nuevo más tarde.",
                     "warnings": [
                         "La generación depende de un servicio externo y puede fallar temporalmente."
                     ],
@@ -1102,13 +1364,15 @@ def ai_career_analysis_api(session_id: str):
             "content": analysis.get("final_advice"),
         },
     ]
+    logger.info("ai.tutor.session_resolved", extra={"session_id": session_id})
     return jsonify(
         {
+            "ok": True,
             "analysis": analysis,
             "sections": sections,
             "disclaimer": AI_TUTOR_DISCLAIMER,
             "generated_at": datetime.utcnow().isoformat() + "Z",
-            "warnings": [],
+            "warnings": ai_payload.get("warnings") or [],
         }
     )
 

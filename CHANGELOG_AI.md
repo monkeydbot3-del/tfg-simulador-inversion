@@ -567,11 +567,21 @@
 
 ## 2026-05-10
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `5ae7cb9`
 - Título: Iteración 49, cache busting simple para assets estáticos
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/__init__.py`
   - `app/templates/base.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-11
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 50, errores controlados y hardening del backend del Tutor IA
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/routes.py`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

@@ -64,6 +64,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Validación real en Render del `Tutor IA` con y sin `OPENAI_API_KEY`.
 - Corrección del renderizado frontend del Tutor IA para que la respuesta 200 del backend se muestre de forma estable y segura en la UI.
 - Cache busting simple para `app.js` y `estilos.css`, evitando que navegadores sirvan assets obsoletos tras nuevos deploys.
+- Hardening del backend del Tutor IA para que sesiones incompletas o respuestas no estructuradas del proveedor no escalen a error 500/HTML sin JSON controlado.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.

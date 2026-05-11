@@ -4392,3 +4392,169 @@ Resultado local:
 ### Riesgos pendientes
 - El favicon no se versiona todavía, porque el problema observado afectaba a `app.js` y `estilos.css`; si hiciera falta más adelante, se puede extender el mismo patrón.
 - El fallback actual usa timestamp de arranque y genera una advertencia menor por `datetime.utcnow()` en tests; no rompe nada, pero podría pulirse en una iteración futura si se quiere dejar el código completamente limpio de esa advertencia concreta.
+
+## Iteración 50 - Errores controlados y hardening del backend del Tutor IA
+
+### Objetivo
+Corregir un nuevo fallo real del `Tutor IA` donde algunas sesiones devolvían `200`, pero otras como `car_2de2cb` acababan en `500` en `POST /api/ai/career-analysis/<session_id>`.
+
+### Contexto observado
+En Render coexistían dos comportamientos:
+- `POST /api/ai/career-analysis/car_80f8fc -> 200`
+- `POST /api/ai/career-analysis/car_2de2cb -> 500`
+
+Eso descartaba un fallo global de:
+- `OPENAI_API_KEY`
+- integración base con OpenAI
+- frontend actualizado
+
+La avería dependía de la sesión concreta o del contenido devuelto para esa sesión.
+
+### Causa exacta más probable del 500
+El punto más frágil del backend estaba en `_generate_career_ai_analysis()`.
+
+Hasta ahora hacía esto:
+- llamaba a OpenAI
+- leía `response.output_text`
+- ejecutaba `json.loads(content)` de forma rígida
+
+Eso implicaba que una sesión concreta podía romper si:
+- la respuesta de OpenAI no llegaba como JSON puro
+- la respuesta llegaba vacía
+- la respuesta incluía texto adicional antes o después del JSON
+- el payload de esa sesión generaba una respuesta menos estructurada
+
+Además, `_build_career_ai_payload()` asumía una estructura relativamente limpia del `report_payload`, lo que aumentaba fragilidad con sesiones antiguas o incompletas.
+
+En otras palabras:
+- no parecía un fallo global de OpenAI
+- no parecía un fallo del frontend
+- el 500 estaba relacionado con parseo rígido y/o tolerancia insuficiente a sesiones con datos parciales
+
+### Cambios aplicados
+#### Logging por fases
+Se añadió trazado controlado en backend con estas fases:
+- `ai.tutor.start`
+- `ai.tutor.report_ready`
+- `ai.tutor.summary_ready`
+- `ai.tutor.openai_start`
+- `ai.tutor.openai_done`
+- `ai.tutor.parse_done`
+- `ai.tutor.error`
+- `ai.tutor.parse_fallback`
+- `ai.tutor.session_resolved`
+
+No se registra:
+- la API key
+- payloads enormes
+- contenido sensible completo
+
+### Hardening del payload compacto
+#### `app/routes.py`
+Se reforzó `_build_career_ai_payload()` con:
+- `.get()` defensivos
+- tolerancia a `turns` no válidos
+- tolerancia a `alloc` incompleto
+- saneado de `None`, `NaN`, `inf`, `date`, `datetime`
+- warnings cuando faltan datos suficientes
+
+Se añadieron helpers:
+- `_sanitize_ai_value(...)`
+- `_safe_round_number(...)`
+
+Con esto el resumen compacto deja de asumir demasiado sobre sesiones antiguas o parcialmente incompletas.
+
+### Hardening del parseo de OpenAI
+Se añadió:
+- `_extract_json_object_from_text(raw_text)`
+
+Ahora el flujo intenta:
+1. parsear el texto completo como JSON
+2. si falla, extraer el primer bloque razonable entre `{ ... }`
+3. si eso tampoco funciona pero hay texto útil, construir un fallback textual controlado
+4. si no hay contenido utilizable, devolver error controlado en vez de escalar a HTML 500
+
+### Nuevas respuestas JSON controladas
+El endpoint ya no debe escapar a HTML 500 sin estructura.
+
+Ahora devuelve JSON controlado con:
+- `ok: false`
+- `error`
+- `error_type`
+- `retryable`
+- `details`
+
+Casos cubiertos:
+
+#### 1. Tutor IA no configurado
+- status: `503`
+- `error_type: ai_not_configured`
+
+#### 2. Sesión ajena o inexistente
+- status: `404`
+- `error_type: session_not_found`
+
+#### 3. Informe no disponible / sesión no válida para generar base
+- status según la excepción, normalmente `400`
+- `error_type: career_report_unavailable`
+
+#### 4. Datos insuficientes en la sesión
+- status: `422`
+- `error_type: insufficient_session_data`
+- mensaje:
+  - `Esta sesión no contiene datos suficientes para generar un análisis IA.`
+
+#### 5. Parseo no utilizable de la respuesta IA
+- status: `502`
+- `error_type: ai_parse_error`
+- mensaje:
+  - `El proveedor de IA no respondió correctamente. Puedes intentarlo de nuevo más tarde.`
+
+#### 6. Error general del proveedor o del análisis
+- status: `502`
+- `error_type: ai_analysis_error`
+- mensaje:
+  - `No se pudo generar el análisis IA para esta sesión.`
+
+### Comportamiento adicional útil
+Si OpenAI devuelve texto útil pero no JSON puro:
+- no se rompe automáticamente
+- se crea un fallback estructurado mínimo
+- se conserva el disclaimer obligatorio
+- el frontend sigue pudiendo renderizar el resultado de forma estable
+
+### Frontend
+No fue necesario tocar la base del frontend en esta iteración, porque:
+- `jsonPost()` ya extrae `data.error` y `data.message`
+- el render del Tutor IA ya se había endurecido en la iteración anterior
+
+La mejora principal aquí es que el backend deja de devolver HTML 500 opaco y pasa a responder con JSON reutilizable para mensajes útiles en UI.
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/routes.py`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado local:
+- `25 passed`
+
+### Qué cambia operativamente
+- una sesión sana como `car_80f8fc` debe seguir pudiendo devolver `200`
+- una sesión problemática como `car_2de2cb` ya no debería romper con HTML 500 ciego
+- si falla, debe devolverse JSON controlado y trazable
+- los logs ahora permiten distinguir si el problema ocurre en:
+  - resolución de informe
+  - construcción del resumen
+  - llamada a OpenAI
+  - parseo de respuesta
+
+### Riesgos pendientes
+- Falta confirmar en Render, con el caso real `car_2de2cb`, cuál de las fases nuevas aparece en logs y si esa sesión termina devolviendo fallback textual o error controlado.
+- Puede haber sesiones históricas especialmente degradadas donde el informe base ya no sea suficiente para un análisis útil; en ese caso el endpoint responderá mejor, pero la calidad del análisis seguirá limitada por los datos disponibles.
