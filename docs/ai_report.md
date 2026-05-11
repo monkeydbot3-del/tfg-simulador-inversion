@@ -4558,3 +4558,171 @@ Resultado local:
 ### Riesgos pendientes
 - Falta confirmar en Render, con el caso real `car_2de2cb`, cuál de las fases nuevas aparece en logs y si esa sesión termina devolviendo fallback textual o error controlado.
 - Puede haber sesiones históricas especialmente degradadas donde el informe base ya no sea suficiente para un análisis útil; en ese caso el endpoint responderá mejor, pero la calidad del análisis seguirá limitada por los datos disponibles.
+
+## Iteración 51 - Timeout explícito y acotación de coste del Tutor IA
+
+### Objetivo
+Corregir un nuevo bug real distinto de `escapeHtml`:
+- el frontend actualizado sí llegaba (`app.js?v=a5351cc...`)
+- pero `POST /api/ai/career-analysis/<session_id>` tardaba aproximadamente `30s` y acababa devolviendo `500`
+
+La prioridad ya no era el render, sino evitar que el endpoint quedara colgado hasta que un timeout externo del worker devolviera HTML 500.
+
+### Síntoma real observado
+En Render:
+- al pulsar `Analizar con IA`
+- la petición tardaba alrededor de `30 segundos`
+- después devolvía `500`
+
+Ese patrón encajaba mucho más con:
+- timeout de Gunicorn/Render
+- llamada lenta al proveedor IA sin timeout explícito local
+- worker muriendo antes de que Flask pudiera devolver JSON controlado
+
+### Causa encontrada
+La causa más probable ya no era el parseo puro ni el frontend, sino esta combinación:
+
+1. el endpoint sí alcanzaba la fase de llamada a OpenAI
+2. el cliente OpenAI no tenía timeout explícito más corto que el del worker
+3. la llamada podía quedarse esperando demasiado
+4. si el worker era cortado externamente, el usuario veía `500` en vez de JSON controlado
+
+Resumen de diagnóstico:
+- **no parecía un problema de cache busting**
+- **no parecía ya el bug de `escapeHtml`**
+- **el patrón temporal apuntaba sobre todo a timeout durante la llamada OpenAI**
+- el payload también podía influir en latencia, así que se ha reducido y acotado más
+
+### Cambios aplicados
+#### 1. Timeout explícito del proveedor IA
+En `app/routes.py` se añadieron constantes configurables:
+- `AI_TUTOR_DEFAULT_MODEL = os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini"`
+- `AI_TUTOR_TIMEOUT_SECONDS = float(os.environ.get("OPENAI_TIMEOUT_SECONDS") or 18)`
+- `AI_TUTOR_MAX_OUTPUT_TOKENS = int(os.environ.get("OPENAI_MAX_OUTPUT_TOKENS") or 800)`
+- `AI_TUTOR_MAX_WARNINGS = 6`
+
+Y el cliente se crea ahora así:
+- `OpenAI(api_key=..., timeout=timeout_seconds)`
+
+Con esto, la app intenta cortar la espera **antes** de que lo haga el worker externo.
+
+### 2. Logging temporal útil y seguro
+Se reforzaron logs con medición real en:
+- `ai.tutor.start`
+- `ai.tutor.summary_ready`
+- `ai.tutor.openai_start`
+- `ai.tutor.openai_done`
+- `ai.tutor.openai_timeout`
+- `ai.tutor.error`
+- `ai.tutor.session_resolved`
+
+Se registran métricas seguras como:
+- `session_id`
+- `model`
+- `timeout_seconds`
+- `payload_chars`
+- `elapsed_seconds`
+- `content_length`
+
+No se registra:
+- API key
+- payload completo
+- contenido sensible enorme
+
+### 3. Límite de salida del modelo
+Para reducir coste, latencia y tamaño:
+- se fuerza `max_output_tokens=AI_TUTOR_MAX_OUTPUT_TOKENS`
+- valor por defecto: `800`
+
+Además el prompt pide explícitamente:
+- respuesta compacta
+- arrays cortos
+- evitar párrafos largos
+
+### 4. Modelo configurable y visible en logs
+El modelo ya no queda hardcodeado como decisión silenciosa del código.
+
+Ahora:
+- se usa `OPENAI_MODEL` si existe
+- si no, fallback a `gpt-4.1-mini`
+
+El modelo usado queda trazado en logs con:
+- `model=<modelo>`
+
+### 5. Payload más acotado
+El Tutor IA ya trabajaba con resumen compacto, pero se endureció más:
+- warnings limitados a `AI_TUTOR_MAX_WARNINGS = 6`
+- truncado de warnings largos mediante `_truncate_text(...)`
+- se sigue evitando enviar series históricas completas y payloads gigantes
+
+Esto ayuda a contener:
+- tiempo de serialización
+- tamaño del prompt
+- coste total
+- latencia del proveedor
+
+### 6. Error controlado para timeout
+Si la llamada a OpenAI supera el tiempo esperado:
+- se lanza `TimeoutError` controlado
+- el endpoint responde JSON con `504`
+- no debería quedar esperando hasta que muera el worker
+
+Respuesta devuelta:
+
+```json
+{
+  "ok": false,
+  "error": "El Tutor IA ha tardado demasiado en responder. Inténtalo de nuevo en unos segundos.",
+  "error_type": "ai_timeout",
+  "retryable": true,
+  "details": "La llamada al proveedor de IA superó el tiempo máximo configurado para esta app."
+}
+```
+
+### 7. Frontend
+En `app/static/app.js` se mejoró `runCareerAiAnalysis()` para:
+- mantener bloqueo mientras la llamada está en curso
+- mostrar mensaje específico si `error_type === "ai_timeout"`
+- reactivar el botón en `finally`
+- permitir reintento
+- pedir confirmación antes de lanzar otra llamada si ya hay un análisis visible para esa sesión
+
+Mensaje usado para timeout:
+- `El Tutor IA ha tardado demasiado en responder. Puedes reintentarlo en unos segundos.`
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/routes.py`
+- `app/static/app.js`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validaciones realizadas
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado local:
+- `25 passed`
+
+### Qué queda confirmado y qué no
+#### Confirmado por el patrón observado y el código previo
+Lo más probable es que el `500` viniera **durante la llamada a OpenAI**, por falta de timeout explícito local suficientemente corto, no por `escapeHtml` ni por caché vieja.
+
+#### Aún pendiente de confirmar en Render con logs nuevos
+Con los nuevos logs ya se podrá distinguir si el fallo real ocurre:
+- antes de OpenAI
+- dentro de la llamada OpenAI
+- por timeout controlado
+- después de OpenAI
+
+### Resultado esperado tras esta iteración
+- el endpoint ya no debería quedarse colgado ~30s hasta morir por timeout externo
+- la llamada debería quedar acotada por defecto a **18 segundos**
+- si OpenAI tarda demasiado, el usuario debe recibir **JSON controlado `504`**
+- el frontend debe mostrar mensaje claro y permitir reintentar
+
+### Riesgos pendientes
+- Falta verificar en Render si `gpt-4.1-mini` es suficientemente rápido para el despliegue real o conviene ajustar `OPENAI_MODEL` a otro modelo aún más ágil dentro del presupuesto/configuración del proyecto.
+- No se ha simulado aquí un timeout real del SDK contra OpenAI porque el entorno local de validación no dispone de `OPENAI_API_KEY` operativa de producción ni de una llamada real al proveedor.

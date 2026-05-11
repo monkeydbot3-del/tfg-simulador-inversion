@@ -578,10 +578,21 @@
 
 ## 2026-05-11
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `a5351cc`
 - Título: Iteración 50, errores controlados y hardening del backend del Tutor IA
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/routes.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-11
+- Rama: `bot/render-preview`
+- Commit: `PENDIENTE`
+- Título: Iteración 51, timeout explícito y acotación de coste del Tutor IA
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/routes.py`
+  - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

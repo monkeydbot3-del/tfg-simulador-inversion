@@ -73,6 +73,10 @@ AI_TUTOR_DISCLAIMER = (
     "Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. "
     "No constituye asesoramiento financiero ni una recomendación de inversión real."
 )
+AI_TUTOR_DEFAULT_MODEL = os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini"
+AI_TUTOR_TIMEOUT_SECONDS = float(os.environ.get("OPENAI_TIMEOUT_SECONDS") or 18)
+AI_TUTOR_MAX_OUTPUT_TOKENS = int(os.environ.get("OPENAI_MAX_OUTPUT_TOKENS") or 800)
+AI_TUTOR_MAX_WARNINGS = 6
 READINESS_QUIZ_QUESTIONS = [
     {
         "id": "risk_return",
@@ -949,6 +953,13 @@ def _extract_json_object_from_text(raw_text: str) -> dict | None:
         return None
 
 
+def _truncate_text(value, max_len: int = 240):
+    text = str(value or "").strip()
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1].rstrip() + "…"
+
+
 def _build_career_ai_payload(session: dict, report: dict) -> dict:
     report = report or {}
     meta = report.get("meta") or {}
@@ -1031,7 +1042,12 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
             "value": score.get("value"),
             "notes": score.get("notes"),
         },
-        "warnings": ((report.get("warnings") or [])[:12]) + warnings,
+        "warnings": [
+            _truncate_text(item, 220)
+            for item in ((report.get("warnings") or [])[:AI_TUTOR_MAX_WARNINGS])
+            + warnings
+            if item
+        ],
         "theoretical_summary": {
             key: theoretical.get(key)
             for key in ("k1", "k2", "k3", "method")
@@ -1058,46 +1074,85 @@ def _generate_career_ai_analysis(ai_payload: dict) -> dict:
     if not _ai_tutor_is_configured():
         raise RuntimeError("El Tutor IA no está configurado en este entorno.")
 
-    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    model_name = os.environ.get("OPENAI_MODEL") or AI_TUTOR_DEFAULT_MODEL
+    timeout_seconds = AI_TUTOR_TIMEOUT_SECONDS
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), timeout=timeout_seconds)
     system_prompt = (
         "Eres un tutor educativo de inversión simulada dentro de una aplicación académica. "
         "Tu tarea es explicar los resultados de una simulación histórica o experimental de forma clara, pedagógica y prudente. "
         "No das asesoramiento financiero real, no recomiendas comprar ni vender activos, no predices el futuro y no afirmas que una estrategia vaya a funcionar en mercados reales. "
         "Analizas únicamente los datos proporcionados por la aplicación con finalidad educativa. "
-        "Responde siempre en español, con tono claro y didáctico. "
+        "Responde siempre en español, con tono claro y didáctico y relativamente breve. "
         'Debes incluir literalmente este disclaimer en la respuesta final: "'
         + AI_TUTOR_DISCLAIMER
         + '". '
         "Devuelve exclusivamente JSON válido con estas claves: "
         "summary, strengths, improvements, benchmark_analysis, risk_notes, historical_context, learning_recommendations, final_advice, disclaimer. "
-        "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings. "
-        "No inventes datos no presentes en el payload. Si falta información, dilo con honestidad."
+        "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings cortos. "
+        "No inventes datos no presentes en el payload. Si falta información, dilo con honestidad. "
+        "Mantén la respuesta compacta y útil, evitando párrafos largos."
     )
     user_prompt = (
         "Analiza esta simulación del Modo Carrera con finalidad educativa. "
-        "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura.\n\n"
+        "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura. "
+        "Si faltan datos, dilo explícitamente y céntrate en las métricas disponibles.\n\n"
         f"Datos resumidos de simulación:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
     )
+    openai_started_at = time.monotonic()
     logger.info(
         "ai.tutor.openai_start",
         extra={
             "session_id": ai_payload.get("session_id"),
             "turns_closed": ai_payload.get("turns_closed"),
+            "model": model_name,
+            "timeout_seconds": timeout_seconds,
+            "payload_chars": len(user_prompt),
         },
     )
-    response = client.responses.create(
-        model="gpt-4.1-mini",
-        input=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.4,
-    )
+    try:
+        response = client.responses.create(
+            model=model_name,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            max_output_tokens=AI_TUTOR_MAX_OUTPUT_TOKENS,
+        )
+    except Exception as exc:
+        error_name = exc.__class__.__name__
+        elapsed = round(time.monotonic() - openai_started_at, 3)
+        if "Timeout" in error_name or "timeout" in str(exc).lower():
+            logger.warning(
+                "ai.tutor.openai_timeout",
+                extra={
+                    "session_id": ai_payload.get("session_id"),
+                    "model": model_name,
+                    "elapsed_seconds": elapsed,
+                },
+            )
+            raise TimeoutError(
+                "El Tutor IA ha tardado demasiado en responder. Inténtalo de nuevo en unos segundos."
+            ) from exc
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": ai_payload.get("session_id"),
+                "phase": "openai_call",
+                "model": model_name,
+                "elapsed_seconds": elapsed,
+                "error_name": error_name,
+            },
+        )
+        raise
+
     content = getattr(response, "output_text", "") or ""
     logger.info(
         "ai.tutor.openai_done",
         extra={
             "session_id": ai_payload.get("session_id"),
+            "model": model_name,
+            "elapsed_seconds": round(time.monotonic() - openai_started_at, 3),
             "content_length": len(content),
         },
     )
@@ -1152,6 +1207,7 @@ def readiness_status_api():
 def ai_career_analysis_api(session_id: str):
     from .career import get_career_report_for_session
 
+    endpoint_started_at = time.monotonic()
     logger.info("ai.tutor.start", extra={"session_id": session_id})
 
     if not _ai_tutor_is_configured():
@@ -1253,10 +1309,34 @@ def ai_career_analysis_api(session_id: str):
             "tickers": len(ai_payload.get("tickers_used") or []),
             "turns_closed": ai_payload.get("turns_closed"),
             "warnings": len(ai_payload.get("warnings") or []),
+            "payload_chars": len(json.dumps(ai_payload, ensure_ascii=False)),
         },
     )
     try:
         analysis = _generate_career_ai_analysis(ai_payload)
+    except TimeoutError as exc:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "timeout",
+                "status_code": 504,
+                "elapsed_seconds": round(time.monotonic() - endpoint_started_at, 3),
+                "message": str(exc)[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "El Tutor IA ha tardado demasiado en responder. Inténtalo de nuevo en unos segundos.",
+                    "error_type": "ai_timeout",
+                    "retryable": True,
+                    "details": "La llamada al proveedor de IA superó el tiempo máximo configurado para esta app.",
+                }
+            ),
+            504,
+        )
     except RuntimeError as exc:
         logger.warning(
             "ai.tutor.error",
@@ -1304,7 +1384,11 @@ def ai_career_analysis_api(session_id: str):
     except Exception:
         logger.exception(
             "ai.tutor.error",
-            extra={"session_id": session_id, "phase": "openai_or_analysis"},
+            extra={
+                "session_id": session_id,
+                "phase": "openai_or_analysis",
+                "elapsed_seconds": round(time.monotonic() - endpoint_started_at, 3),
+            },
         )
         return (
             jsonify(
@@ -1364,7 +1448,13 @@ def ai_career_analysis_api(session_id: str):
             "content": analysis.get("final_advice"),
         },
     ]
-    logger.info("ai.tutor.session_resolved", extra={"session_id": session_id})
+    logger.info(
+        "ai.tutor.session_resolved",
+        extra={
+            "session_id": session_id,
+            "elapsed_seconds": round(time.monotonic() - endpoint_started_at, 3),
+        },
+    )
     return jsonify(
         {
             "ok": True,

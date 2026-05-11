@@ -3999,6 +3999,12 @@ async function fetchCareerAiStatus() {
 
 async function runCareerAiAnalysis() {
   if (careerState.aiLoading || !careerState.sessionId) return;
+  const outputHost = document.getElementById("career-ai-output");
+  const hasExistingAnalysis = outputHost && !outputHost.classList.contains("hidden") && outputHost.textContent.trim();
+  if (hasExistingAnalysis) {
+    const confirmed = window.confirm("Ya existe un análisis generado para esta sesión. Si continúas, se solicitará uno nuevo al Tutor IA. ¿Quieres continuar?");
+    if (!confirmed) return;
+  }
   setCareerAiLoading(true);
   renderCareerAiStatus("Analizando tu simulación...", "info");
   try {
@@ -4007,7 +4013,8 @@ async function runCareerAiAnalysis() {
     renderCareerAiStatus(data?.disclaimer || "Análisis educativo generado.", "success");
     mostrarToastOk("Tutor IA completado.");
   } catch (err) {
-    const message = err?.message || "No se pudo generar el análisis del Tutor IA.";
+    const timeoutMessage = "El Tutor IA ha tardado demasiado en responder. Puedes reintentarlo en unos segundos.";
+    const message = err?.error_type === "ai_timeout" ? timeoutMessage : err?.message || "No se pudo generar el análisis del Tutor IA.";
     renderCareerAiStatus(message, "error");
     mostrarToastError(message);
   } finally {
