@@ -4726,3 +4726,113 @@ Con los nuevos logs ya se podrá distinguir si el fallo real ocurre:
 ### Riesgos pendientes
 - Falta verificar en Render si `gpt-4.1-mini` es suficientemente rápido para el despliegue real o conviene ajustar `OPENAI_MODEL` a otro modelo aún más ágil dentro del presupuesto/configuración del proyecto.
 - No se ha simulado aquí un timeout real del SDK contra OpenAI porque el entorno local de validación no dispone de `OPENAI_API_KEY` operativa de producción ni de una llamada real al proveedor.
+
+## Iteración 52 - Preparación documental del rediseño frontend v2
+
+### Objetivo
+Abrir la fase de rediseño frontend de forma ordenada, pero **sin tocar todavía código de producto**.
+
+La intención de esta iteración es fijar:
+- una rama separada para el rediseño
+- una dirección visual clara
+- un marco de implementación por fases
+- criterios concretos para evitar una estética genérica o demasiado “AI-generated”
+
+### Decisión de rama
+Se creó una rama específica para aislar el rediseño:
+- `feature/frontend-redesign-v2`
+
+Esta rama parte del estado funcional ya congelado previamente mediante:
+- tag: `v1.0-functional`
+- rama estable: `stable/pre-redesign`
+
+Con esto queda cubierto el requisito de poder volver al punto estable si el rediseño rompe algo más adelante.
+
+### Documento creado
+Se añadió:
+- `docs/frontend_redesign_research.md`
+
+### Propósito del documento
+Servir como guía real de rediseño antes de tocar la app, definiendo:
+- objetivo del rediseño
+- diagnóstico visual actual
+- dirección visual propuesta
+- paleta recomendada
+- criterios tipográficos
+- mejoras de layout
+- componentes base a revisar
+- principios de accesibilidad
+- reglas para evitar estética IA
+- plan de implementación por fases
+- reglas de ejecución para no romper backend ni funcionalidades críticas
+
+### Dirección visual propuesta
+La dirección elegida es una **fintech educativa** con tono:
+- moderno
+- limpio
+- profesional
+- humano
+- sobrio
+
+No debe sentirse como:
+- plantilla corporativa rígida
+- landing de startup genérica
+- demo “bonita pero vacía”
+- interfaz artificialmente simétrica o blandamente decorada
+
+### Paleta propuesta
+Se recomienda mantener el verde como base por coherencia temática, pero llevarlo a una paleta más madura:
+- grafito
+- blanco cálido
+- verde profundo
+- azul petróleo o gris azulado
+
+Y evitar:
+- abuso de degradados suaves genéricos
+- colorido de plantilla SaaS
+- exceso de decorativismo
+
+### Reglas clave del rediseño
+- no tocar backend salvo necesidad real
+- no romper endpoints
+- no romper auth
+- no romper invitado
+- no romper Carrera
+- no romper Horizonte
+- no romper Tutor IA
+- validar fase a fase
+- usar commits pequeños y reversibles
+
+### Qué NO se hizo en esta iteración
+No se modificó:
+- HTML funcional de producto
+- CSS de producto
+- JS de producto
+- lógica backend
+- endpoints
+
+Es una iteración puramente estructural/documental para preparar el rediseño con criterio.
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+- `docs/frontend_redesign_research.md`
+
+### Validación mínima realizada
+Se verificó:
+- `git branch --show-current`
+- `git status --short`
+
+Como la iteración es solo documental, no se consideró necesario relanzar CI completa.
+
+### Resultado esperado
+La siguiente fase recomendada ya no es improvisar cambios visuales aislados, sino empezar por:
+- **Fase 1 — Sistema visual base**
+- variables CSS
+- paleta
+- tipografía
+- botones
+- cards
+- formularios
+- layout base

@@ -588,7 +588,7 @@
 
 ## 2026-05-11
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `db578d3`
 - Título: Iteración 51, timeout explícito y acotación de coste del Tutor IA
 - Archivos tocados:
   - `CURRENT_STATE.md`
@@ -596,3 +596,13 @@
   - `app/static/app.js`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-05-11
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 52, preparación documental del rediseño frontend v2
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+  - `docs/frontend_redesign_research.md`
