@@ -1,71 +1,48 @@
 {% extends 'base.html' %}
 {% block title %}Iniciar sesión{% endblock %}
 {% block content %}
-<section class="auth-shell auth-shell--redesign">
-  <div class="auth-layout">
-    <aside class="auth-panel auth-panel--intro auth-panel--intro-redesign">
-      <div class="auth-intro-block">
-        <span class="eyebrow">Acceso</span>
-        <h1>Entra para continuar tu progreso y tus simulaciones</h1>
-        <p class="auth-lead">Accede con tu correo para recuperar historial, continuar tu Modo Carrera y usar la app con una experiencia más completa y consistente.</p>
+<section class="auth-shell auth-shell--minimal">
+  <section class="auth-panel auth-panel--form auth-panel--centered">
+    <div class="auth-card auth-card--compact auth-card--premium">
+      <div class="auth-card__header auth-card__header--compact">
+        <span class="auth-kicker">Acceso</span>
+        <h1>Iniciar sesión</h1>
+        <p>Accede para continuar tus simulaciones.</p>
       </div>
 
-      <div class="auth-benefits auth-benefits--stacked">
-        <div class="auth-benefit">
-          <strong>Historial y continuidad</strong>
-          <span>Recupera análisis previos, revisa resultados guardados y mantén el hilo de tu trabajo.</span>
-        </div>
-        <div class="auth-benefit">
-          <strong>Modo Carrera persistente</strong>
-          <span>Vuelve a tus sesiones y conserva mejor la progresión entre distintas visitas.</span>
-        </div>
-        <div class="auth-benefit">
-          <strong>Acceso invitado disponible</strong>
-          <span>Si prefieres explorar primero, puedes continuar como invitado sin crear cuenta todavía.</span>
-        </div>
-      </div>
-    </aside>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="auth-flash-stack">
+            {% for category, message in messages %}
+              <div class="auth-alert auth-alert--{{ category|default('info') }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
 
-    <section class="auth-panel auth-panel--form auth-panel--form-redesign">
-      <div class="auth-card auth-card--premium">
-        <div class="auth-card__header">
-          <span class="auth-kicker">Cuenta existente</span>
-          <h2>Bienvenido de nuevo</h2>
-          <p>Introduce tu correo y contraseña para retomar tu espacio de trabajo.</p>
-        </div>
+      <form method="post" action="{{ url_for('auth.login_submit') }}" class="auth-form">
+        <label class="auth-field">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" placeholder="tu@correo.com" required />
+        </label>
+        <label class="auth-field">
+          <span>Contraseña</span>
+          <input type="password" name="password" placeholder="Introduce tu contraseña" required />
+        </label>
+        <button type="submit" class="btn btn-primary auth-submit">Iniciar sesión</button>
+      </form>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="auth-flash-stack">
-              {% for category, message in messages %}
-                <div class="auth-alert auth-alert--{{ category|default('info') }}">{{ message }}</div>
-              {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
-
-        <form method="post" action="{{ url_for('auth.login_submit') }}" class="auth-form">
-          <label class="auth-field">
-            <span>Correo electrónico</span>
-            <input type="email" name="email" placeholder="tu@correo.com" required />
-          </label>
-          <label class="auth-field">
-            <span>Contraseña</span>
-            <input type="password" name="password" placeholder="Introduce tu contraseña" required />
-          </label>
-          <button type="submit" class="btn btn-primary auth-submit">Iniciar sesión</button>
-        </form>
-
-        <div class="auth-divider"><span>o si prefieres</span></div>
-
-        <form method="post" action="{{ url_for('auth.continue_as_guest') }}" class="auth-guest-form">
-          <button type="submit" class="btn btn-secondary auth-guest-btn">Continuar como invitado</button>
-          <p class="auth-helper">Podrás recorrer la app y entender los flujos principales, pero el historial y el progreso persistente no se guardarán en tu cuenta.</p>
-        </form>
-
+      <div class="auth-utility-links">
         <p class="auth-switch">¿Aún no tienes cuenta? <a href="{{ url_for('auth.register_page') }}">Crear cuenta</a></p>
       </div>
-    </section>
-  </div>
+
+      <div class="auth-divider"><span>o si prefieres</span></div>
+
+      <form method="post" action="{{ url_for('auth.continue_as_guest') }}" class="auth-guest-form auth-guest-form--compact">
+        <button type="submit" class="btn btn-secondary auth-guest-btn">Continuar como invitado</button>
+        <p class="auth-helper">Podrás explorar la app, pero el historial y el progreso persistente no se guardarán en tu cuenta.</p>
+      </form>
+    </div>
+  </section>
 </section>
 {% endblock %}

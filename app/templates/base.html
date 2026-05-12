@@ -11,72 +11,71 @@
 {% set _user_id = session.get('user_id') %}
 {% set _is_guest = session.get('guest') %}
 {% set _has_account = _user_id and current_user %}
-<body data-nav-mode="{{ _nav_mode }}" data-user-id="{{ _user_id or '' }}" data-is-guest="{{ 'true' if _is_guest else 'false' }}">
+{% set _is_auth_page = request.endpoint in ['auth.login_page', 'auth.register_page'] %}
+<body data-nav-mode="{{ _nav_mode }}" data-user-id="{{ _user_id or '' }}" data-is-guest="{{ 'true' if _is_guest else 'false' }}" class="{% if _is_auth_page %}page-auth{% endif %}">
   <div class="app-shell">
-  <header class="top-nav">
+  <header class="top-nav {% if _is_auth_page %}top-nav--minimal{% endif %}">
     <div class="top-nav__inner">
       <div class="brand">
         <a href="{{ url_for('main.home') }}">
           <span class="brand-mark">SI</span>
           <span class="brand-copy">
             <strong>Simulador de Inversión</strong>
-            <span>Aprendizaje, análisis y simulación histórica</span>
+            <span>Simulación y aprendizaje sobre datos históricos</span>
           </span>
         </a>
       </div>
 
-      {% if _nav_mode == 'practice' %}
+      {% if _nav_mode == 'practice' and not _is_auth_page %}
       <nav class="top-nav__links" aria-label="Principal">
         <a class="nav-link {% if active == 'inicio' %}active{% endif %}" href="{{ url_for('main.home') }}">Inicio</a>
         <a class="nav-link {% if active == 'aprende' %}active{% endif %}" href="{{ url_for('main.aprende_page') }}">Aprender</a>
-        <a class="nav-link {% if active == 'analisis' %}active{% endif %}" href="{{ url_for('main.analisis_page') }}">Modo Práctica</a>
-        <a class="nav-link {% if active == 'career' %}active{% endif %}" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
-        <a class="nav-link {% if active == 'horizon' %}active{% endif %}" href="{{ url_for('main.horizon_page') }}">Modo Horizonte</a>
+        <a class="nav-link {% if active == 'analisis' %}active{% endif %}" href="{{ url_for('main.analisis_page') }}">Práctica</a>
+        <a class="nav-link {% if active == 'career' %}active{% endif %}" href="{{ url_for('main.career_page') }}">Carrera</a>
+        <a class="nav-link {% if active == 'horizon' %}active{% endif %}" href="{{ url_for('main.horizon_page') }}">Horizonte</a>
       </nav>
 
-      <div class="top-nav__session">
+      <div class="top-nav__session top-nav__session--compact">
         {% if _has_account %}
-        <div class="session-pill session-pill--account">
-          <span class="session-pill__eyebrow">Sesión iniciada</span>
+        <div class="session-note session-note--account">
           <strong>{{ current_user.username or current_user.email }}</strong>
-          <span>{{ current_user.email }}</span>
+          <span>Sesión iniciada</span>
         </div>
         <form method="post" action="{{ url_for('auth.logout_submit') }}" class="nav-inline-form">
-          <button type="submit" class="btn btn-secondary">Cerrar sesión</button>
+          <button type="submit" class="btn btn-nav">Cerrar sesión</button>
         </form>
         {% elif _is_guest %}
-        <div class="session-pill session-pill--guest">
-          <span class="session-pill__eyebrow">Modo invitado</span>
-          <strong>Exploración sin cuenta</strong>
-          <span>No se guarda historial ni progreso persistente.</span>
+        <div class="session-note session-note--guest">
+          <strong>Modo invitado</strong>
+          <span>Sin historial persistente</span>
         </div>
-        <a class="btn btn-outline" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
+        <a class="btn btn-nav" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
         <form method="post" action="{{ url_for('auth.logout_submit') }}" class="nav-inline-form">
-          <button type="submit" class="btn btn-ghost">Salir del modo invitado</button>
+          <button type="submit" class="btn btn-nav btn-nav--subtle">Salir</button>
         </form>
         {% else %}
-        <div class="session-pill session-pill--anon">
-          <span class="session-pill__eyebrow">Tu espacio</span>
-          <strong>Guarda tu progreso y tu carrera</strong>
-          <span>También puedes entrar primero como invitado si prefieres probar la app.</span>
-        </div>
-        <a class="btn btn-secondary" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
-        <a class="btn btn-primary" href="{{ url_for('auth.register_page') }}">Crear cuenta</a>
+        <a class="btn btn-nav" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
+        <a class="btn btn-nav btn-nav--subtle" href="{{ url_for('auth.register_page') }}">Crear cuenta</a>
         {% endif %}
+      </div>
+      {% elif _is_auth_page %}
+      <div class="top-nav__spacer"></div>
+      <div class="top-nav__session top-nav__session--minimal">
+        <a class="btn btn-nav btn-nav--subtle" href="{{ url_for('main.home') }}">Volver al inicio</a>
       </div>
       {% elif _nav_mode == 'career' %}
       <nav class="top-nav__links" aria-label="Principal">
         <a class="nav-link active" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
       </nav>
       <div class="top-nav__session">
-        <a class="btn btn-secondary" href="{{ url_for('main.home') }}">Volver al inicio</a>
+        <a class="btn btn-nav" href="{{ url_for('main.home') }}">Volver al inicio</a>
       </div>
       {% elif _nav_mode == 'manual' %}
       <nav class="top-nav__links" aria-label="Principal">
         <a class="nav-link active" href="{{ url_for('main.home') }}">Inicio</a>
       </nav>
       <div class="top-nav__session">
-        <a class="btn btn-secondary" href="{{ url_for('main.home') }}">Volver al inicio</a>
+        <a class="btn btn-nav" href="{{ url_for('main.home') }}">Volver al inicio</a>
       </div>
       {% endif %}
     </div>
