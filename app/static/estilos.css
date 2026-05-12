@@ -5244,3 +5244,68 @@ body {
     margin-top: 6px;
   }
 }
+
+
+.learn-hero-aside,
+.learn-application-side {
+  justify-content: center;
+}
+
+.learn-hero-aside .img-slot,
+.learn-application-side .img-slot {
+  margin-top: 4px;
+  margin-bottom: 4px;
+  align-self: center;
+}
+
+.readiness-stage-shell {
+  align-items: stretch;
+}
+
+.readiness-stage-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+}
+
+.readiness-stage-list {
+  flex: 1;
+  align-content: start;
+  padding-bottom: 12px;
+}
+
+.readiness-stage-list::before {
+  bottom: 2px;
+}
+
+.readiness-stage-item.is-active {
+  background: transparent;
+  border: 0;
+}
+
+.readiness-stage-item.is-active strong {
+  color: var(--color-text-strong);
+  font-weight: 700;
+}
+
+.readiness-stage-item.is-active span {
+  color: var(--color-text-secondary);
+}
+
+.readiness-progress {
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .learn-hero-aside .img-slot,
+  .learn-application-side .img-slot {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .readiness-stage-panel {
+    min-height: auto;
+  }
+}
