@@ -6617,3 +6617,91 @@ Nota operativa:
 - consejos prácticos y horizonte para confirmar coherencia global
 - columna lateral del readiness para verificar que ya no parece una botonera
 - versión móvil de `Aprender` y readiness
+
+## Iteración 64 - Ajuste final de imágenes y limpieza de microcopy en Aprender
+
+### Objetivo
+Aplicar una microcorrección final muy localizada tras una nueva revisión en Render.
+
+El feedback ya no era estructural, sino de acabado fino:
+1. las imágenes de `Aprender` quedaban demasiado pegadas al borde superior de sus paneles
+2. sobraba microcopy explicativo en dos puntos concretos
+
+Se trató como una intervención quirúrgica, sin rehacer la página y sin tocar la lógica del readiness.
+
+### Qué se ajustó en las imágenes
+Se corrigió la integración visual de:
+- imagen del hero superior
+- imagen del bloque `Del concepto a la simulación`
+
+#### Corrección aplicada
+Se añadió separación superior suave a:
+- `.learn-hero-aside .img-slot`
+- `.learn-application-side .img-slot`
+
+Concretamente:
+- `margin-top: 10px` en desktop
+- `margin-top: 6px` en viewport estrecho
+- ajuste de `border-radius: 20px`
+
+Objetivo visual:
+- evitar que la imagen arranque pegada al borde del panel
+- mantenerla integrada y cuidada
+- no hacerla mucho más pequeña ni romper responsive
+
+### Qué microcopy se eliminó
+Se eliminó completamente el texto bajo la imagen del hero:
+- `No es un examen académico...`
+
+También se eliminó completamente el microcopy del bloque `Del concepto a la simulación`:
+- `Idea clave...`
+
+La decisión fue deliberada:
+- ambos textos ya explicaban de más
+- la página funcionaba mejor sin ellos
+- su presencia restaba limpieza y hacía que la composición pareciera más cargada de lo necesario
+
+### Qué se mantuvo intacto
+No se tocó:
+- lógica del quiz
+- backend
+- endpoints
+- rutas Flask
+- scoring
+- persistencia
+- desbloqueo de `Modo Carrera`
+- hooks / IDs / `data-*`
+- readiness como flujo funcional
+- estructura general de `Aprender`
+- grid 3x2 de conceptos
+- timeline lateral del readiness
+- home/login/navbar
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/aprende.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- conviene validar en Render que la separación añadida no genere un vacío extraño en móvil o en anchuras medias
+- si todavía quedara alguna pieza visualmente demasiado cargada en `Aprender`, ya sería una cuestión muy puntual y no de sistema general
+
+### Qué debe revisar el usuario en Render
+- hero de `Aprender`
+- imagen del hero
+- bloque `Del concepto a la simulación`
+- imagen de ese bloque
+- versión móvil de `Aprender`
+- readiness, para confirmar que no se ha alterado funcional ni visualmente fuera de esta microcorrección

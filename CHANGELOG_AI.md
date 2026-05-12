@@ -718,8 +718,19 @@
 
 ## 2026-05-12
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `918d5ac`
 - Título: Iteración 63, pulido editorial de Aprender y simplificación de cards
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/aprende.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 64, ajuste final de imágenes y limpieza de microcopy en Aprender
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`

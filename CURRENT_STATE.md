@@ -78,6 +78,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Nueva microiteración de coherencia visual para eliminar el gradiente verdoso residual real del fondo global y extender el lenguaje de panel cálido superior a cards inferiores de home y secciones principales de práctica.
 - Apertura de Fase 3 del rediseño frontend: rediseño visual de `Aprender` y del `readiness quiz`, manteniendo intacta la lógica de desbloqueo de Carrera, persistencia y flujo funcional.
 - Microiteración posterior de Fase 3 para reducir el exceso de cards en `Aprender`, convertir el progreso lateral del readiness en una timeline no clicable y dar un tratamiento más editorial a hero y bloques de apoyo.
+- Microcorrección final sobre Fase 3.1 para dar aire superior a las imágenes de `Aprender` y eliminar microcopy redundante del hero y del bloque “Del concepto a la simulación”, sin tocar la lógica del readiness.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
