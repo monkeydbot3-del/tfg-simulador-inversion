@@ -74,6 +74,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Fase 2.2 aplicada tras nueva revisión en Render: home realineada sobre un eje común y nueva identidad cálida-profesional con base crema, grafito y acento navy/terracota.
 - Microiteración posterior sobre Fase 2.2 para corregir la aplicación de la paleta: se eliminan CTAs multicolor/gradientes decorativos y se consolida una distribución semántica de color por fondo, superficie, texto, borde, primario, acento y estados.
 - Ajuste adicional de la base cálida para eliminar restos verdosos en fondos, inputs y superficies suaves, manteniendo el navy como primario y el terracota solo como acento.
+- Microiteración final de Fase 2 para compactar la navbar en desktop, evitar el salto de línea de “Horizonte” y neutralizar superficies suaves auxiliares como el bloque “Antes de empezar”.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.

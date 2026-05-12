@@ -6083,3 +6083,142 @@ Resultado:
 - revisar esta limpieza final de base cromática en Render
 - confirmar que la interfaz ya no tiene tinte verdoso residual
 - si queda bien, cerrar Fase 2 y pasar a Aprender/readiness
+
+## Iteración 60 - Pulido final de superficies suaves y corrección de navbar
+
+### Objetivo
+Cerrar la Fase 2 con una microiteración estrictamente de remate visual, sin rehacer composición ni tocar lógica.
+
+El feedback final recibido apuntaba a dos problemas concretos todavía visibles en Render:
+1. Seguían quedando algunas superficies suaves con matiz verdoso.
+2. La navbar en desktop estaba mal resuelta, especialmente porque **“Horizonte” bajaba de línea** y el bloque derecho ocupaba demasiado.
+
+### Alcance
+Se trabajó solo sobre `app/static/estilos.css`.
+
+No se tocó:
+- backend
+- endpoints
+- JS
+- rutas
+- estructura funcional
+- login/home en composición
+- jerarquía de botones principales
+
+### Problema 1 corregido: superficies suaves aún verdosas
+Aunque la base ya había mejorado, todavía había bloques auxiliares que seguían percibiéndose como demasiado fríos o ligeramente verdosos.
+
+Se ajustaron los tokens suaves a una base más neutra y cálida:
+- `--color-bg: #FAF6F0`
+- `--color-bg-alt: #F5EFE7`
+- `--color-surface-soft: #FFF8F1`
+- `--color-surface-muted: #F7EFE6`
+- `--color-info-bg: #F7F1EA`
+
+Con esto se empuja la interfaz a una dirección más clara de:
+- crema
+- arena
+- marfil cálido
+- melocotón muy suave
+
+### Superficies auxiliares corregidas
+Se neutralizaron especialmente fondos de:
+- `callout`
+- `callout--soft`
+- `analysis-intro-card`
+- `home-onboarding`
+- `home-session-strip`
+- `auth-benefit`
+- badges suaves
+- hero badges
+- readiness cards
+- horizon/career helper panels
+
+Objetivo:
+- que los paneles neutrales ya no parezcan cajas de estado ni bloques con matiz mint/sage
+- que las ayudas introductorias encajen con la base cálida global
+
+### Qué cambió en “Antes de empezar”
+El bloque de apoyo dentro de `analisis.html` se corrigió visualmente desde CSS sin tocar template.
+
+Ahora:
+- usa fondo crema cálido (`#F7F1EA`)
+- borde cálido sutil
+- sin sombra innecesaria
+- sin apariencia de panel verdoso o success-like
+
+Esto era importante porque era uno de los puntos más visibles donde el tono residual seguía chirriando.
+
+### Problema 2 corregido: navbar mal alineada
+La navbar se compactó para desktop sin rediseñarla desde cero.
+
+#### Cambios aplicados
+##### Estructura de la navbar
+- `top-nav__inner` pasa a una composición más controlada con `grid`
+- columnas:
+  - marca/logo
+  - navegación principal
+  - bloque derecho de sesión
+
+Esto permite repartir el ancho con más disciplina y evitar que el centro empuje mal los extremos.
+
+##### Navegación principal
+Se compactó:
+- menor `gap`
+- menor padding horizontal en links
+- tamaño de texto ligeramente más contenido
+- `white-space: nowrap` en los links
+- `flex-wrap: nowrap` en desktop
+
+Resultado buscado:
+- `Inicio`, `Aprender`, `Práctica`, `Carrera` y `Horizonte` quedan alineados en una sola fila en desktop
+- `Horizonte` ya no debe caer debajo
+
+##### Bloque derecho de sesión
+Se compactó:
+- menor gap
+- `session-note` más pequeña
+- texto secundario más discreto
+- ancho máximo controlado
+- `btn-nav` más compactos
+
+Con ello:
+- `Modo invitado / Sin historial persistente` ocupa menos
+- `Iniciar sesión` y `Salir` pesan menos visualmente
+- la derecha deja de ensanchar innecesariamente la barra
+
+### Responsive intermedio
+Para no romper layouts estrechos:
+- por debajo de `1180px`, la navbar vuelve a un comportamiento más flexible
+- la navegación principal puede envolver si hace falta
+- la zona de sesión también puede plegarse
+
+Es decir:
+- se fuerza una sola línea en desktop real
+- sin sacrificar el comportamiento intermedio/responsive
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validar en Render que la reducción de ancho de navbar sea suficiente en todos los anchos desktop reales del navegador
+- podría quedar algún caso de viewport intermedio donde la barra necesite un pequeño ajuste fino adicional
+- conviene comprobar específicamente que `Práctica` y `Horizonte` no generen tensión visual en anchuras medias
+
+### Siguiente paso recomendado
+- revisar en Render navbar desktop e intermedia
+- comprobar el bloque “Antes de empezar” y otros paneles suaves
+- si la percepción visual ya es estable, dar por cerrada la Fase 2
