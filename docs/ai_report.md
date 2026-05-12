@@ -6333,3 +6333,148 @@ Resultado:
 - confirmar que el fondo global ya no tiene deriva verdosa
 - confirmar que los paneles inferiores ya comparten el mismo lenguaje que los superiores
 - si esto queda bien, dar por prácticamente cerrada la Fase 2 visual
+
+## Iteración 62 - Rediseño visual de Aprender y readiness quiz
+
+### Objetivo
+Abrir la Fase 3 del rediseño frontend centrando el trabajo en:
+- sección `Aprender`
+- readiness quiz
+- estados de intro, progreso, pregunta, feedback y resultado
+
+Todo ello sin tocar la lógica funcional del gate de `Modo Carrera`.
+
+### Archivos localizados como responsables
+Se localizaron como piezas principales:
+- `app/templates/aprende.html`
+- `app/static/estilos.css`
+- `app/static/app.js`
+
+#### Confirmación importante
+- `app.js` contiene toda la lógica del readiness (`fetchReadinessStatus`, `renderReadinessQuestion`, `renderReadinessProgress`, modal final, persistencia local, etc.)
+- en esta iteración **no se modificó esa lógica**, solo se revisó para respetar IDs, hooks y estados existentes
+
+### Qué se cambió en la página Aprender
+La plantilla `aprende.html` se reorganizó visualmente para que la experiencia previa al quiz se sienta más editorial, educativa y guiada.
+
+#### Cambios principales
+##### Hero educativo nuevo
+Se sustituyó el arranque demasiado genérico por un hero más claro y útil:
+- mensaje más corto y enfocado
+- relación explícita entre aprendizaje y Modo Carrera
+- CTA principal directo al readiness quiz
+- CTA secundario al manual
+- bloque lateral explicando que no es un examen académico, sino una validación de preparación
+
+##### Módulos de aprendizaje mejor jerarquizados
+En lugar de bloques largos y algo densos, se reorganizó el contenido en tiles más claros sobre conceptos como:
+- riesgo y rentabilidad
+- diversificación
+- horizonte temporal
+- DCA y aportaciones
+- benchmark
+- lectura del informe
+
+No se añadió teoría nueva compleja, solo se reempaquetó el contenido existente en una estructura visual más clara.
+
+##### Bloque de aplicación práctica
+Se añadió una transición más clara entre teoría y uso de la app:
+- cómo llevar esos conceptos a una simulación
+- qué significa comparar con benchmark
+- por qué el quiz valida comprensión aplicada y no memorización mecánica
+
+### Qué se cambió en el readiness quiz
+Sin tocar la lógica, se rediseñó la presentación visual completa del recorrido.
+
+#### Card principal del readiness
+- base cálida coherente con la home rediseñada
+- hero superior más claro
+- summary metrics mejor integradas
+- recorrido por pasos más legible
+
+#### Intro del quiz
+- tono de onboarding real
+- mejor jerarquía entre explicación, motivos y CTA
+- panel “Antes de empezar” integrado con la nueva paleta cálida
+
+#### Preguntas
+- opciones rediseñadas como respuestas clicables más limpias
+- hover más claro
+- selección más visible
+- contexto, topic y hint más legibles
+- sin cambiar IDs ni el sistema de selección real
+
+#### Progreso
+- la barra sigue siendo la misma funcionalmente
+- visualmente pasa a usar la paleta nueva
+- el recorrido lateral se ve más guiado y menos técnico
+
+#### Feedback y resultado
+- cajas de feedback más limpias
+- modal de resultado con mejor integración cromática
+- estados aprobados/no aprobados más sobrios
+- se mantiene el uso de verde para éxito y tonos cálidos para retry
+- revisión final más consistente con el nuevo sistema de cards
+
+### Estados visuales revisados
+Se revisaron los estilos de:
+- quiz pendiente
+- quiz aprobado
+- intro
+- pregunta activa
+- opción en hover
+- opción seleccionada
+- feedback mostrado
+- resultado aprobado
+- resultado no aprobado
+- progreso lateral
+- modal final
+
+### Qué lógica se mantuvo intacta
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica del quiz
+- scoring
+- persistencia
+- gate de `Modo Carrera`
+- comportamiento de invitado vs autenticado
+- IDs
+- hooks JS
+- localStorage del readiness
+- flujo de repetir / continuar / ir a Carrera
+
+### Decisiones visuales clave
+- la Fase 3 reutiliza la identidad cálida-profesional ya cerrada en Fase 2
+- se eliminan restos verdes heredados dentro del readiness y se sustituyen por navy + terracota + fondos cálidos suaves
+- `Aprender` deja de sentirse como una página enciclopédica y pasa a una estructura de recorrido
+- el readiness deja de sentirse como formulario/test básico y pasa a una experiencia guiada más coherente con el producto
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/aprende.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validación visual real en Render de todos los estados del readiness, especialmente resultado aprobado/no aprobado y experiencia móvil
+- como no se ha tocado JS, si existiera algún problema previo de lógica o persistencia, esta iteración no lo corrige
+- puede requerirse una microiteración posterior solo de densidad textual si algún bloque de `Aprender` sigue pareciendo demasiado cargado en móvil
+
+### Siguiente paso recomendado
+- revisar en Render `Aprender` desktop/móvil
+- revisar intro del readiness quiz
+- revisar pregunta en curso, opción seleccionada y resultado final
+- si la experiencia ya transmite claridad y calidad, continuar después con la siguiente pantalla prioritaria del rediseño
