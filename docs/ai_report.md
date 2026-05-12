@@ -5951,3 +5951,135 @@ Nota operativa:
 - revisar esta corrección en Render
 - confirmar que la paleta ya se percibe como sistema visual completo
 - solo entonces abrir la Fase 3 sobre Aprender y readiness quiz
+
+## Iteración 59 - Eliminación del tinte verdoso residual en la paleta cálida
+
+### Objetivo
+Eliminar el matiz verdoso residual que todavía quedaba en fondos, inputs y superficies suaves después de la corrección de paleta anterior.
+
+El feedback recibido era claro:
+- botones ya gustaban
+- estructura ya gustaba
+- home ya estaba mejor alineada
+- pero quedaban restos de base cromática que seguían percibiéndose como verdosos o “verde moco”
+
+Por tanto, esta iteración no toca composición ni jerarquía principal. Solo limpia la base cromática residual.
+
+### Problema identificado
+Los restos verdosos no estaban ya en los CTAs principales, sino sobre todo en:
+- `surface-soft`
+- `surface-muted`
+- fondos suaves secundarios
+- algunos inputs y controles
+- ciertas tarjetas auxiliares que todavía respiraban una mezcla demasiado cercana a la fase anterior
+
+### Decisión visual
+Mantener:
+- navy como primario
+- terracota como acento controlado
+- estructura actual de home/login/navbar
+
+Corregir:
+- todo lo que todavía se alejara de una base cálida arena/crema/melocotón suave
+
+### Cambios de paleta aplicados
+#### Base cálida refinada
+Se ajustaron varios tokens para limpiar el tinte residual:
+- `--color-bg-alt: #F5F1EA`
+- `--color-surface-soft: #FAF6F0`
+- `--color-surface-muted: #F6F0E8`
+- `--color-border: #E8DFD4`
+- `--color-border-strong: #DBCDBF`
+- `--color-info-bg: #F2F5F8`
+
+Objetivo:
+- menos percepción verde
+- más arena / crema / melocotón suave
+- mejor lectura de fondos y formularios
+
+### Qué se corrigió en fondos generales
+Se refinó:
+- fondo global
+- fondo alternativo
+- fondo translúcido de navbar
+- fondos suaves de hero y bloques auxiliares
+
+Con esto la interfaz debe sentirse menos fría y menos contaminada por tonos heredados intermedios.
+
+### Qué se corrigió en inputs y formularios
+Se aplicó corrección explícita a:
+- `input`
+- `select`
+- `textarea`
+
+Ahora:
+- usan `#fffdfb` como base de control
+- borde cálido sutil
+- desaparece la sensación de tinte extraño en campos
+- al hacer focus vuelven a `surface` limpia
+
+### Qué se corrigió en cards y superficies suaves
+Se ajustaron fondos de:
+- paneles intro de auth
+- KPI cards
+- banner de sesión/invitado
+- onboarding
+- cards inferiores suaves
+- readiness/horizon/session banner/global loading pill y otros contenedores auxiliares heredados
+
+Criterio seguido:
+- cards principales blancas
+- superficies auxiliares con arena suave
+- chips y badges blandos con base clara, no verdosa
+
+### Qué se mantuvo de botones
+No se rehízo el sistema de botones porque el feedback indicaba que ya iba mejor.
+
+Se mantuvo:
+- `btn-primary` navy sólido
+- `btn-mode` navy sólido equivalente
+- secundarios limpios
+- terracota solo como acento controlado, no como relleno principal ni gradiente decorativo
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación visual prevista
+Se orientó la revisión a:
+1. Home invitado desktop
+2. Login desktop
+3. Registro desktop
+4. Home móvil
+5. Login móvil
+6. Navbar
+
+Comprobaciones buscadas:
+- que el fondo ya no se perciba verde dominante
+- que inputs y superficies suaves se vean limpios
+- que las cards mantengan base blanca
+- que navy siga funcionando como primario
+- que terracota siga siendo solo acento
+- que la estructura previa no se haya roto
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- Falta validar en Render si la base ahora ya se percibe realmente arena/crema y no simplemente “menos verde”.
+- Puede quedar algún matiz cálido aún demasiado tenue en ciertas superficies, pero ya dentro de una familia cromática coherente.
+- Antes de pasar a Fase 3 conviene confirmar que la percepción de marca ya no chirría visualmente.
+
+### Siguiente paso recomendado
+- revisar esta limpieza final de base cromática en Render
+- confirmar que la interfaz ya no tiene tinte verdoso residual
+- si queda bien, cerrar Fase 2 y pasar a Aprender/readiness

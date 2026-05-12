@@ -73,6 +73,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Microiteración correctiva de Fase 2 tras revisión real en Render: nueva paleta más actual, navbar más compacta, login/registro mucho más limpios y jerarquía de botones igualada en home.
 - Fase 2.2 aplicada tras nueva revisión en Render: home realineada sobre un eje común y nueva identidad cálida-profesional con base crema, grafito y acento navy/terracota.
 - Microiteración posterior sobre Fase 2.2 para corregir la aplicación de la paleta: se eliminan CTAs multicolor/gradientes decorativos y se consolida una distribución semántica de color por fondo, superficie, texto, borde, primario, acento y estados.
+- Ajuste adicional de la base cálida para eliminar restos verdosos en fondos, inputs y superficies suaves, manteniendo el navy como primario y el terracota solo como acento.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
