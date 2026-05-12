@@ -7,7 +7,8 @@
   --color-surface: #ffffff;
   --color-surface-soft: #fff8f1;
   --color-surface-muted: #f7efe6;
-  --color-surface-elevated: #ffffff;
+  --color-surface-elevated: #fcf6ef;
+  --color-surface-panel: linear-gradient(180deg, #fffdfb 0%, #f9f2e9 100%);
 
   --color-primary: #243b53;
   --color-primary-strong: #1b2d41;
@@ -2926,7 +2927,7 @@ body {
 
 .hero {
   border: 1px solid rgba(172, 204, 123, 0.28);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(236, 244, 227, 0.88));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.96));
   box-shadow: var(--shadow-card-strong);
 }
 
@@ -3075,7 +3076,7 @@ body {
 }
 
 .callout--soft {
-  background: linear-gradient(180deg, rgba(236, 244, 227, 0.95), rgba(255, 255, 255, 0.92));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.94));
   border: 1px solid rgba(102, 138, 76, 0.16);
 }
 
@@ -3284,7 +3285,7 @@ body {
 .career-score--elevated {
   padding: 22px;
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(236, 244, 227, 0.95), rgba(255,255,255,0.92));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.94));
   border: 1px solid var(--line-soft);
   display: flex;
   align-items: center;
@@ -3478,7 +3479,7 @@ body {
 .empty-state--soft {
   padding: 18px;
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(247,250,244,0.95), rgba(255,255,255,0.85));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.96), rgba(249, 242, 233, 0.9));
   border: 1px dashed rgba(102, 138, 76, 0.24);
 }
 
@@ -3517,7 +3518,7 @@ body {
 
 .empty--panel {
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(247,250,244,0.95), rgba(255,255,255,0.85));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.96), rgba(249, 242, 233, 0.9));
   border: 1px dashed rgba(102, 138, 76, 0.24);
   color: var(--text-soft);
 }
@@ -3660,7 +3661,7 @@ body {
 .horizon-edu-card,
 .horizon-hero-note {
   padding: 16px 18px;
-  background: linear-gradient(180deg, rgba(247,250,244,0.96), rgba(255,255,255,0.88));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.96), rgba(249, 242, 233, 0.9));
   border: 1px solid rgba(102, 138, 76, 0.16);
 }
 
@@ -4052,7 +4053,7 @@ body {
   gap: var(--space-7);
   align-items: stretch;
   padding: clamp(28px, 4vw, 42px);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(234, 243, 248, 0.9));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.94));
   border: 1px solid rgba(23, 33, 43, 0.08);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-medium);
@@ -4402,7 +4403,7 @@ body {
 .home-hero--refined {
   grid-template-columns: 1fr;
   gap: var(--space-5);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(241, 245, 249, 0.9));
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.94));
   border: 1px solid rgba(17, 24, 39, 0.08);
   box-shadow: 0 20px 48px rgba(15, 23, 42, 0.06);
 }
@@ -4903,4 +4904,35 @@ body {
     justify-content: flex-start;
     flex-wrap: wrap;
   }
+}
+
+
+.app-shell,
+.main-content {
+  background: transparent;
+}
+
+.home-mode-card,
+.home-value-card,
+.analysis-intro-card,
+#form-dca.card,
+#form-sin-dca.card,
+.analysis-submit-card,
+.card.card--elevated {
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 14px 32px rgba(23, 32, 51, 0.05);
+}
+
+.home-mode-card,
+.home-value-card {
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.94));
+}
+
+.analysis-intro,
+.analysis-intro-card,
+.analysis-intro aside,
+.analysis-intro .callout {
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.98), rgba(249, 242, 233, 0.94));
+  border-color: var(--color-border);
 }
