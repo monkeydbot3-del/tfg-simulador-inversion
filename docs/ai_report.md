@@ -6705,3 +6705,117 @@ Resultado:
 - imagen de ese bloque
 - versión móvil de `Aprender`
 - readiness, para confirmar que no se ha alterado funcional ni visualmente fuera de esta microcorrección
+
+## Iteración 65 - Ajuste fino de integración de imágenes y timeline de progreso
+
+### Objetivo
+Aplicar una última microiteración de acabado visual sobre `Aprender` y el bloque lateral de progreso del readiness.
+
+El feedback recibido ya no apuntaba a problemas de estructura ni a exceso de texto, sino a tres detalles concretos:
+1. las imágenes ya no estaban pegadas arriba, pero quedaban algo descolgadas verticalmente
+2. el estado activo de `Introducción guiada` seguía percibiéndose demasiado resaltado
+3. la columna izquierda `Tu progreso` no ocupaba bien la altura disponible y dejaba un hueco visual feo al final
+
+### Ajuste fino de integración vertical de imágenes
+Se refinó la integración de:
+- `.learn-hero-aside .img-slot`
+- `.learn-application-side .img-slot`
+
+#### Cambio aplicado
+En lugar de dejar solo separación superior, se pasó a un equilibrio más neutro:
+- `margin-top: 4px`
+- `margin-bottom: 4px`
+- `align-self: center`
+
+Además, los contenedores:
+- `.learn-hero-aside`
+- `.learn-application-side`
+
+ahora usan:
+- `justify-content: center`
+
+Objetivo visual:
+- que la imagen no quede ni pegada arriba ni “caída” abajo
+- que se vea colocada con intención dentro del panel
+- mantener tamaño y presencia sin crear huecos raros
+
+En móvil (`max-width: 900px`) se neutralizan esos márgenes para no introducir separación innecesaria en layouts apilados.
+
+### Eliminación del fondo naranja del estado activo
+El problema no era el punto naranja, que funcionaba bien, sino el exceso de sensación de bloque resaltado en el item activo.
+
+Se mantuvo:
+- el punto/círculo naranja del estado activo
+
+Se suavizó/eliminó:
+- cualquier lectura de fondo o recuadro destacado del item activo
+
+#### Ajuste aplicado
+- `readiness-stage-item.is-active` se fuerza a fondo transparente y sin borde
+- el énfasis pasa a estar en:
+  - punto naranja
+  - título más fuerte (`font-weight: 700`)
+  - mejor contraste del texto
+
+Resultado buscado:
+- que se lea como timeline/progreso
+- que no parezca un botón ni una tarjeta activa
+
+### Mejor aprovechamiento de la columna “Tu progreso”
+La columna izquierda se rehízo solo a nivel de distribución vertical, sin añadir contenido ni tocar estructura HTML.
+
+#### Cambios aplicados
+- `readiness-stage-shell` ahora estira mejor sus columnas con `align-items: stretch`
+- `readiness-stage-panel` pasa a `display: flex`, `flex-direction: column`, `justify-content: space-between`
+- `readiness-stage-list` ocupa mejor el espacio (`flex: 1`)
+- la línea vertical de la timeline se alarga mejor ajustando su `bottom`
+- `readiness-progress` se empuja al final con `margin-top: auto` y `padding-top` suave
+
+Objetivo:
+- que la columna izquierda se sienta completa
+- que la timeline y la barra de progreso ocupen mejor la altura del panel
+- que desaparezca el hueco muerto al final
+
+### Qué se mantuvo intacto
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica JS
+- scoring
+- persistencia
+- desbloqueo de `Modo Carrera`
+- hooks / IDs / `data-*`
+- estructura general de `Aprender`
+- contenido del readiness
+- home/login/navbar
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- conviene comprobar en Render que el nuevo centrado vertical de imágenes no deje la composición demasiado neutra en algún breakpoint intermedio
+- si aún se percibiera alguna descompensación, ya sería un ajuste de spacing muy fino, no un problema de sistema
+
+### Qué debe revisar el usuario en Render
+- hero de `Aprender`
+- imagen del hero
+- bloque `Del concepto a la simulación`
+- imagen de ese bloque
+- bloque `Tu progreso`
+- estado activo de `Introducción guiada`
+- columna izquierda completa del readiness
+- versión móvil de `Aprender` y readiness
