@@ -4836,3 +4836,153 @@ La siguiente fase recomendada ya no es improvisar cambios visuales aislados, sin
 - cards
 - formularios
 - layout base
+
+## Iteración 53 - Ampliación del brief accionable del rediseño frontend
+
+### Objetivo
+Tomar la investigación previa (`docs/frontend_redesign_research.md`) y convertirla en una guía bastante más operativa para ejecutar el rediseño real de la app sin improvisación.
+
+La necesidad detectada era clara:
+- la investigación servía como base conceptual
+- pero todavía era demasiado resumida para orientar un rediseño completo pantalla por pantalla
+
+### Documento creado
+Se añadió:
+- `docs/frontend_redesign_brief.md`
+
+### Función del nuevo brief
+Este nuevo documento ya no actúa solo como referencia de dirección, sino como:
+- guía de trabajo práctica
+- marco de decisiones visuales
+- checklist de coherencia
+- hoja de ruta por fases
+
+### Qué añade respecto al documento de investigación
+#### Diagnóstico más accionable
+El nuevo brief concreta mejor:
+- qué partes se ven genéricas
+- qué patrones recuerdan a estética IA
+- qué pantallas tienen exceso de texto
+- qué zonas acumulan demasiadas cards
+- qué problemas de jerarquía visual deben corregirse
+
+#### Dirección visual más cerrada
+Se fija con más claridad una interfaz de tipo:
+- fintech educativa moderna
+- académica, pero no aburrida
+- profesional, pero no bancaria
+- humana, pero no infantil
+- sobria, pero visualmente atractiva
+
+#### Paleta concreta
+Se definen colores prácticos para implementar después:
+- verde profundo
+- grafito
+- azul petróleo
+- gris azulado
+- fondos cálidos y superficies claras
+- estados success/warning/error/info
+
+#### Tipografía utilizable
+Se define:
+- stack recomendado
+- tamaños de H1/H2/H3/body/small
+- pesos
+- line-height
+- reglas de copy y alineación para evitar exceso de texto centrado o demasiado blando
+
+#### Sistema de layout
+Se concreta:
+- ancho máximo
+- grid
+- spacing
+- densidad visual
+- criterios responsive
+- estructura general de páginas
+
+#### Sistema de componentes
+Se detallan criterios para:
+- botones
+- cards
+- inputs
+- selects
+- badges
+- modales
+- toasts
+- tablas
+- gráficos
+- estados vacíos
+- errores
+- loading
+
+#### Rediseño por pantalla
+El documento ya desglosa qué debe cambiar en:
+- Home
+- Login / Registro
+- Aprender
+- Readiness quiz
+- Modo Práctica
+- Modo Carrera
+- Informe final
+- Tutor IA
+- Modo Horizonte
+- Historial
+
+#### Reglas anti-estética IA
+Se fijan principios explícitos para reducir:
+- gradientes por defecto
+- pills innecesarias
+- cards clonadas
+- simetría artificial
+- copy genérico
+
+Y para aumentar:
+- jerarquía
+- intención
+- contraste
+- ritmo visual
+- asimetría controlada
+
+#### Reglas técnicas
+El brief recuerda restricciones críticas para no romper producto:
+- no tocar backend
+- no tocar endpoints
+- no cambiar IDs usados por JS
+- no romper auth
+- no romper invitado
+- no romper Carrera
+- no romper Horizonte
+- no romper Tutor IA
+- no borrar disclaimers
+
+### Qué NO se hizo en esta iteración
+No se tocó todavía:
+- CSS de producto
+- templates de producto
+- JS de producto
+- backend funcional
+
+Sigue siendo una iteración documental, pero ya con un nivel mucho más ejecutable.
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+- `docs/frontend_redesign_brief.md`
+
+### Validación
+Como no hay cambios de producto, no se relanzó CI completa.
+
+### Resultado esperado
+A partir de ahora, la referencia principal para abrir el rediseño ya no debería ser solo la investigación base, sino este brief ampliado.
+
+La siguiente fase recomendada sigue siendo:
+- **Fase 1 — Sistema visual base**
+- tokens CSS
+- paleta
+- tipografía
+- spacing
+- botones
+- cards
+- formularios
+- layout base
