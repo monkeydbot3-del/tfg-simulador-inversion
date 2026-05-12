@@ -697,10 +697,21 @@
 
 ## 2026-05-12
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `ddb8255`
 - Título: Iteración 61, unificación de paneles cálidos y eliminación del fondo verdoso real
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 62, rediseño visual de Aprender y readiness quiz
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/aprende.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

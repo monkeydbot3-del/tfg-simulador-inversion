@@ -3,26 +3,32 @@
 {% block title %}Aprende a invertir · Simulador{% endblock %}
 
 {% block content %}
-<section class="page-header page-header--with-badge">
+<section class="page-header page-header--with-badge learn-page-header">
   <div>
-    <p class="eyebrow">Aprendizaje guiado</p>
-    <h1>Aprende a invertir</h1>
-    <p class="muted">Una guía visual y práctica para entender mejor los conceptos antes de lanzar simulaciones.</p>
+    <p class="eyebrow">Fase 3 · Aprendizaje guiado</p>
+    <h1>Aprende los conceptos clave antes de gestionar una cartera</h1>
+    <p class="muted">Repasa riesgo, diversificación, horizonte temporal y lectura de resultados antes de entrar en Modo Carrera.</p>
   </div>
-  <span class="badge badge-soft">Contenido educativo</span>
+  <span class="badge badge-soft">Base educativa</span>
 </section>
 
 <section class="edu-section">
-  <div class="card card--elevated edu-hero-card">
-    <div class="edu-grid">
-      <div>
-        <p class="eyebrow">Guía esencial</p>
-        <h2>Aprende a invertir</h2>
-        <p class="lead">
-          Antes de lanzar tu primera simulación, revisa los conceptos clave para diseñar un plan sencillo y realista.
-        </p>
+  <div class="card card--elevated edu-hero-card learn-hero-card">
+    <div class="edu-grid learn-hero-grid">
+      <div class="learn-hero-copy">
+        <p class="eyebrow">Recorrido previo</p>
+        <h2>Primero entiendes la lógica, después validas que estás listo</h2>
+        <p class="lead">Esta sección conecta los conceptos básicos con la forma real en la que la app evalúa resultados, compara con benchmark y plantea decisiones en Carrera.</p>
+        <div class="learn-hero-actions">
+          <a class="btn btn-primary" href="#readiness-quiz-app">Ir al readiness quiz</a>
+          <a class="btn btn-secondary" href="{{ url_for('main.manual_page') }}">Ver manual completo</a>
+        </div>
       </div>
-      <div>
+      <div class="learn-hero-aside">
+        <div class="learn-hero-note">
+          <strong>No es un examen académico</strong>
+          <p>Es una validación breve para asegurarte de que entiendes las decisiones y métricas básicas antes de pasar al modo más exigente.</p>
+        </div>
         <img class="img-slot" src="/static/img/dinero-tiempo.webp" alt="Ilustración sobre crecimiento compuesto" />
       </div>
     </div>
@@ -30,65 +36,68 @@
 </section>
 
 <section class="edu-section">
-  <div class="card card--elevated">
-    <h2>Campos principales del simulador</h2>
-    <p>Estos cuatro elementos construyen la mayor parte de tus previsiones. Dedica unos minutos a definirlos.</p>
-    <div class="edu-grid">
+  <div class="card card--elevated learn-module-card">
+    <div class="learn-section-head">
       <div>
-        <h3>1. Importe inicial (€)</h3>
-        <p>Es el capital que aportas hoy. Refleja ahorros disponibles y debe ser una cifra que no comprometa tus gastos básicos.</p>
-        <ul>
-          <li><strong>Cómo estimarlo:</strong> suma ahorros líquidos que puedas inmovilizar sin urgencia.</li>
-          <li><strong>Ejemplo:</strong> 5.000&nbsp;€ destinados a un plan de 5 años.</li>
-          <li><strong>Consejo:</strong> mantén un fondo de emergencia separado para imprevistos.</li>
-        </ul>
+        <p class="eyebrow">Qué debes manejar</p>
+        <h2>Conceptos que luego aparecerán en tus simulaciones</h2>
       </div>
-      <div>
-        <h3>2. Horizonte (años, ≥1)</h3>
-        <p>Plazo mínimo durante el cual mantendrás la inversión. A mayor horizonte, menor impacto de la volatilidad.</p>
-        <ul>
-          <li><strong>Recomendación:</strong> comienza en 1 año y apunta a 5+ si quieres aprovechar el interés compuesto.</li>
-          <li><strong>Ejemplo:</strong> Guardar 10 años permite atravesar ciclos económicos completos.</li>
-          <li><strong>Riesgo:</strong> horizontes cortos requieren más liquidez y tolerancia a oscilaciones.</li>
-        </ul>
-      </div>
-      <div>
-        <h3>3. Crecimiento anual estimado (%)</h3>
-        <p>Proyección del aumento medio anual de tu inversión. Es opcional, pero útil para crear escenarios.</p>
-        <ul>
-          <li><strong>Cómo estimarlo:</strong> revisa el crecimiento histórico de ingresos o beneficios (ej. 7,5&nbsp;%).</li>
-          <li><strong>Precaución:</strong> tasas altas son difíciles de mantener; contrasta con previsiones realistas.</li>
-          <li><strong>Escenarios:</strong> compara uno moderado (5&nbsp;%) con otro optimista (8-10&nbsp;%) y evalúa diferencias.</li>
-        </ul>
-      </div>
-      <div>
-        <h3>4. Margen de seguridad (%)</h3>
-        <p>Colchón que recorta tus estimaciones para protegerte frente a errores o eventos inesperados.</p>
-        <ul>
-          <li><strong>Regla general:</strong> aplica entre 15&nbsp;% y 30&nbsp;% según la calidad del negocio.</li>
-          <li><strong>Ejemplo:</strong> si valoras una acción en 100&nbsp;€, con margen del 20&nbsp;% solo comprarías por debajo de 80&nbsp;€.</li>
-          <li><strong>Beneficio:</strong> te obliga a ser prudente al proyectar crecimientos o múltiplos de valoración.</li>
-        </ul>
-      </div>
+      <p class="muted">No necesitas teoría infinita, solo una base clara para interpretar resultados y tomar decisiones con criterio.</p>
+    </div>
+    <div class="learn-module-grid">
+      <article class="learn-module-tile">
+        <span class="career-step-badge">01</span>
+        <h3>Riesgo y rentabilidad</h3>
+        <p>Una cartera puede subir más, pero también caer más. El objetivo es entender ese intercambio antes de simular.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">02</span>
+        <h3>Diversificación</h3>
+        <p>Concentrarlo todo en una sola empresa o sector aumenta la fragilidad del resultado.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">03</span>
+        <h3>Horizonte temporal</h3>
+        <p>El plazo cambia por completo cómo se leen la volatilidad, los drawdowns y la paciencia necesaria.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">04</span>
+        <h3>DCA y aportaciones</h3>
+        <p>No es lo mismo una compra única que una estrategia con aportaciones periódicas constantes.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">05</span>
+        <h3>Benchmark</h3>
+        <p>Sirve para comparar tu resultado con una referencia de mercado y no quedarte solo con la intuición.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">06</span>
+        <h3>Lectura del informe</h3>
+        <p>Rentabilidad, CAGR, drawdown o volatilidad cuentan historias distintas y conviene distinguirlas.</p>
+      </article>
     </div>
   </div>
 </section>
 
 <section class="edu-section">
-  <div class="card card--elevated">
-    <div class="edu-grid">
+  <div class="card card--elevated learn-application-card">
+    <div class="edu-grid learn-application-grid">
       <div>
-        <h2>Cómo preparar tu análisis</h2>
-        <ol>
-          <li>Investiga el modelo de negocio y su ventaja competitiva.</li>
-          <li>Revisa estados financieros y ratios de deuda para entender la salud de la empresa.</li>
-          <li>Define el horizonte temporal y la estrategia de aportaciones (única, periódica, con <abbr title="Aportaci&oacute;n peri&oacute;dica constante">DCA</abbr>, etc.).</li>
-          <li>Introduce los campos en el simulador y genera escenarios conservadores y optimistas.</li>
-          <li>Evalúa el margen de seguridad antes de tomar decisiones reales.</li>
+        <p class="eyebrow">Cómo aplicarlo en la app</p>
+        <h2>Del concepto a la simulación</h2>
+        <ol class="learn-ordered-list">
+          <li>Define capital inicial, horizonte y enfoque de aportaciones.</li>
+          <li>Contrasta si la cartera está demasiado concentrada o si el benchmark te está dejando atrás.</li>
+          <li>Compara escenarios conservadores y optimistas sin tratar las proyecciones como certezas.</li>
+          <li>Lee el resultado final con contexto: no solo cuánto ganas o pierdes, sino cómo llegas hasta ahí.</li>
         </ol>
       </div>
-      <div>
+      <div class="learn-application-side">
         <img class="img-slot" src="/static/img/analisis.webp" alt="Ilustración sobre análisis de inversiones" />
+        <div class="learn-side-note">
+          <strong>Idea clave</strong>
+          <p>El readiness quiz no premia memorizar definiciones, sino reconocer qué significan en una simulación real.</p>
+        </div>
       </div>
     </div>
   </div>
