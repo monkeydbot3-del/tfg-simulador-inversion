@@ -5613,3 +5613,165 @@ Antes de abrir Aprender/readiness, conviene:
 - revisar en Render la nueva home, navbar, login y registro
 - confirmar que esta dirección visual ya sí convence
 - solo entonces abrir la Fase 3 sobre Aprender y readiness quiz
+
+## Iteración 57 - Ajuste de alineación de home y paleta cálida profesional
+
+### Objetivo
+Aplicar una microiteración estrictamente visual sobre la Fase 2.1 para resolver dos problemas observados en Render:
+1. sensación de alineación inconsistente en la home
+2. paleta demasiado fría y poco atractiva
+
+La intención ha sido pulir la primera impresión sin tocar lógica, rutas ni formularios.
+
+### Feedback recibido
+#### Positivo
+- login gustaba bastante
+- login y registro ya se veían mucho más limpios
+- la home estaba mejor que antes
+- las cards de modos funcionaban bien
+- el banner de modo invitado gustaba
+
+#### Problemas pendientes
+- hero y banner de invitado no compartían un eje visual claro
+- la paleta navy/teal seguía viéndose demasiado fría
+- faltaba una identidad más cálida, humana y premium
+
+### Decisión visual
+Se decidió abandonar la dirección teal fría y mover la interfaz a una identidad **cálida-profesional**.
+
+### Cambios en la paleta
+#### Nueva base cromática
+Se orientó la app hacia:
+- fondo crema suave
+- superficies blancas limpias
+- texto grafito/azul oscuro
+- azul noche como color principal
+- terracota elegante como acento de marca
+
+#### Tokens clave ajustados en `app/static/estilos.css`
+- `--color-bg: #f6f3ee`
+- `--color-bg-alt: #f4f1ea`
+- `--color-surface-soft: #f7f4ee`
+- `--color-surface-muted: #f1eee7`
+- `--color-primary: #243b53`
+- `--color-primary-strong: #1b2d41`
+- `--color-accent: #d97745`
+- `--color-accent-soft: #f7e4da`
+- `--color-text: #1f2933`
+- `--color-text-strong: #172033`
+- `--color-text-secondary: #647076`
+- `--color-border: #e7e2da`
+
+#### Estados
+- success: verde reservado a rentabilidad positiva (`#2f855a`)
+- warning: ámbar controlado (`#b7791f`)
+- danger: se mantiene solo para error/negativo
+- info: navy suave
+
+### Resultado buscado de la paleta
+- menos sensación de producto frío
+- menos herencia verde académica
+- más elegancia visual
+- una identidad más humana y defendible para TFG
+
+### Cambios en la alineación de la home
+#### Problema detectado
+La home daba sensación de que cada bloque trabajaba con un eje distinto:
+- hero demasiado desplazado hacia la izquierda
+- banner de invitado con otra lógica interna
+- secciones inferiores correctas, pero no claramente hermanadas visualmente con el hero
+
+#### Solución aplicada
+Se forzó una lógica común de anchura y eje para:
+- hero
+- banner de sesión / invitado
+- onboarding no autenticado
+- grid de modos
+- cards de valor inferiores
+
+Cambios CSS principales:
+- `width: min(1120px, 100%)` compartido
+- `margin-inline: auto` compartido
+- hero centrado visualmente
+- contenido interno del hero alineado al centro
+- CTAs del hero centrados
+- banner de invitado y onboarding con centrado consistente
+- acciones del banner centradas
+
+#### Resultado esperado
+- home más estable visualmente
+- hero y banner compartiendo el mismo eje
+- percepción más ordenada y menos extraña en la primera impresión
+
+### Cambios en login y registro
+No se rehizo su estructura, porque ya gustaban bastante.
+
+Solo se hizo:
+- adaptación automática a la nueva paleta cálida
+- mantenimiento de la card centrada
+- mantenimiento del copy breve
+- mantenimiento del enfoque limpio y funcional
+
+### Cambios en navbar
+La navbar se mantuvo compacta, pero adaptada a la nueva paleta:
+- fondos menos fríos
+- hover y activo con terracota suave
+- logo y botones con mejor integración cromática
+- se mantiene la versión mínima para login/registro
+- no se reintrodujo ningún bloque grande en cabecera
+
+### Cambios en botones
+Se mantuvo la lógica de equivalencia entre acciones de home, pero ahora con una apariencia más cálida y atractiva.
+
+#### Ajustes relevantes
+- `.btn-mode` pasa a usar gradiente `navy + terracota`
+- `.btn-primary` refuerza navy elegante
+- `.btn-secondary`, `.btn-outline` y `.btn-nav` se adaptan a la nueva identidad
+- hover suavizado hacia terracota controlado
+
+Objetivo:
+- conservar equivalencia visual entre CTAs equivalentes
+- evitar botones blancos flojos
+- mantener contraste suficiente
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+En esta iteración no fue necesario tocar más templates porque la estructura ya era buena y el problema estaba principalmente en paleta y alineación.
+
+### Validación visual por inspección estructural
+Se revisó conceptualmente:
+1. login desktop
+2. login móvil
+3. registro desktop
+4. registro móvil
+5. home modo invitado
+6. home autenticada
+7. navbar normal
+8. navbar login/registro
+9. cards de modos
+10. banner de modo invitado
+11. responsive general
+
+### Validación técnica completa
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- Falta comprobar en Render si la nueva paleta cálida convence también en pantalla real móvil y no solo conceptualmente.
+- Puede ser necesario un último microajuste del hero si todavía se percibe demasiado ancho o demasiado centrado según el dispositivo.
+- Antes de abrir Aprender/readiness, conviene validar que esta dirección ya se siente estable y bonita de verdad.
+
+### Siguiente paso recomendado
+- revisar esta Fase 2.2 en Render
+- confirmar si la nueva paleta cálida y la alineación unificada sí resuelven la primera impresión
+- solo después abrir la Fase 3 sobre Aprender y readiness quiz

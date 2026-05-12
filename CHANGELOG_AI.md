@@ -643,7 +643,7 @@
 
 ## 2026-05-12
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `26fdf55`
 - Título: Iteración 56, corrección visual de Fase 2 tras revisión en Render
 - Archivos tocados:
   - `CURRENT_STATE.md`
@@ -652,5 +652,15 @@
   - `app/templates/home.html`
   - `app/templates/login.html`
   - `app/templates/register.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 57, ajuste de alineación de home y paleta cálida profesional
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
