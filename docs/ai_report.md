@@ -5775,3 +5775,179 @@ Resultado:
 - revisar esta Fase 2.2 en Render
 - confirmar si la nueva paleta cálida y la alineación unificada sí resuelven la primera impresión
 - solo después abrir la Fase 3 sobre Aprender y readiness quiz
+
+## Iteración 58 - Corrección de aplicación de paleta y sistema de botones
+
+### Objetivo
+Corregir un problema detectado tras la iteración anterior: la nueva paleta no se estaba aplicando como sistema visual completo, sino de forma demasiado decorativa y especialmente visible en los botones.
+
+El síntoma más claro observado en Render era:
+- CTAs con sensación de multicolor o mezcla de paleta dentro del mismo botón
+- aplicación cromática demasiado concentrada en botones, en vez de repartida por roles visuales
+- identidad general todavía poco integrada
+
+### Error corregido
+La paleta anterior no estaba fallando por concepto, sino por aplicación.
+
+El problema concreto era:
+- uso de gradientes/mezcla de navy + terracota en botones principales y equivalentes
+- eso hacía que parte de la interfaz pareciera decorativa, no sistemática
+- la paleta no se leía como fondo/superficie/texto/borde/primario/acento/estado, sino como colores “metidos” en los CTAs
+
+### Decisión de corrección
+Se mantuvo la dirección **cálida-profesional**, pero se reaplicó con una lógica estrictamente semántica:
+- fondo
+- superficie
+- borde
+- texto
+- primario
+- acento
+- estados
+
+### Paleta corregida
+#### Fondo y superficies
+- `--color-bg: #F8F7F4`
+- `--color-bg-alt: #F3EFE8`
+- `--color-surface: #FFFFFF`
+- `--color-surface-soft: #F6F2EA`
+- `--color-surface-muted: #F3EEE6`
+
+#### Bordes
+- `--color-border: #E6DED3`
+- `--color-border-strong: #D6CABE`
+
+#### Texto
+- `--color-text: #172033`
+- `--color-text-strong: #172033`
+- `--color-text-secondary: #29384A`
+- `--color-text-soft: #65717A`
+
+#### Primario
+- `--color-primary: #243B53`
+- `--color-primary-strong: #1B2D41`
+- `--color-primary-soft: #E8EEF3`
+
+#### Acento
+- `--color-accent: #D97745`
+- `--color-accent-strong: #B85E35`
+- `--color-accent-soft: #F3DED0`
+
+#### Estados
+- `--color-success: #2F855A`
+- `--color-warning: #B7791F`
+- `--color-danger: #B42318`
+
+### Qué se corrigió exactamente en botones
+#### Problema previo
+Los botones transmitían mezcla de paleta dentro del mismo componente.
+
+#### Corrección aplicada
+##### `.btn-primary`
+Ahora es:
+- navy sólido
+- texto blanco
+- hover navy más oscuro
+- sin gradiente multicolor
+
+##### `.btn-mode`
+Ahora sigue la misma lógica:
+- fondo navy sólido
+- texto blanco
+- mismo peso visual entre opciones equivalentes
+- sin mezcla de varios colores en una sola pieza
+
+##### `.btn-secondary`, `.btn-outline`, `.btn-nav`
+Ahora son:
+- fondo claro / surface
+- borde sutil
+- texto navy
+- hover muy suave con `primary-soft`
+
+##### `.btn-ghost`, `.btn-nav--subtle`
+Se mantienen discretos:
+- fondo transparente
+- texto secundario
+- hover con `accent-soft` muy controlado
+
+### Qué cambió en home
+La composición principal de home no se rehízo.
+
+Se mantuvo:
+- alineación ya corregida
+- eje visual compartido
+- hero centrado
+- banner de invitado centrado
+- grid de modos estable
+
+Pero se corrigió la lectura cromática:
+- hero con fondo cálido limpio, sin sensación fría
+- cards más coherentes con la nueva base
+- eyebrow/chips con terracota sutil, no protagonista
+- CTAs equivalentes más sobrios y profesionales
+
+### Qué cambió en login y registro
+No se cambió estructura.
+
+Se ajustó solo la aplicación cromática:
+- fondo cálido suave
+- card blanca limpia
+- botón principal navy sólido
+- enlaces y microacentos con terracota controlado
+- botón secundario de invitado limpio y sin efecto multicolor
+
+### Qué cambió en navbar
+Tampoco se rehízo estructura.
+
+Se corrigió la integración visual:
+- fondo limpio
+- links sobrios
+- estado hover más suave
+- logo navy estable
+- pequeños toques de acento solo en detalles, no en bloques grandes
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación visual prevista
+Se dejó preparada la interfaz para revisar especialmente en Render:
+1. home invitado desktop
+2. login desktop
+3. registro desktop
+4. home móvil
+5. login móvil
+6. navbar
+
+Foco de revisión:
+- que no existan botones con gradiente raro
+- que no parezcan barras partidas en colores
+- que la paleta se lea en toda la interfaz, no solo en CTAs
+- que el fondo ya no sea verdoso dominante
+- que cards y superficies se vean limpias
+- que navy sea el primario real
+- que terracota actúe solo como acento
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+Nota operativa:
+- el wrapper de ejecución quedó marcado una vez como `Process still running` pese a haber emitido `All checks passed`, `All done` y el resumen completo de `25 passed`; no hubo evidencia de fallo real en la validación.
+
+### Riesgos pendientes
+- falta validar visualmente en Render que la supresión de gradientes haya resuelto por completo la sensación de botones decorativos
+- puede quedar algún hover o acento demasiado cálido en detalles menores, pero ya dentro de una lógica mucho más controlada
+- antes de abrir Fase 3 conviene confirmar que la identidad global ya se siente integrada y profesional
+
+### Siguiente paso recomendado
+- revisar esta corrección en Render
+- confirmar que la paleta ya se percibe como sistema visual completo
+- solo entonces abrir la Fase 3 sobre Aprender y readiness quiz
