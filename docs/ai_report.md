@@ -4986,3 +4986,257 @@ La siguiente fase recomendada sigue siendo:
 - cards
 - formularios
 - layout base
+
+## Iteración 54 - Sistema visual base del rediseño frontend
+
+### Objetivo
+Iniciar la Fase 1 del rediseño frontend creando una base visual nueva para toda la app, sin rediseñar todavía cada pantalla en profundidad y sin tocar lógica de producto.
+
+El foco de esta iteración ha sido:
+- sistema de tokens visuales
+- paleta
+- tipografía
+- spacing
+- botones
+- cards
+- formularios
+- badges
+- modales
+- toasts
+- layout base
+- foco/accesibilidad básica
+
+### Restricción respetada
+No se tocaron:
+- backend
+- endpoints
+- auth
+- persistencia
+- lógica de Carrera
+- lógica de Horizonte
+- Tutor IA
+- IDs usados por JavaScript
+- clases usadas como hooks JS
+
+### Archivo principal trabajado
+- `app/static/estilos.css`
+
+No fue necesario modificar templates ni JS para esta fase base.
+
+### Sistema visual base creado
+#### 1. Tokens de color
+Se sustituyó la base anterior, demasiado verde y algo genérica, por un sistema más sobrio y controlado:
+- fondos cálidos
+- superficies blancas y superficies suaves
+- texto principal y secundario más contrastados
+- verde profundo como marca
+- azul petróleo como apoyo
+- estados `success`, `warning`, `danger`, `info`
+- bordes más neutros y serios
+
+Variables añadidas o reorganizadas:
+- `--color-bg`
+- `--color-bg-alt`
+- `--color-surface`
+- `--color-surface-soft`
+- `--color-surface-muted`
+- `--color-surface-elevated`
+- `--color-primary`
+- `--color-primary-strong`
+- `--color-primary-soft`
+- `--color-primary-2`
+- `--color-accent`
+- `--color-accent-soft`
+- `--color-text`
+- `--color-text-strong`
+- `--color-text-secondary`
+- `--color-text-soft`
+- `--color-border`
+- `--color-border-strong`
+- `--color-success`, `--color-success-bg`
+- `--color-warning`, `--color-warning-bg`
+- `--color-danger`, `--color-danger-bg`
+- `--color-info`, `--color-info-bg`
+
+#### 2. Tipografía
+Se definió una base más madura y consistente:
+- stack: `Inter, ui-sans-serif, system-ui, ...`
+- variables tipográficas:
+  - `--font-size-xs`
+  - `--font-size-sm`
+  - `--font-size-base`
+  - `--font-size-lg`
+  - `--font-size-xl`
+  - `--font-size-h3`
+  - `--font-size-h2`
+  - `--font-size-h1`
+- line-height:
+  - `--line-height-tight`
+  - `--line-height-heading`
+  - `--line-height-body`
+- tracking:
+  - `--letter-spacing-tight`
+  - `--letter-spacing-heading`
+
+#### 3. Spacing y layout base
+Se añadió una escala de espaciado reutilizable:
+- `--space-1` a `--space-10`
+
+Y también:
+- `--container-max`
+- `--container-narrow`
+
+Se aplicó a:
+- `body`
+- `main-content`
+- `container`
+- `page-header`
+- `card-section`
+- `form-grid`
+- `field`
+- navegación base
+
+#### 4. Radios y sombras
+Se redefinieron tokens para reducir sensación de plantilla genérica suave:
+- `--radius-xs`
+- `--radius-sm`
+- `--radius`
+- `--radius-lg`
+- `--btn-radius`
+- `--shadow-soft`
+- `--shadow-medium`
+- `--shadow-strong`
+
+### Componentes base tocados
+#### Botones
+Se rediseñaron estilos base de:
+- `.btn`
+- `.btn-primary`
+- `.btn-secondary`
+- `.btn-outline`
+- `.btn-ghost`
+- `.btn-large`
+- `.btn-compact`
+- estado `:disabled`
+
+Mejoras aplicadas:
+- menos apariencia de pill genérica
+- contraste más serio
+- hover más sobrio
+- mejor jerarquía entre primario/secundario/ghost
+- foco visible mantenido
+
+#### Cards y paneles
+Se ajustaron:
+- `.card`
+- `.card--elevated`
+- `.card-section`
+- paneles reutilizados como `auth-card`, `metric-card`, `horizon-method-card`, `horizon-warning-card`, `session-banner`, bloques de readiness y otros contenedores existentes
+
+Objetivo:
+- menos blandura visual
+- bordes más sobrios
+- elevación más contenida
+- superficies más coherentes
+
+#### Formularios
+Se mejoraron estilos base de:
+- `input`
+- `select`
+- `textarea`
+- labels de `.field` y `.auth-field`
+- `.segmented-option`
+
+Mejoras:
+- foco más claro
+- mejor contraste
+- selects más cuidados
+- placeholders más suaves
+- controles más sólidos
+
+#### Badges / chips
+Se unificaron estilos base de:
+- `.badge`
+- `.badge-soft`
+- `.warning-chip`
+- `.chip-pos`
+- `.chip-neg`
+
+Objetivo:
+- menos decorativo
+- más útil
+- más sobrio
+
+#### Modales y toasts
+Se mejoró la base visual de:
+- `.modal`
+- `.modal__content`
+- `.readiness-result-modal__dialog`
+- overlays / backdrops
+- `.toast`
+- `.toast-ok`
+- `.toast-error`
+
+Sin reestructurar contenido interno todavía.
+
+#### Layout y navegación base
+Se retocaron estilos globales de:
+- `body`
+- `.top-nav`
+- `.top-nav__links`
+- `.nav-link`
+- `.container`
+- `.main-content`
+- `.hero`
+- `.page-header`
+- `.muted`
+- `.eyebrow`
+- `.lead`
+
+### Accesibilidad básica
+Se reforzó:
+- `:focus-visible` en enlaces, botones, inputs, selects y textareas
+- contraste de texto principal/secundario
+- distinción visual de botones
+- campos más claramente interactivos
+- no se eliminó outline sin alternativa
+
+Se añadió token:
+- `--focus-ring`
+
+### Páginas revisadas por inspección estructural
+Antes de tocar la base se revisaron:
+- `app/templates/base.html`
+- `app/templates/home.html`
+- `app/templates/login.html`
+- `app/templates/register.html`
+- `app/templates/career.html`
+- `app/templates/horizon.html`
+- `app/templates/aprende.html`
+- `app/static/app.js` para no romper hooks/clases/IDs usados por JS
+
+### Validaciones realizadas
+#### Validación de contexto y rama
+- rama confirmada: `feature/frontend-redesign-v2`
+- working tree limpio antes de empezar
+- último commit confirmado: `5af3bdb`
+
+#### Validación técnica completa
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- Aunque la base visual ya es más sólida, algunas pantallas todavía arrastrarán estructura anterior hasta que entren en sus fases específicas.
+- Home, auth, Carrera, Horizonte, informes y Tutor IA ya pueden verse algo más refinados por herencia visual, pero todavía no están rediseñados a nivel de composición.
+- Puede hacer falta ajustar pequeños detalles responsive o densidad cuando se trabaje cada pantalla en profundidad.
+
+### Siguiente fase recomendada
+- **Fase 2 — Home, login, registro y navegación**
+- aplicar la nueva base visual a composición real de esas pantallas
+- reducir estética genérica en hero, auth y navbar
+- trabajar jerarquía, ritmo visual y claridad de acceso
