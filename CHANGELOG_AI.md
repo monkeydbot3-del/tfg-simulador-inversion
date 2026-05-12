@@ -667,8 +667,18 @@
 
 ## 2026-05-12
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `4b6755c`
 - Título: Iteración 58, corrección de aplicación de paleta y sistema de botones
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 59, eliminación del tinte verdoso residual en la paleta cálida
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
