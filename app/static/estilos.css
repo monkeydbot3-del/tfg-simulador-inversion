@@ -5086,3 +5086,147 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+.learn-hero-card,
+.learn-module-card,
+.learn-application-card {
+  box-shadow: 0 16px 36px rgba(23, 32, 51, 0.05);
+}
+
+.learn-hero-grid {
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+}
+
+.learn-hero-aside {
+  align-items: stretch;
+}
+
+.learn-hero-note {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.96rem;
+  line-height: 1.65;
+}
+
+.learn-module-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.learn-module-tile {
+  background: rgba(255, 253, 251, 0.78);
+  border: 1px solid rgba(232, 223, 212, 0.92);
+  box-shadow: none;
+}
+
+.learn-module-tile .career-step-badge {
+  align-self: flex-start;
+}
+
+.learn-application-side {
+  gap: 14px;
+}
+
+.learn-inline-note {
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(232, 223, 212, 0.9);
+  color: var(--color-text-secondary);
+}
+
+.learn-side-note {
+  display: none;
+}
+
+.readiness-stage-panel {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.readiness-stage-list {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  padding-left: 18px;
+}
+
+.readiness-stage-list::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(36, 59, 83, 0.12);
+}
+
+.readiness-stage-item {
+  position: relative;
+  padding: 0 0 0 18px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.readiness-stage-item::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #fffdfb;
+  border: 2px solid rgba(36, 59, 83, 0.18);
+}
+
+.readiness-stage-item.is-active::before {
+  border-color: var(--color-accent);
+  background: var(--color-accent-soft);
+}
+
+.readiness-stage-item.is-complete::before {
+  border-color: var(--color-primary);
+  background: rgba(36, 59, 83, 0.14);
+}
+
+.readiness-stage-item.is-active {
+  color: inherit;
+  box-shadow: none;
+}
+
+.readiness-stage-item span {
+  max-width: 30ch;
+}
+
+.readiness-journey-card {
+  box-shadow: none;
+  background: rgba(255, 253, 251, 0.72);
+}
+
+@media (max-width: 1080px) {
+  .learn-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .learn-hero-grid,
+  .learn-application-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .learn-module-grid {
+    grid-template-columns: 1fr;
+  }
+}
