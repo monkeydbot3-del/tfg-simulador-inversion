@@ -72,6 +72,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Fase 2 del rediseño ya aplicada sobre navegación global, home, login y registro con una composición más editorial y profesional, manteniendo intacta la lógica funcional.
 - Microiteración correctiva de Fase 2 tras revisión real en Render: nueva paleta más actual, navbar más compacta, login/registro mucho más limpios y jerarquía de botones igualada en home.
 - Fase 2.2 aplicada tras nueva revisión en Render: home realineada sobre un eje común y nueva identidad cálida-profesional con base crema, grafito y acento navy/terracota.
+- Microiteración posterior sobre Fase 2.2 para corregir la aplicación de la paleta: se eliminan CTAs multicolor/gradientes decorativos y se consolida una distribución semántica de color por fondo, superficie, texto, borde, primario, acento y estados.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
@@ -155,7 +156,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 
 ## 8. Siguiente paso recomendado
 Prioridad recomendada inmediata:
-1. revalidar en Render la home, navbar, login y registro tras la nueva paleta cálida y la corrección de alineación antes de abrir Aprender y readiness
+1. revalidar en Render la home, navbar, login y registro tras corregir la aplicación de la paleta y limpiar definitivamente el sistema de botones
 2. mantener el rediseño separado por fases, sin tocar backend salvo necesidad real
 3. validar cada fase visual antes de seguir con la siguiente
 4. conservar como punto de retorno el tag `v1.0-functional` y la rama `stable/pre-redesign`

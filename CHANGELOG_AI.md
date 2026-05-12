@@ -657,8 +657,18 @@
 
 ## 2026-05-12
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `20195cd`
 - Título: Iteración 57, ajuste de alineación de home y paleta cálida profesional
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 58, corrección de aplicación de paleta y sistema de botones
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
