@@ -5240,3 +5240,194 @@ Resultado:
 - aplicar la nueva base visual a composición real de esas pantallas
 - reducir estética genérica en hero, auth y navbar
 - trabajar jerarquía, ritmo visual y claridad de acceso
+
+## Iteración 55 - Rediseño de home, auth y navegación
+
+### Objetivo
+Abrir la Fase 2 del rediseño frontend y mejorar la primera impresión de la app sin tocar lógica de producto.
+
+Áreas trabajadas:
+- navegación global
+- home
+- login
+- registro
+- visibilidad del estado de sesión, invitado y cierre de sesión
+
+### Restricciones respetadas
+No se tocaron:
+- backend
+- endpoints
+- auth funcional
+- modo invitado a nivel lógico
+- Modo Carrera
+- Modo Horizonte
+- Tutor IA
+- readiness quiz
+- IDs usados por JavaScript
+- clases con función de hook JS
+
+### Archivos trabajados
+- `app/templates/base.html`
+- `app/templates/home.html`
+- `app/templates/login.html`
+- `app/templates/register.html`
+- `app/static/estilos.css`
+
+### Cambios en navegación global
+#### `app/templates/base.html`
+Se rehizo visualmente la cabecera para que dejara de parecer una barra plana con enlaces y botones genéricos.
+
+Cambios aplicados:
+- nueva estructura interna `top-nav__inner`
+- marca textual más sólida
+- bloque visual de identidad con `brand-mark` y `brand-copy`
+- reorganización de navegación principal alrededor de:
+  - Inicio
+  - Aprender
+  - Modo Práctica
+  - Modo Carrera
+  - Modo Horizonte
+- separación clara entre navegación y estado de sesión
+- nuevo bloque de sesión `top-nav__session`
+- nuevos paneles compactos `session-pill` para:
+  - usuario autenticado
+  - modo invitado
+  - usuario no autenticado
+
+Se mantuvo intacto:
+- formulario de logout
+- rutas
+- lógica de visibilidad por sesión
+- `nav_mode`
+- enlaces funcionales existentes
+
+### Cambios en home
+#### `app/templates/home.html`
+La home dejó de apoyarse en una composición correcta pero algo genérica, y pasó a una landing interna más jerárquica.
+
+Cambios principales:
+- nuevo hero principal con mensaje más claro:
+  - aprendizaje
+  - simulación histórica
+  - finalidad educativa
+- CTAs reorganizados:
+  - `Modo Práctica`
+  - `Modo Carrera`
+  - `Aprender primero`
+- panel lateral en el hero con propuesta de valor breve
+- nueva banda de sesión:
+  - autenticado
+  - invitado
+  - no autenticado
+- nuevo bloque de modos con cuatro superficies diferenciadas:
+  - Modo Práctica
+  - Modo Carrera
+  - Modo Horizonte
+  - Aprender
+- nuevo bloque de valor educativo para explicar:
+  - comparación con benchmark
+  - simulación
+  - Tutor IA
+  - Horizonte
+
+Objetivo conseguido:
+- menos plantilla de landing genérica
+- menos cards clonadas sin intención
+- más jerarquía
+- CTAs más claros
+- primera impresión más madura
+
+### Cambios en login
+#### `app/templates/login.html`
+Se rehizo la composición para que no pareciera un formulario estándar aislado.
+
+Cambios aplicados:
+- layout a dos zonas reales:
+  - bloque editorial de valor
+  - bloque de acceso premium
+- narrativa más clara sobre el beneficio de entrar
+- beneficios reescritos y apilados con mejor estructura
+- formulario visualmente más limpio
+- divisor más natural entre login y acceso invitado
+- continuidad de invitado mantenida sin tocar la lógica
+
+Se mantuvo intacto:
+- `method`, `action`, `name` de inputs
+- mensajes flash
+- ruta de acceso invitado
+- enlace a registro
+
+### Cambios en registro
+#### `app/templates/register.html`
+Se alineó con login, pero subrayando el valor de crear cuenta.
+
+Cambios aplicados:
+- composición equivalente a login para coherencia
+- foco en beneficios reales:
+  - historial
+  - continuidad de Carrera
+  - base para seguir usando la app con persistencia
+- formulario más cuidado visualmente
+- lenguaje más orientado a progreso y continuidad
+
+Se mantuvo intacto:
+- nombres de campos
+- validaciones esperadas
+- rutas
+- mensajes flash
+- enlace a login
+
+### Cambios CSS complementarios
+#### `app/static/estilos.css`
+Se añadieron estilos específicos de Fase 2 para soportar la nueva composición:
+- `top-nav__inner`
+- `brand-mark`
+- `brand-copy`
+- `top-nav__session`
+- `session-pill`
+- `home-hero*`
+- `home-kpi-grid`
+- `home-kpi-card`
+- `home-session-strip*`
+- `home-onboarding*`
+- `home-mode-grid`
+- `home-mode-card*`
+- `home-value-grid`
+- `auth-shell--redesign`
+- `auth-panel--intro-redesign`
+- `auth-intro-block`
+- `auth-benefits--stacked`
+- `auth-card--premium`
+- ajustes responsive para navbar, hero, home y auth
+
+### Validación visual por inspección estructural
+Se revisó por estructura y consistencia:
+- navbar
+- home autenticada
+- home invitado
+- home no autenticada
+- login
+- registro
+- bloque de logout/cambiar usuario
+- responsive base esperado por CSS
+
+### Validación técnica completa
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- La navegación ya es más sólida, pero puede necesitar un ajuste extra de densidad o colapso si más adelante se quiere una experiencia móvil todavía más refinada.
+- La home ya tiene mejor jerarquía, pero todavía no se ha tocado Aprender ni readiness, así que la percepción global seguirá mezclando pantallas muy nuevas con pantallas aún previas.
+- La experiencia auth está mucho más cuidada, pero podrían afinarse microdetalles de copy o espaciado al revisar la Fase 3.
+
+### Siguiente fase recomendada
+- **Fase 3 — Aprender y readiness quiz**
+- llevar la misma lógica visual a la zona pedagógica
+- reducir acumulación de bloques homogéneos
+- mejorar ritmo editorial, claridad y transición hacia Modo Carrera

@@ -69,6 +69,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Apertura de rama específica de rediseño frontend `feature/frontend-redesign-v2` y creación de una guía de investigación visual previa al rediseño real, sin tocar todavía código de producto.
 - Ampliación del trabajo documental del rediseño con `docs/frontend_redesign_brief.md`, ya orientado a ejecución práctica por fases, sistema visual y rediseño por pantalla.
 - Inicio de la Fase 1 del rediseño frontend con una nueva base visual global en `app/static/estilos.css`: tokens de color, tipografía, spacing, botones, cards, formularios, badges, modales, toasts y layout base, sin tocar lógica de producto.
+- Fase 2 del rediseño ya aplicada sobre navegación global, home, login y registro con una composición más editorial y profesional, manteniendo intacta la lógica funcional.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
@@ -152,7 +153,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 
 ## 8. Siguiente paso recomendado
 Prioridad recomendada inmediata:
-1. abrir la Fase 2 del rediseño sobre home, login, registro y navegación usando la nueva base visual ya creada
+1. abrir la Fase 3 del rediseño sobre Aprender y readiness quiz usando ya la navegación y auth actualizadas
 2. mantener el rediseño separado por fases, sin tocar backend salvo necesidad real
 3. validar cada fase visual antes de seguir con la siguiente
 4. conservar como punto de retorno el tag `v1.0-functional` y la rama `stable/pre-redesign`
