@@ -588,11 +588,55 @@
 
 ## 2026-05-11
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `db578d3`
 - Título: Iteración 51, timeout explícito y acotación de coste del Tutor IA
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/routes.py`
   - `app/static/app.js`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-11
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `0c54844`
+- Título: Iteración 52, preparación documental del rediseño frontend v2
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+  - `docs/frontend_redesign_research.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `5af3bdb`
+- Título: Iteración 53, ampliación del brief accionable del rediseño frontend
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+  - `docs/frontend_redesign_brief.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `9b244ac`
+- Título: Iteración 54, sistema visual base del rediseño frontend
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 55, rediseño de home, auth y navegación
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/base.html`
+  - `app/templates/home.html`
+  - `app/templates/login.html`
+  - `app/templates/register.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

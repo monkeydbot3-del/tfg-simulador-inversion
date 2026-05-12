@@ -4726,3 +4726,708 @@ Con los nuevos logs ya se podrá distinguir si el fallo real ocurre:
 ### Riesgos pendientes
 - Falta verificar en Render si `gpt-4.1-mini` es suficientemente rápido para el despliegue real o conviene ajustar `OPENAI_MODEL` a otro modelo aún más ágil dentro del presupuesto/configuración del proyecto.
 - No se ha simulado aquí un timeout real del SDK contra OpenAI porque el entorno local de validación no dispone de `OPENAI_API_KEY` operativa de producción ni de una llamada real al proveedor.
+
+## Iteración 52 - Preparación documental del rediseño frontend v2
+
+### Objetivo
+Abrir la fase de rediseño frontend de forma ordenada, pero **sin tocar todavía código de producto**.
+
+La intención de esta iteración es fijar:
+- una rama separada para el rediseño
+- una dirección visual clara
+- un marco de implementación por fases
+- criterios concretos para evitar una estética genérica o demasiado “AI-generated”
+
+### Decisión de rama
+Se creó una rama específica para aislar el rediseño:
+- `feature/frontend-redesign-v2`
+
+Esta rama parte del estado funcional ya congelado previamente mediante:
+- tag: `v1.0-functional`
+- rama estable: `stable/pre-redesign`
+
+Con esto queda cubierto el requisito de poder volver al punto estable si el rediseño rompe algo más adelante.
+
+### Documento creado
+Se añadió:
+- `docs/frontend_redesign_research.md`
+
+### Propósito del documento
+Servir como guía real de rediseño antes de tocar la app, definiendo:
+- objetivo del rediseño
+- diagnóstico visual actual
+- dirección visual propuesta
+- paleta recomendada
+- criterios tipográficos
+- mejoras de layout
+- componentes base a revisar
+- principios de accesibilidad
+- reglas para evitar estética IA
+- plan de implementación por fases
+- reglas de ejecución para no romper backend ni funcionalidades críticas
+
+### Dirección visual propuesta
+La dirección elegida es una **fintech educativa** con tono:
+- moderno
+- limpio
+- profesional
+- humano
+- sobrio
+
+No debe sentirse como:
+- plantilla corporativa rígida
+- landing de startup genérica
+- demo “bonita pero vacía”
+- interfaz artificialmente simétrica o blandamente decorada
+
+### Paleta propuesta
+Se recomienda mantener el verde como base por coherencia temática, pero llevarlo a una paleta más madura:
+- grafito
+- blanco cálido
+- verde profundo
+- azul petróleo o gris azulado
+
+Y evitar:
+- abuso de degradados suaves genéricos
+- colorido de plantilla SaaS
+- exceso de decorativismo
+
+### Reglas clave del rediseño
+- no tocar backend salvo necesidad real
+- no romper endpoints
+- no romper auth
+- no romper invitado
+- no romper Carrera
+- no romper Horizonte
+- no romper Tutor IA
+- validar fase a fase
+- usar commits pequeños y reversibles
+
+### Qué NO se hizo en esta iteración
+No se modificó:
+- HTML funcional de producto
+- CSS de producto
+- JS de producto
+- lógica backend
+- endpoints
+
+Es una iteración puramente estructural/documental para preparar el rediseño con criterio.
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+- `docs/frontend_redesign_research.md`
+
+### Validación mínima realizada
+Se verificó:
+- `git branch --show-current`
+- `git status --short`
+
+Como la iteración es solo documental, no se consideró necesario relanzar CI completa.
+
+### Resultado esperado
+La siguiente fase recomendada ya no es improvisar cambios visuales aislados, sino empezar por:
+- **Fase 1 — Sistema visual base**
+- variables CSS
+- paleta
+- tipografía
+- botones
+- cards
+- formularios
+- layout base
+
+## Iteración 53 - Ampliación del brief accionable del rediseño frontend
+
+### Objetivo
+Tomar la investigación previa (`docs/frontend_redesign_research.md`) y convertirla en una guía bastante más operativa para ejecutar el rediseño real de la app sin improvisación.
+
+La necesidad detectada era clara:
+- la investigación servía como base conceptual
+- pero todavía era demasiado resumida para orientar un rediseño completo pantalla por pantalla
+
+### Documento creado
+Se añadió:
+- `docs/frontend_redesign_brief.md`
+
+### Función del nuevo brief
+Este nuevo documento ya no actúa solo como referencia de dirección, sino como:
+- guía de trabajo práctica
+- marco de decisiones visuales
+- checklist de coherencia
+- hoja de ruta por fases
+
+### Qué añade respecto al documento de investigación
+#### Diagnóstico más accionable
+El nuevo brief concreta mejor:
+- qué partes se ven genéricas
+- qué patrones recuerdan a estética IA
+- qué pantallas tienen exceso de texto
+- qué zonas acumulan demasiadas cards
+- qué problemas de jerarquía visual deben corregirse
+
+#### Dirección visual más cerrada
+Se fija con más claridad una interfaz de tipo:
+- fintech educativa moderna
+- académica, pero no aburrida
+- profesional, pero no bancaria
+- humana, pero no infantil
+- sobria, pero visualmente atractiva
+
+#### Paleta concreta
+Se definen colores prácticos para implementar después:
+- verde profundo
+- grafito
+- azul petróleo
+- gris azulado
+- fondos cálidos y superficies claras
+- estados success/warning/error/info
+
+#### Tipografía utilizable
+Se define:
+- stack recomendado
+- tamaños de H1/H2/H3/body/small
+- pesos
+- line-height
+- reglas de copy y alineación para evitar exceso de texto centrado o demasiado blando
+
+#### Sistema de layout
+Se concreta:
+- ancho máximo
+- grid
+- spacing
+- densidad visual
+- criterios responsive
+- estructura general de páginas
+
+#### Sistema de componentes
+Se detallan criterios para:
+- botones
+- cards
+- inputs
+- selects
+- badges
+- modales
+- toasts
+- tablas
+- gráficos
+- estados vacíos
+- errores
+- loading
+
+#### Rediseño por pantalla
+El documento ya desglosa qué debe cambiar en:
+- Home
+- Login / Registro
+- Aprender
+- Readiness quiz
+- Modo Práctica
+- Modo Carrera
+- Informe final
+- Tutor IA
+- Modo Horizonte
+- Historial
+
+#### Reglas anti-estética IA
+Se fijan principios explícitos para reducir:
+- gradientes por defecto
+- pills innecesarias
+- cards clonadas
+- simetría artificial
+- copy genérico
+
+Y para aumentar:
+- jerarquía
+- intención
+- contraste
+- ritmo visual
+- asimetría controlada
+
+#### Reglas técnicas
+El brief recuerda restricciones críticas para no romper producto:
+- no tocar backend
+- no tocar endpoints
+- no cambiar IDs usados por JS
+- no romper auth
+- no romper invitado
+- no romper Carrera
+- no romper Horizonte
+- no romper Tutor IA
+- no borrar disclaimers
+
+### Qué NO se hizo en esta iteración
+No se tocó todavía:
+- CSS de producto
+- templates de producto
+- JS de producto
+- backend funcional
+
+Sigue siendo una iteración documental, pero ya con un nivel mucho más ejecutable.
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+- `docs/frontend_redesign_brief.md`
+
+### Validación
+Como no hay cambios de producto, no se relanzó CI completa.
+
+### Resultado esperado
+A partir de ahora, la referencia principal para abrir el rediseño ya no debería ser solo la investigación base, sino este brief ampliado.
+
+La siguiente fase recomendada sigue siendo:
+- **Fase 1 — Sistema visual base**
+- tokens CSS
+- paleta
+- tipografía
+- spacing
+- botones
+- cards
+- formularios
+- layout base
+
+## Iteración 54 - Sistema visual base del rediseño frontend
+
+### Objetivo
+Iniciar la Fase 1 del rediseño frontend creando una base visual nueva para toda la app, sin rediseñar todavía cada pantalla en profundidad y sin tocar lógica de producto.
+
+El foco de esta iteración ha sido:
+- sistema de tokens visuales
+- paleta
+- tipografía
+- spacing
+- botones
+- cards
+- formularios
+- badges
+- modales
+- toasts
+- layout base
+- foco/accesibilidad básica
+
+### Restricción respetada
+No se tocaron:
+- backend
+- endpoints
+- auth
+- persistencia
+- lógica de Carrera
+- lógica de Horizonte
+- Tutor IA
+- IDs usados por JavaScript
+- clases usadas como hooks JS
+
+### Archivo principal trabajado
+- `app/static/estilos.css`
+
+No fue necesario modificar templates ni JS para esta fase base.
+
+### Sistema visual base creado
+#### 1. Tokens de color
+Se sustituyó la base anterior, demasiado verde y algo genérica, por un sistema más sobrio y controlado:
+- fondos cálidos
+- superficies blancas y superficies suaves
+- texto principal y secundario más contrastados
+- verde profundo como marca
+- azul petróleo como apoyo
+- estados `success`, `warning`, `danger`, `info`
+- bordes más neutros y serios
+
+Variables añadidas o reorganizadas:
+- `--color-bg`
+- `--color-bg-alt`
+- `--color-surface`
+- `--color-surface-soft`
+- `--color-surface-muted`
+- `--color-surface-elevated`
+- `--color-primary`
+- `--color-primary-strong`
+- `--color-primary-soft`
+- `--color-primary-2`
+- `--color-accent`
+- `--color-accent-soft`
+- `--color-text`
+- `--color-text-strong`
+- `--color-text-secondary`
+- `--color-text-soft`
+- `--color-border`
+- `--color-border-strong`
+- `--color-success`, `--color-success-bg`
+- `--color-warning`, `--color-warning-bg`
+- `--color-danger`, `--color-danger-bg`
+- `--color-info`, `--color-info-bg`
+
+#### 2. Tipografía
+Se definió una base más madura y consistente:
+- stack: `Inter, ui-sans-serif, system-ui, ...`
+- variables tipográficas:
+  - `--font-size-xs`
+  - `--font-size-sm`
+  - `--font-size-base`
+  - `--font-size-lg`
+  - `--font-size-xl`
+  - `--font-size-h3`
+  - `--font-size-h2`
+  - `--font-size-h1`
+- line-height:
+  - `--line-height-tight`
+  - `--line-height-heading`
+  - `--line-height-body`
+- tracking:
+  - `--letter-spacing-tight`
+  - `--letter-spacing-heading`
+
+#### 3. Spacing y layout base
+Se añadió una escala de espaciado reutilizable:
+- `--space-1` a `--space-10`
+
+Y también:
+- `--container-max`
+- `--container-narrow`
+
+Se aplicó a:
+- `body`
+- `main-content`
+- `container`
+- `page-header`
+- `card-section`
+- `form-grid`
+- `field`
+- navegación base
+
+#### 4. Radios y sombras
+Se redefinieron tokens para reducir sensación de plantilla genérica suave:
+- `--radius-xs`
+- `--radius-sm`
+- `--radius`
+- `--radius-lg`
+- `--btn-radius`
+- `--shadow-soft`
+- `--shadow-medium`
+- `--shadow-strong`
+
+### Componentes base tocados
+#### Botones
+Se rediseñaron estilos base de:
+- `.btn`
+- `.btn-primary`
+- `.btn-secondary`
+- `.btn-outline`
+- `.btn-ghost`
+- `.btn-large`
+- `.btn-compact`
+- estado `:disabled`
+
+Mejoras aplicadas:
+- menos apariencia de pill genérica
+- contraste más serio
+- hover más sobrio
+- mejor jerarquía entre primario/secundario/ghost
+- foco visible mantenido
+
+#### Cards y paneles
+Se ajustaron:
+- `.card`
+- `.card--elevated`
+- `.card-section`
+- paneles reutilizados como `auth-card`, `metric-card`, `horizon-method-card`, `horizon-warning-card`, `session-banner`, bloques de readiness y otros contenedores existentes
+
+Objetivo:
+- menos blandura visual
+- bordes más sobrios
+- elevación más contenida
+- superficies más coherentes
+
+#### Formularios
+Se mejoraron estilos base de:
+- `input`
+- `select`
+- `textarea`
+- labels de `.field` y `.auth-field`
+- `.segmented-option`
+
+Mejoras:
+- foco más claro
+- mejor contraste
+- selects más cuidados
+- placeholders más suaves
+- controles más sólidos
+
+#### Badges / chips
+Se unificaron estilos base de:
+- `.badge`
+- `.badge-soft`
+- `.warning-chip`
+- `.chip-pos`
+- `.chip-neg`
+
+Objetivo:
+- menos decorativo
+- más útil
+- más sobrio
+
+#### Modales y toasts
+Se mejoró la base visual de:
+- `.modal`
+- `.modal__content`
+- `.readiness-result-modal__dialog`
+- overlays / backdrops
+- `.toast`
+- `.toast-ok`
+- `.toast-error`
+
+Sin reestructurar contenido interno todavía.
+
+#### Layout y navegación base
+Se retocaron estilos globales de:
+- `body`
+- `.top-nav`
+- `.top-nav__links`
+- `.nav-link`
+- `.container`
+- `.main-content`
+- `.hero`
+- `.page-header`
+- `.muted`
+- `.eyebrow`
+- `.lead`
+
+### Accesibilidad básica
+Se reforzó:
+- `:focus-visible` en enlaces, botones, inputs, selects y textareas
+- contraste de texto principal/secundario
+- distinción visual de botones
+- campos más claramente interactivos
+- no se eliminó outline sin alternativa
+
+Se añadió token:
+- `--focus-ring`
+
+### Páginas revisadas por inspección estructural
+Antes de tocar la base se revisaron:
+- `app/templates/base.html`
+- `app/templates/home.html`
+- `app/templates/login.html`
+- `app/templates/register.html`
+- `app/templates/career.html`
+- `app/templates/horizon.html`
+- `app/templates/aprende.html`
+- `app/static/app.js` para no romper hooks/clases/IDs usados por JS
+
+### Validaciones realizadas
+#### Validación de contexto y rama
+- rama confirmada: `feature/frontend-redesign-v2`
+- working tree limpio antes de empezar
+- último commit confirmado: `5af3bdb`
+
+#### Validación técnica completa
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- Aunque la base visual ya es más sólida, algunas pantallas todavía arrastrarán estructura anterior hasta que entren en sus fases específicas.
+- Home, auth, Carrera, Horizonte, informes y Tutor IA ya pueden verse algo más refinados por herencia visual, pero todavía no están rediseñados a nivel de composición.
+- Puede hacer falta ajustar pequeños detalles responsive o densidad cuando se trabaje cada pantalla en profundidad.
+
+### Siguiente fase recomendada
+- **Fase 2 — Home, login, registro y navegación**
+- aplicar la nueva base visual a composición real de esas pantallas
+- reducir estética genérica en hero, auth y navbar
+- trabajar jerarquía, ritmo visual y claridad de acceso
+
+## Iteración 55 - Rediseño de home, auth y navegación
+
+### Objetivo
+Abrir la Fase 2 del rediseño frontend y mejorar la primera impresión de la app sin tocar lógica de producto.
+
+Áreas trabajadas:
+- navegación global
+- home
+- login
+- registro
+- visibilidad del estado de sesión, invitado y cierre de sesión
+
+### Restricciones respetadas
+No se tocaron:
+- backend
+- endpoints
+- auth funcional
+- modo invitado a nivel lógico
+- Modo Carrera
+- Modo Horizonte
+- Tutor IA
+- readiness quiz
+- IDs usados por JavaScript
+- clases con función de hook JS
+
+### Archivos trabajados
+- `app/templates/base.html`
+- `app/templates/home.html`
+- `app/templates/login.html`
+- `app/templates/register.html`
+- `app/static/estilos.css`
+
+### Cambios en navegación global
+#### `app/templates/base.html`
+Se rehizo visualmente la cabecera para que dejara de parecer una barra plana con enlaces y botones genéricos.
+
+Cambios aplicados:
+- nueva estructura interna `top-nav__inner`
+- marca textual más sólida
+- bloque visual de identidad con `brand-mark` y `brand-copy`
+- reorganización de navegación principal alrededor de:
+  - Inicio
+  - Aprender
+  - Modo Práctica
+  - Modo Carrera
+  - Modo Horizonte
+- separación clara entre navegación y estado de sesión
+- nuevo bloque de sesión `top-nav__session`
+- nuevos paneles compactos `session-pill` para:
+  - usuario autenticado
+  - modo invitado
+  - usuario no autenticado
+
+Se mantuvo intacto:
+- formulario de logout
+- rutas
+- lógica de visibilidad por sesión
+- `nav_mode`
+- enlaces funcionales existentes
+
+### Cambios en home
+#### `app/templates/home.html`
+La home dejó de apoyarse en una composición correcta pero algo genérica, y pasó a una landing interna más jerárquica.
+
+Cambios principales:
+- nuevo hero principal con mensaje más claro:
+  - aprendizaje
+  - simulación histórica
+  - finalidad educativa
+- CTAs reorganizados:
+  - `Modo Práctica`
+  - `Modo Carrera`
+  - `Aprender primero`
+- panel lateral en el hero con propuesta de valor breve
+- nueva banda de sesión:
+  - autenticado
+  - invitado
+  - no autenticado
+- nuevo bloque de modos con cuatro superficies diferenciadas:
+  - Modo Práctica
+  - Modo Carrera
+  - Modo Horizonte
+  - Aprender
+- nuevo bloque de valor educativo para explicar:
+  - comparación con benchmark
+  - simulación
+  - Tutor IA
+  - Horizonte
+
+Objetivo conseguido:
+- menos plantilla de landing genérica
+- menos cards clonadas sin intención
+- más jerarquía
+- CTAs más claros
+- primera impresión más madura
+
+### Cambios en login
+#### `app/templates/login.html`
+Se rehizo la composición para que no pareciera un formulario estándar aislado.
+
+Cambios aplicados:
+- layout a dos zonas reales:
+  - bloque editorial de valor
+  - bloque de acceso premium
+- narrativa más clara sobre el beneficio de entrar
+- beneficios reescritos y apilados con mejor estructura
+- formulario visualmente más limpio
+- divisor más natural entre login y acceso invitado
+- continuidad de invitado mantenida sin tocar la lógica
+
+Se mantuvo intacto:
+- `method`, `action`, `name` de inputs
+- mensajes flash
+- ruta de acceso invitado
+- enlace a registro
+
+### Cambios en registro
+#### `app/templates/register.html`
+Se alineó con login, pero subrayando el valor de crear cuenta.
+
+Cambios aplicados:
+- composición equivalente a login para coherencia
+- foco en beneficios reales:
+  - historial
+  - continuidad de Carrera
+  - base para seguir usando la app con persistencia
+- formulario más cuidado visualmente
+- lenguaje más orientado a progreso y continuidad
+
+Se mantuvo intacto:
+- nombres de campos
+- validaciones esperadas
+- rutas
+- mensajes flash
+- enlace a login
+
+### Cambios CSS complementarios
+#### `app/static/estilos.css`
+Se añadieron estilos específicos de Fase 2 para soportar la nueva composición:
+- `top-nav__inner`
+- `brand-mark`
+- `brand-copy`
+- `top-nav__session`
+- `session-pill`
+- `home-hero*`
+- `home-kpi-grid`
+- `home-kpi-card`
+- `home-session-strip*`
+- `home-onboarding*`
+- `home-mode-grid`
+- `home-mode-card*`
+- `home-value-grid`
+- `auth-shell--redesign`
+- `auth-panel--intro-redesign`
+- `auth-intro-block`
+- `auth-benefits--stacked`
+- `auth-card--premium`
+- ajustes responsive para navbar, hero, home y auth
+
+### Validación visual por inspección estructural
+Se revisó por estructura y consistencia:
+- navbar
+- home autenticada
+- home invitado
+- home no autenticada
+- login
+- registro
+- bloque de logout/cambiar usuario
+- responsive base esperado por CSS
+
+### Validación técnica completa
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- La navegación ya es más sólida, pero puede necesitar un ajuste extra de densidad o colapso si más adelante se quiere una experiencia móvil todavía más refinada.
+- La home ya tiene mejor jerarquía, pero todavía no se ha tocado Aprender ni readiness, así que la percepción global seguirá mezclando pantallas muy nuevas con pantallas aún previas.
+- La experiencia auth está mucho más cuidada, pero podrían afinarse microdetalles de copy o espaciado al revisar la Fase 3.
+
+### Siguiente fase recomendada
+- **Fase 3 — Aprender y readiness quiz**
+- llevar la misma lógica visual a la zona pedagógica
+- reducir acumulación de bloques homogéneos
+- mejorar ritmo editorial, claridad y transición hacia Modo Carrera
