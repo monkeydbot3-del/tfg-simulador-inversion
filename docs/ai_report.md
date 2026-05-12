@@ -5431,3 +5431,185 @@ Resultado:
 - llevar la misma lógica visual a la zona pedagógica
 - reducir acumulación de bloques homogéneos
 - mejorar ritmo editorial, claridad y transición hacia Modo Carrera
+
+## Iteración 56 - Corrección visual de Fase 2 tras revisión real en Render
+
+### Objetivo
+Aplicar una microiteración correctiva sobre la Fase 2 del rediseño después de revisar el resultado real en Render.
+
+El objetivo no era avanzar a nuevas pantallas, sino arreglar la primera impresión de:
+- navbar
+- home
+- login
+- registro
+
+sin tocar backend ni lógica de producto.
+
+### Feedback recibido tras revisar Render
+Se detectaron estos problemas visuales principales:
+1. login demasiado cargado y con una columna izquierda excesivamente dominante
+2. navbar poco convincente, con enlaces que parecían palabras sueltas y exceso de bloque informativo en cabecera
+3. paleta demasiado verde/marfil, percibida como apagada y poco atractiva
+4. jerarquía errónea entre botones principales de home
+5. botones blancos demasiado flojos en cards de modos
+6. algunos comentarios explicativos demasiado grandes o invasivos
+7. el banner de modo invitado sí funcionaba razonablemente bien, pero necesitaba botones más sólidos
+
+### Cambio de dirección cromática
+Se ajustó la paleta para salir del look verde académico dominante y moverse hacia una base más moderna y sobria.
+
+#### Nuevo enfoque
+- fondo más neutro y limpio
+- grafito suave para texto
+- superficies blancas
+- acento principal entre azul profundo y teal moderno
+- verde reservado sobre todo para estados positivos, no como identidad total
+
+#### Ajustes de tokens relevantes en `app/static/estilos.css`
+- `--color-bg: #f7f8fa`
+- `--color-bg-alt: #f1f5f9`
+- `--color-surface-soft: #f8fafc`
+- `--color-surface-muted: #eef2f7`
+- `--color-primary: #164e63`
+- `--color-primary-strong: #0f3b4d`
+- `--color-accent: #0f766e`
+- `--color-text: #1f2937`
+- `--color-text-strong: #111827`
+- `--color-text-secondary: #4b5563`
+- `--color-border: #e5e7eb`
+- `--color-success: #15803d`
+- `--color-info: #0f766e`
+
+Resultado buscado:
+- menos verde pastel/verdoso como atmósfera general
+- más sensación de SaaS moderno y limpio
+- mejor contraste en botones y navegación
+
+### Simplificación del login
+#### `app/templates/login.html`
+Se eliminó la estructura tipo landing con gran columna editorial izquierda.
+
+Ahora el login pasa a ser:
+- una card principal centrada
+- título corto: `Iniciar sesión`
+- subtítulo corto: `Accede para continuar tus simulaciones.`
+- formulario como foco principal
+- enlaces secundarios más discretos
+- acceso invitado mantenido, pero más compacto
+
+Se redujo de forma drástica:
+- volumen de texto
+- protagonismo de explicaciones laterales
+- sensación de “landing antes del login”
+
+### Ajuste del registro
+#### `app/templates/register.html`
+Se alineó con la nueva simplicidad del login:
+- card centrada
+- copy más breve
+- beneficio de registro explicado de forma más sutil
+- misma lógica visual limpia y menos invasiva
+
+### Ajustes en navbar
+#### `app/templates/base.html`
+Se corrigió la cabecera para que dejara de sentirse rara o sobredimensionada.
+
+Cambios aplicados:
+- se eliminó el gran bloque `Tu espacio` en cabecera para usuarios no autenticados
+- se sustituyó por acciones mucho más compactas
+- en login/registro se activa una navbar mínima:
+  - marca a la izquierda
+  - `Volver al inicio` como única acción útil
+  - sin duplicar `Iniciar sesión` / `Crear cuenta` arriba
+- para sesión autenticada o invitado se usan ahora notas compactas `session-note`, no bloques grandes
+- enlaces de navegación más cortos y compactos:
+  - `Práctica`
+  - `Carrera`
+  - `Horizonte`
+
+Resultado buscado:
+- navegación más elegante
+- menos dispersa
+- menos palabras flotantes
+- mejor separación entre navegación y estado de sesión
+
+### Cambios en home
+#### `app/templates/home.html`
+Se simplificó la home para que se viera más clara y menos invasiva.
+
+Cambios principales:
+- hero sin panel lateral grande
+- hero mucho más limpio y directo
+- microcopy reducido
+- nota final más pequeña en lugar de gran bloque explicativo
+- se mantiene el bloque de modos, porque su estructura gustaba, pero con copy más tenso y limpio
+- los bloques finales de valor educativo pasan a un tono más sutil
+- el banner de sesión/invitado se mantiene, pero con acciones visualmente mejor equilibradas
+
+### Igualado de botones
+Uno de los problemas clave era que algunos CTAs parecían mucho más importantes que otros cuando no debía existir esa diferencia.
+
+#### Solución aplicada
+Se creó una lógica visual compartida para acciones equivalentes:
+- nueva variante `.btn-mode`
+- aplicada en:
+  - hero de home
+  - cards de modos
+  - acciones del banner de invitado
+  - onboarding principal
+
+Con esto:
+- `Modo Práctica`, `Modo Carrera` y `Aprender` pasan a tener peso visual equivalente
+- las cards de `Práctica`, `Carrera`, `Horizonte` y `Aprender` también se alinean mejor
+- los botones blancos flojos desaparecen en estas zonas
+
+### CSS complementario relevante
+Además del cambio de paleta, se añadieron o ajustaron estilos para:
+- `.btn-nav`
+- `.btn-nav--subtle`
+- `.session-note`
+- `.home-hero--refined`
+- `.hero__actions--balanced`
+- `.btn-mode`
+- `.auth-shell--minimal`
+- `.auth-panel--centered`
+- `.auth-card--compact`
+- `.auth-card__header--compact`
+- `.auth-guest-form--compact`
+- navbar mínima en auth
+- responsive refinado para top-nav y auth
+
+### Validaciones visuales por inspección estructural
+Se revisó por estructura y composición:
+1. login desktop
+2. login móvil
+3. registro desktop
+4. registro móvil
+5. home no autenticada
+6. home autenticada
+7. home modo invitado
+8. navbar
+9. botón cerrar sesión
+10. cards de modos
+11. responsive general
+
+### Validación técnica completa
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- Falta confirmar en Render si la nueva paleta convence también en móviles reales y en brillo normal, no solo en revisión estructural.
+- Puede hacer falta un último microajuste de densidad en navbar móvil si más adelante se quiere una versión aún más compacta.
+- La home ya es mucho más clara, pero todavía convendrá revisar si algún bloque final puede comprimirse un poco más según percepción real.
+
+### Siguiente paso recomendado
+Antes de abrir Aprender/readiness, conviene:
+- revisar en Render la nueva home, navbar, login y registro
+- confirmar que esta dirección visual ya sí convence
+- solo entonces abrir la Fase 3 sobre Aprender y readiness quiz

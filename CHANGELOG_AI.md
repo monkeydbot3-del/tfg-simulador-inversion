@@ -629,8 +629,22 @@
 
 ## 2026-05-12
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `81a667c`
 - Título: Iteración 55, rediseño de home, auth y navegación
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/base.html`
+  - `app/templates/home.html`
+  - `app/templates/login.html`
+  - `app/templates/register.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-12
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 56, corrección visual de Fase 2 tras revisión en Render
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
