@@ -6222,3 +6222,114 @@ Resultado:
 - revisar en Render navbar desktop e intermedia
 - comprobar el bloque “Antes de empezar” y otros paneles suaves
 - si la percepción visual ya es estable, dar por cerrada la Fase 2
+
+## Iteración 61 - Unificación de paneles cálidos y eliminación del fondo verdoso real
+
+### Objetivo
+Rematar la coherencia visual de la Fase 2 corrigiendo dos problemas aún visibles en Render:
+1. el fondo global seguía percibiéndose como un blanco con deriva verdosa
+2. los paneles inferiores de home y práctica seguían demasiado blancos frente a la estética más agradable de los paneles superiores
+
+### Hallazgo importante
+El origen del problema ya no estaba solo en los tokens.
+
+Seguían activos varios gradientes heredados con tinte verde o verde-gris en zonas reales de layout, especialmente en:
+- `body`
+- wrappers generales
+- `analysis-intro`
+- cards y contenedores inferiores con gradientes antiguos
+- algunas superficies auxiliares con mezcla de blanco + verde muy suave
+
+Es decir, el “fondo verdoso” no venía de una percepción subjetiva del beige, sino de capas CSS heredadas que seguían dibujando verde de forma real.
+
+### Corrección del fondo global
+Se sustituyó la composición heredada del `body`, que todavía usaba:
+- `radial-gradient(...)` con verdes suaves
+- `linear-gradient(...)` hacia un fondo de página con sesgo frío
+
+Por una base cálida explícita y controlada:
+- `linear-gradient(180deg, #FCF9F5 0%, #F5EDE3 100%)`
+
+Además:
+- `app-shell` y `main-content` se dejaron transparentes para no reintroducir capas que compitieran con ese fondo
+- se eliminaron varias transiciones heredadas blanco→verde en paneles internos
+
+### Nueva lógica de superficies cálidas
+Se consolidó:
+- `--color-surface-elevated: #FCF6EF`
+- `--color-surface-panel: linear-gradient(180deg, #FFFDFB 0%, #F9F2E9 100%)`
+
+Objetivo:
+- que las superficies inferiores ya no fueran blanco plano
+- que respiraran como una extensión natural del hero y del banner superior
+- mantener un efecto muy sutil, no decorativo
+
+### Paneles unificados en home
+Se aplicó el nuevo lenguaje cálido a:
+- las 4 cards de modos
+  - Modo Práctica
+  - Modo Carrera
+  - Modo Horizonte
+  - Aprender
+- las 3 cards inferiores de valor
+  - benchmark
+  - aprendizaje sobre resultados
+  - continuidad con Tutor IA y Horizonte
+
+Estas cards ahora usan:
+- fondo cálido muy sutil
+- borde cálido
+- sombra suave
+- transición blanca cálida, no blanco plano duro
+
+### Paneles unificados en práctica / nuevo análisis
+Se aplicó también a:
+- `analysis-intro-card`
+- `analysis-intro`
+- callouts internos
+- secciones principales del formulario como:
+  - `#form-dca.card`
+  - `#form-sin-dca.card`
+  - `analysis-submit-card`
+  - otras `card--elevated` del flujo
+
+Resultado buscado:
+- primer panel y paneles inferiores ya no se perciben como dos sistemas distintos
+- toda la pantalla práctica mantiene una misma atmósfera cálida y coherente
+
+### Qué no se tocó
+No se modificó:
+- backend
+- endpoints
+- lógica JS
+- estructura de home
+- estructura del formulario
+- botones navy principales
+- navbar más allá de conservar la corrección anterior
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta la validación visual final en Render para confirmar que el fondo ya no se percibe blanco→verde en ningún navegador concreto
+- conviene revisar que el nuevo tratamiento cálido no deje demasiado homogéneas algunas cards inferiores en pantallas pequeñas
+- si todavía quedara algún matiz extraño, ya debería provenir de un bloque puntual y no del sistema global
+
+### Siguiente paso recomendado
+- revisar en Render la home y la pantalla de práctica
+- confirmar que el fondo global ya no tiene deriva verdosa
+- confirmar que los paneles inferiores ya comparten el mismo lenguaje que los superiores
+- si esto queda bien, dar por prácticamente cerrada la Fase 2 visual
