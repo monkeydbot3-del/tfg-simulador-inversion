@@ -6478,3 +6478,142 @@ Resultado:
 - revisar intro del readiness quiz
 - revisar pregunta en curso, opción seleccionada y resultado final
 - si la experiencia ya transmite claridad y calidad, continuar después con la siguiente pantalla prioritaria del rediseño
+
+## Iteración 63 - Pulido editorial de Aprender y simplificación de cards
+
+### Objetivo
+Refinar la Fase 3 inicial después de la revisión en Render.
+
+El feedback fue claro:
+- `Aprender` había mejorado
+- el readiness ya tenía mejor dirección
+- pero seguía habiendo **demasiados recuadros**
+- algunas piezas auxiliares parecían “caja dentro de caja”
+- el bloque lateral de progreso del readiness parecía demasiado cercano a botones, aunque no fuera clicable
+
+La meta de esta microiteración fue hacer la página más editorial, más limpia y con menos sensación de plantilla generada por cards repetidas.
+
+### Qué recuadros se eliminaron o simplificaron
+Se redujo el peso visual o se eliminaron como card independiente estos elementos:
+- bloque `No es un examen académico`
+- bloque `Idea clave`
+- exceso de tratamiento tipo card en el progreso lateral del readiness
+- peso visual de las tiles de conceptos
+
+La estrategia fue:
+- mantener la información
+- eliminar tratamientos de caja innecesarios
+- dejar más espacio al ritmo tipográfico y a la composición
+
+### Qué cambió en el hero de Aprender
+Antes:
+- la imagen convivía con un recuadro lateral adicional
+- el texto `No es un examen académico` vivía dentro de una caja propia
+- eso generaba sensación de card dentro de card y una imagen visualmente “pegada” debajo
+
+Ahora:
+- se elimina esa mini-card lateral
+- la imagen queda más limpia y mejor relacionada con el bloque de copy principal
+- el mensaje se mantiene como microcopy editorial (`learn-hero-note`) sin caja fuerte
+- el hero respira más y se siente menos ensamblado por piezas separadas
+
+### Reorganización de los 6 conceptos
+Se ajustó el grid para que en desktop funcione como **3 columnas × 2 filas** en lugar de una composición desequilibrada tipo 4+2.
+
+Distribución buscada:
+- fila 1:
+  - Riesgo y rentabilidad
+  - Diversificación
+  - Horizonte temporal
+- fila 2:
+  - DCA y aportaciones
+  - Benchmark
+  - Lectura del informe
+
+Además:
+- las tiles se aligeran visualmente
+- menos sombra
+- fondo menos pesado
+- borde más sutil
+- siguen siendo cards, pero ya no parecen bloques tan duros ni tan “dashboard”
+
+Responsive:
+- `2 columnas` en anchuras medias
+- `1 columna` en móvil
+
+### Qué cambió en “Del concepto a la simulación”
+Antes:
+- el contenido principal estaba bien
+- pero el recuadro `Idea clave` pesaba demasiado como caja independiente
+
+Ahora:
+- se elimina esa mini-card
+- la idea se mantiene como una nota integrada (`learn-inline-note`)
+- aparece como frase editorial con separación sutil, no como otro bloque encapsulado
+- la imagen sigue presente, pero el conjunto se siente menos acumulativo
+
+### Qué cambió en el progreso del readiness
+El bloque lateral del readiness se rediseñó para que deje de parecer un conjunto de botones.
+
+#### Solución aplicada
+Se transformó en una **timeline/lista de pasos**:
+- línea vertical suave
+- puntos de estado
+- títulos y descripciones en texto limpio
+- sin fondo de botón
+- sin sombra de botón
+- sin sensación de CTA falsa
+
+Se mantuvieron:
+- contenido
+- IDs (`readiness-stage-intro`, `readiness-stage-practice`, `readiness-stage-result`)
+- estados visuales activos/completados
+- lógica del quiz
+
+Resultado buscado:
+- que el usuario entienda que eso representa progreso, no interacción clicable
+
+### Qué lógica se mantuvo intacta
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- JS del readiness
+- scoring
+- persistencia
+- desbloqueo de `Modo Carrera`
+- hooks / IDs / data attributes
+- comportamiento de usuario invitado o autenticado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/aprende.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado observado:
+- `25 passed`
+
+Nota operativa:
+- el wrapper devolvió `Process still running` después de mostrar el resumen completo de tests y `All done`, así que el resultado útil visible fue satisfactorio aunque el cierre del wrapper no quedara limpio en esa ejecución.
+
+### Riesgos pendientes
+- falta la comprobación visual real en Render de la nueva densidad de `Aprender`
+- conviene revisar específicamente que el hero no quede demasiado vacío en ciertos anchos medios
+- puede requerirse una microcorrección adicional de spacing en móvil si la reducción de cajas deja demasiado texto seguido en pantallas estrechas
+
+### Qué debe revisar el usuario en Render
+- hero de `Aprender`
+- bloque de 6 conceptos en desktop
+- bloque `Del concepto a la simulación`
+- consejos prácticos y horizonte para confirmar coherencia global
+- columna lateral del readiness para verificar que ya no parece una botonera
+- versión móvil de `Aprender` y readiness
