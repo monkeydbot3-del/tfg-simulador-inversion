@@ -6819,3 +6819,94 @@ Resultado:
 - estado activo de `Introducción guiada`
 - columna izquierda completa del readiness
 - versión móvil de `Aprender` y readiness
+
+## Iteración 66 - Distribución vertical completa de la timeline de progreso
+
+### Objetivo
+Aplicar una última microcorrección muy concreta sobre la columna `Tu progreso` del readiness.
+
+El feedback final indicaba que:
+- el concepto visual de timeline ya funcionaba
+- el punto naranja del estado activo ya estaba bien
+- el contenido ya no parecía una botonera
+- pero los tres pasos seguían demasiado concentrados arriba y no ocupaban realmente toda la altura de la columna
+
+La intervención se limitó a CSS y no tocó estructura ni lógica.
+
+### Ajuste aplicado
+Se reforzó la distribución vertical de `readiness-stage-list` para que los tres pasos se repartan de verdad a lo largo de la columna.
+
+#### Cambio principal
+- `readiness-stage-list` pasa a comportarse como columna flexible vertical:
+  - `display: flex`
+  - `flex-direction: column`
+  - `justify-content: space-between`
+- se añadió una altura mínima controlada:
+  - `min-height: clamp(320px, 42vh, 440px)`
+
+Con esto se consigue que:
+- `Introducción guiada` quede arriba
+- `Ponte a prueba` quede aproximadamente en la mitad
+- `Resultado final` quede abajo
+
+#### Ajuste de la línea timeline
+También se ajustó la línea vertical:
+- `top: 8px`
+- `bottom: 8px`
+
+Objetivo:
+- acompañar mejor la nueva distribución
+- evitar que la línea quedara demasiado corta respecto al conjunto
+
+#### Comportamiento responsive
+En móvil y pantallas estrechas (`max-width: 900px`) se revierte a una solución más natural:
+- `min-height: auto`
+- `display: grid`
+- sin forzar una altura artificial en layout apilado
+
+Así se mantiene:
+- buena lectura en desktop
+- naturalidad en móvil
+
+### Qué se mantuvo intacto
+No se tocó:
+- backend
+- endpoints
+- rutas
+- lógica JS
+- scoring
+- persistencia
+- desbloqueo de `Modo Carrera`
+- IDs / hooks / `data-*`
+- estructura general de `Aprender`
+- contenido del readiness
+- punto naranja del estado activo
+- ausencia de recuadro naranja
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- conviene validar en Render que la altura mínima elegida no resulte excesiva en algún desktop intermedio concreto
+- si hubiera que retocar algo más, ya sería un ajuste mínimo de `min-height` o spacing, no de concepto visual
+
+### Qué debe revisar el usuario en Render
+- columna `Tu progreso` en desktop
+- posición de `Introducción guiada`
+- posición de `Ponte a prueba`
+- posición de `Resultado final`
+- longitud visual de la línea timeline
+- comportamiento en móvil

@@ -80,6 +80,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Microiteración posterior de Fase 3 para reducir el exceso de cards en `Aprender`, convertir el progreso lateral del readiness en una timeline no clicable y dar un tratamiento más editorial a hero y bloques de apoyo.
 - Microcorrección final sobre Fase 3.1 para dar aire superior a las imágenes de `Aprender` y eliminar microcopy redundante del hero y del bloque “Del concepto a la simulación”, sin tocar la lógica del readiness.
 - Microiteración final de Fase 3 para equilibrar verticalmente las imágenes de `Aprender`, eliminar el fondo resaltado del estado activo de la timeline y aprovechar mejor la altura de la columna `Tu progreso`.
+- Microcorrección final adicional para distribuir verticalmente los tres pasos de la timeline `Tu progreso` a lo largo de toda la columna, manteniendo el readiness intacto a nivel funcional.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
