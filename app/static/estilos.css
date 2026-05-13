@@ -5477,20 +5477,17 @@ body {
 
 
 .practice-step-head,
-#modo-inversion .section-heading,
 .analysis-submit-card .submit-bar {
   align-items: start;
 }
 
 .practice-step-head > .career-step-badge,
-#modo-inversion .section-heading > .career-step-badge,
 .analysis-submit-card .submit-bar > .career-step-badge {
   margin-top: 2px;
   align-self: start;
 }
 
 .practice-step-head > div,
-#modo-inversion .section-heading > div,
 .analysis-submit-card .submit-bar > div:first-of-type {
   display: flex;
   flex-direction: column;
@@ -5500,21 +5497,14 @@ body {
 }
 
 .practice-step-head h3,
-#modo-inversion .section-heading h3,
 .analysis-submit-card .submit-bar strong {
   margin: 0;
   line-height: 1.15;
 }
 
 .practice-step-head .muted,
-#modo-inversion .section-heading .muted,
 .analysis-submit-card .submit-bar .muted {
   margin: 0;
-}
-
-#modo-inversion .section-heading {
-  grid-template-columns: auto minmax(0, 1fr);
-  justify-content: start;
 }
 
 .analysis-submit-card .submit-bar {
