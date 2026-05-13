@@ -7349,3 +7349,102 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 71 - Corrección del badge ovalado en el paso 05
+
+### Objetivo
+Aplicar una microcorrección mínima sobre Fase 4.2 para arreglar exclusivamente la forma del badge numérico del paso `05`, que tras la unificación de cabeceras se percibía como un óvalo en lugar de un círculo.
+
+### Feedback recibido
+Tras revisar Render, el usuario detectó que:
+- la unificación general de pasos iba mejor
+- pero el indicador `05` se había deformado y ya no se veía circular
+
+### Causa detectada
+La causa real no era un bug del botón ni de la lógica del formulario, sino la geometría base del badge.
+
+El selector `.career-step-badge` seguía heredando una configuración de pill genérico:
+- `padding: 6px 10px`
+- anchura automática dependiente del contenido
+
+Esa base es válida para badges tipo cápsula, pero en el flujo de pasos, y especialmente en `05` al convivir con el layout de cierre y el CTA lateral, hacía más visible la forma ovalada.
+
+### Qué se corrigió
+Se fijó explícitamente la geometría circular de los badges dentro del sistema de pasos del formulario.
+
+En `app/static/estilos.css`, para los badges usados en:
+- `analysis-intro-card`
+- `modo-inversion`
+- `form-comun`
+- `form-dca`
+- `form-sin-dca`
+- `analysis-submit-card`
+
+se aplicó:
+- `width: 42px`
+- `height: 42px`
+- `min-width: 42px`
+- `min-height: 42px`
+- `padding: 0`
+- `display: inline-flex`
+- `align-items: center`
+- `justify-content: center`
+- `border-radius: 999px`
+- `aspect-ratio: 1 / 1`
+- `flex-shrink: 0`
+- `justify-self: start`
+
+### Resultado buscado
+Con esto:
+- el badge `05` vuelve a ser un círculo perfecto
+- no se deforma por convivir con el botón final
+- mantiene el mismo tamaño y lenguaje que `01`, `02`, `03` y `04`
+- se blinda visualmente todo el sistema de steps para evitar deformaciones futuras
+
+### Qué se mantuvo intacto
+No se tocó:
+- lógica del formulario
+- DCA / Sin DCA
+- backend
+- endpoints
+- rutas Flask
+- JS
+- validaciones
+- envío del análisis
+- IDs
+- names
+- hooks
+- historial
+- auth
+- modo invitado
+- estructura HTML del formulario
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que el badge `05` ya no se percibe ovalado en desktop, intermedio y móvil
+- el ajuste es deliberadamente local al sistema de steps del formulario, así que no debería alterar otros badges del producto
+
+### Qué debe revisar el usuario en Render
+- paso `05`
+- badge `05`
+- comparación visual entre `05` y `01/02/03/04`
+- botón `Enviar propuesta`
+- vista general del formulario
+- desktop
+- responsive intermedio
+- móvil

@@ -5486,9 +5486,24 @@ body {
 
 .analysis-intro-card .section-heading > .career-step-badge,
 #modo-inversion .section-heading > .career-step-badge,
+#form-comun .section-heading > .career-step-badge,
+#form-dca .section-heading > .career-step-badge,
+#form-sin-dca .section-heading > .career-step-badge,
 .analysis-submit-card .section-heading > .career-step-badge {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
   margin-top: 2px;
   align-self: start;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  aspect-ratio: 1 / 1;
+  flex-shrink: 0;
 }
 
 .analysis-intro-card .section-heading > div,
