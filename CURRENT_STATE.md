@@ -84,6 +84,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Apertura de Fase 4 del rediseño frontend para rediseñar visualmente `Modo Práctica / Nuevo análisis`, manteniendo intacta la lógica del formulario, DCA/Sin DCA y generación de análisis.
 - Microiteración de Fase 4.1 para corregir la alineación visual de los encabezados de los pasos 01, 02 y 05 en la pantalla de `Nuevo análisis`, sin tocar estructura funcional ni lógica del formulario.
 - Microcorrección quirúrgica de Fase 4.2 para igualar de verdad el sistema de cabeceras de `Nuevo análisis`: los pasos 01, 02 y 05 se han migrado al mismo patrón estructural/base que ya funcionaba bien en 03 y 04, sin tocar comportamiento funcional.
+- Microcorrección de Fase 4.3 para fijar la geometría circular del badge numérico en el paso 05 y blindar el mismo tamaño/forma en todos los pasos del flujo, sin tocar lógica ni layout funcional.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
