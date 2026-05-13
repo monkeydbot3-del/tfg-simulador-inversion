@@ -7160,3 +7160,92 @@ Resultado:
 - vista general del formulario
 - responsive intermedio
 - móvil
+
+## Iteración 69 - Igualar exactamente la cabecera del paso 02 al patrón del paso 03
+
+### Objetivo
+Aplicar una microcorrección quirúrgica sobre Fase 4 para que la cabecera del paso `02` deje de ser una variante aproximada y use exactamente la misma lógica visual/estructural que el paso `03`.
+
+El feedback era preciso:
+- el paso `03` ya se veía correcto
+- el paso `02` seguía sin sentirse idéntico en estructura visual
+- no bastaba con “parecerse”
+- debía convertirse en un hermano real del `03`
+
+### Diagnóstico
+Tras la iteración 68, el paso `02` seguía dependiendo de una cabecera tratada como caso especial (`#modo-inversion .section-heading`) mientras que el paso `03` descansaba en una estructura base que ya funcionaba bien.
+
+Eso hacía que, aunque la alineación general hubiese mejorado, el paso `02` siguiera viéndose como una variante y no como una repetición exacta del patrón del `03`.
+
+### Qué se cambió
+Se decidió dejar de “forzar” el paso `02` con CSS específico y hacer que use directamente el mismo patrón estructural que el `03`.
+
+#### Cambio HTML mínimo
+En `app/templates/analisis.html`:
+- la cabecera del paso `02` pasó de usar `section-heading` a usar `practice-step-head`
+- se mantuvieron intactos:
+  - el badge `02`
+  - el título
+  - el subtítulo
+  - el resto del bloque de inversión
+  - radios DCA / Sin DCA
+
+#### Ajuste CSS derivado
+En `app/static/estilos.css`:
+- se eliminaron los tratamientos específicos añadidos para `#modo-inversion .section-heading`
+- el paso `02` pasa a heredar directamente la misma lógica base que usa el `01`
+- como el patrón buscado era el del `03`, el resultado práctico es que `02` y `03` comparten ya la misma gramática visual de arranque del bloque textual respecto al badge
+
+### Resultado buscado
+Con este ajuste:
+- el círculo `02` arranca como el `03`
+- el título arranca como el `03`
+- el subtítulo queda debajo con la misma lógica
+- desaparece la sensación de variante o alineación especial
+
+### Qué se mantuvo intacto
+No se tocó:
+- bloque DCA / Sin DCA en sí
+- lógica DCA / Sin DCA
+- backend
+- endpoints
+- rutas Flask
+- JS
+- validaciones funcionales
+- envío del análisis
+- names de inputs
+- IDs
+- hooks JS
+- gráficos
+- historial
+- auth
+- modo invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/analisis.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente la validación visual real en Render para confirmar la comparación directa `02` vs `03` en desktop, intermedio y móvil
+- si aún hubiera diferencia perceptiva, ya debería ser un ajuste milimétrico residual, no un problema de estructura
+
+### Qué debe revisar el usuario en Render
+- paso `02`
+- paso `03`
+- comparación directa entre `02` y `03`
+- vista general del formulario
+- responsive intermedio
+- móvil
