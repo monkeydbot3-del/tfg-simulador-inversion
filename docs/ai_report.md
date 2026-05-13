@@ -7073,3 +7073,90 @@ Resultado:
 - bloque final `Revisa los datos`
 - botón `Enviar propuesta`
 - comportamiento móvil e intermedio
+
+## Iteración 68 - Corrección fina de alineación en pasos de análisis
+
+### Objetivo
+Aplicar una microiteración de remate sobre la Fase 4 inicial para corregir pequeños fallos de alineación visual en los encabezados de los pasos del formulario.
+
+El feedback recibido era muy concreto:
+- el paso `01` arrancaba algo más bajo de lo deseado respecto a su círculo
+- el paso `02` parecía demasiado desplazado hacia la derecha
+- el paso `05` tampoco alineaba del todo bien el arranque del texto respecto al círculo
+
+No era un problema funcional ni de estructura general, sino de consistencia fina en el sistema de pasos.
+
+### Qué se corrigió en el paso 01
+Se ajustó la alineación del bloque inicial (`practice-step-head`) para que:
+- el círculo `01` arranque correctamente arriba
+- el título no caiga visualmente por debajo
+- el microcopy arranque con la misma lógica que el resto del flujo
+
+### Qué se corrigió en el paso 02
+Se ajustó específicamente `#modo-inversion .section-heading` para que:
+- el círculo `02` y el bloque de texto compartan el mismo arranque
+- el contenido ya no parezca desplazado de más a la derecha
+- título y subtítulo se lean con la misma estructura que el resto de pasos
+
+No se tocó la selección DCA/Sin DCA, solo la cabecera del paso.
+
+### Qué se corrigió en el paso 05
+Se normalizó también el arranque de `analysis-submit-card .submit-bar` para que:
+- el círculo `05` se alinee correctamente con el título
+- el copy de cierre no quede ligeramente “caído” respecto al badge de paso
+- el cierre del flujo mantenga la misma gramática visual que los pasos anteriores
+
+### Cómo se resolvió
+Se unificó la lógica de layout entre 01, 02 y 05 con CSS compartido:
+- `align-items: start`
+- badges de paso con `align-self: start` y ligero ajuste de `margin-top`
+- el contenedor de texto de cada paso pasa a usar una pequeña columna (`flex-direction: column`) con separación interna consistente
+- títulos y textos secundarios se resetean para arrancar en la misma línea base visual
+
+Además:
+- `#modo-inversion .section-heading` se fuerza explícitamente a `grid-template-columns: auto minmax(0, 1fr)`
+- `analysis-submit-card .submit-bar` conserva su rejilla de cierre pero ahora con arranque coherente del bloque textual
+
+### Qué lógica se mantuvo intacta
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica DCA / Sin DCA
+- validaciones funcionales
+- envío del análisis
+- nombres de inputs
+- IDs
+- hooks JS
+- gráficos
+- historial
+- auth
+- modo invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validar en Render que la corrección de alineación no genere una sensación demasiado compacta en algún breakpoint intermedio
+- si quedara algo raro, debería ser ya un ajuste mínimo de spacing, no de estructura
+
+### Qué debe revisar el usuario en Render
+- paso `01`
+- paso `02`
+- paso `05`
+- vista general del formulario
+- responsive intermedio
+- móvil
