@@ -7249,3 +7249,103 @@ Resultado:
 - vista general del formulario
 - responsive intermedio
 - móvil
+
+## Iteración 70 - Unificación final de las cabeceras 01, 02 y 05 con el patrón de 03 y 04
+
+### Objetivo
+Aplicar el remate real de Fase 4 tras feedback visual directo del usuario en Render.
+
+La captura confirmó que el diagnóstico correcto no era “solo el 02”: los únicos pasos que ya estaban realmente bien eran `03` y `04`. Los pasos `01`, `02` y `05` seguían respondiendo a una gramática visual distinta, aunque en iteraciones anteriores se habían acercado.
+
+Por tanto, el objetivo dejó de ser retocar un único caso y pasó a ser unificar de verdad todo el sistema de cabeceras para que `01`, `02` y `05` usen exactamente el mismo patrón estructural que ya funcionaba en `03` y `04`.
+
+### Feedback que disparó esta corrección
+Feedback explícito del usuario tras revisión en Render:
+- “solo están bien el 3 y el 4, los demás siguen estando mal”
+
+Esto invalidó la hipótesis previa de que bastaba con afinar el paso `02` por separado.
+
+### Qué se cambió
+Se hizo una unificación estructural real de cabeceras:
+- el paso `01` dejó de usar `practice-step-head`
+- el paso `02` dejó de usar `practice-step-head`
+- el paso `05` dejó de usar `submit-bar` como cabecera visual propia
+
+En su lugar:
+- `01` pasa a usar `section-heading`
+- `02` pasa a usar `section-heading`
+- `05` pasa a usar `section-heading section-heading--with-actions`
+
+De este modo:
+- `01`, `02`, `03`, `04` y `05` comparten ya la misma base visual de arranque
+- `05` añade solo la variante necesaria para convivir con el CTA lateral, sin perder la gramática del sistema
+
+### Qué se cambió en HTML
+En `app/templates/analisis.html`:
+- la cabecera del paso `01` se migró a `section-heading`
+- la cabecera del paso `02` se migró a `section-heading`
+- la cabecera del paso `05` se migró a `section-heading section-heading--with-actions`
+- el título del paso `05` pasó de `strong` a `h3` para compartir la misma semántica visual que el resto de pasos
+
+### Qué se cambió en CSS
+En `app/static/estilos.css`:
+- se extendió el patrón base de `section-heading` a los bloques de `analysis-intro-card`, `modo-inversion` y `analysis-submit-card`
+- se retiró la dependencia visual de `practice-step-head` y del antiguo `submit-bar` como sistemas paralelos
+- se añadió una variante controlada `section-heading--with-actions` para el paso `05`
+- se mantuvo responsive el CTA final con el mismo comportamiento mobile-friendly
+
+### Resultado buscado
+Con esta corrección:
+- `01` debe verse ya como hermano de `03` y `04`
+- `02` debe verse ya como hermano de `03` y `04`
+- `05` debe cerrar el flujo con la misma gramática visual, solo añadiendo el botón como tercera columna funcional
+
+### Qué se mantuvo intacto
+No se tocó:
+- lógica del formulario
+- backend
+- endpoints
+- rutas Flask
+- JS
+- DCA / Sin DCA
+- validaciones funcionales
+- envío del análisis
+- names de inputs
+- IDs
+- hooks JS
+- gráficos
+- historial
+- auth
+- modo invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/analisis.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta la validación manual final en Render para confirmar que la unificación visual ahora sí deja `01`, `02`, `03`, `04` y `05` respirando como un solo sistema
+- si quedara algún desajuste, ya debería ser de espaciado fino y no de estructura base
+
+### Qué debe revisar el usuario en Render
+- paso `01`
+- paso `02`
+- paso `03`
+- paso `04`
+- paso `05`
+- comparación rápida entre todos los encabezados
+- desktop
+- responsive intermedio
+- móvil

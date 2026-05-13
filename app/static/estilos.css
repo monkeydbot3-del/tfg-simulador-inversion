@@ -5354,11 +5354,12 @@ body {
   background: linear-gradient(180deg, rgba(255, 253, 251, 0.99), rgba(247, 241, 234, 0.96));
 }
 
-.practice-step-head,
+.analysis-intro-card .section-heading,
+#modo-inversion .section-heading,
 #form-comun .section-heading,
 #form-dca .section-heading,
 #form-sin-dca .section-heading,
-.analysis-submit-card .submit-bar {
+.analysis-submit-card .section-heading {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 14px;
@@ -5453,11 +5454,12 @@ body {
 
 @media (max-width: 900px) {
   .analysis-intro,
-  .analysis-submit-card .submit-bar,
-  .practice-step-head,
+  .analysis-intro-card .section-heading,
+  #modo-inversion .section-heading,
   #form-comun .section-heading,
   #form-dca .section-heading,
-  #form-sin-dca .section-heading {
+  #form-sin-dca .section-heading,
+  .analysis-submit-card .section-heading {
     grid-template-columns: 1fr;
   }
 
@@ -5476,19 +5478,22 @@ body {
 }
 
 
-.practice-step-head,
-.analysis-submit-card .submit-bar {
+.analysis-intro-card .section-heading,
+#modo-inversion .section-heading,
+.analysis-submit-card .section-heading {
   align-items: start;
 }
 
-.practice-step-head > .career-step-badge,
-.analysis-submit-card .submit-bar > .career-step-badge {
+.analysis-intro-card .section-heading > .career-step-badge,
+#modo-inversion .section-heading > .career-step-badge,
+.analysis-submit-card .section-heading > .career-step-badge {
   margin-top: 2px;
   align-self: start;
 }
 
-.practice-step-head > div,
-.analysis-submit-card .submit-bar > div:first-of-type {
+.analysis-intro-card .section-heading > div,
+#modo-inversion .section-heading > div,
+.analysis-submit-card .section-heading > div:first-of-type {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -5496,17 +5501,49 @@ body {
   min-width: 0;
 }
 
-.practice-step-head h3,
-.analysis-submit-card .submit-bar strong {
+.analysis-intro-card .section-heading h3,
+#modo-inversion .section-heading h3,
+.analysis-submit-card .section-heading h3 {
   margin: 0;
   line-height: 1.15;
 }
 
-.practice-step-head .muted,
-.analysis-submit-card .submit-bar .muted {
+.analysis-intro-card .section-heading .muted,
+#modo-inversion .section-heading .muted,
+.analysis-submit-card .section-heading .muted {
   margin: 0;
 }
 
 .analysis-submit-card .submit-bar {
   grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+
+.section-heading--with-actions {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.section-heading--with-actions .actions {
+  justify-self: end;
+  align-self: center;
+}
+
+.section-heading--with-actions .actions .btn {
+  min-width: 220px;
+}
+
+@media (max-width: 900px) {
+  .section-heading--with-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .section-heading--with-actions .actions {
+    justify-self: stretch;
+  }
+
+  .section-heading--with-actions .actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
 }
