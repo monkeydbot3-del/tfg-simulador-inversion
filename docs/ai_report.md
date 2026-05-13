@@ -7624,3 +7624,201 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 74 - Rediseño visual de la experiencia de Modo Carrera
+
+### Objetivo
+Abrir la Fase 5 del rediseño frontend para llevar `Modo Carrera` al mismo nivel visual que Home, Aprender y Práctica, manteniendo intacta su lógica funcional.
+
+El propósito no era rehacer Carrera ni simplificar su comportamiento, sino hacer que toda la experiencia se perciba como un modo principal, guiado y profesional:
+- desbloqueo / gate
+- creación de sesión
+- sesiones guardadas
+- sesión activa
+- turnos y asignación
+- series
+- informe final
+- bloques de continuidad, exportación y cierre
+
+### Archivos localizados como responsables
+Se localizaron como piezas principales de la experiencia visual de Carrera:
+- `app/templates/career.html`
+- `app/static/estilos.css`
+
+También se revisaron referencias relacionadas en el proyecto para acotar hooks y zonas sensibles:
+- `app/career.py`
+- `app/routes.py`
+- `app/services/career_session_service.py`
+- `app/static/app.js` como superficie a respetar si usa IDs y hooks del DOM
+
+#### Confirmación importante
+En esta iteración no se cambió:
+- lógica de turnos
+- persistencia
+- sesiones guardadas
+- endpoints
+- backend
+- flujo funcional de Carrera
+
+### Estados de Carrera identificados
+A nivel de plantilla y estructura visual, se identificaron estos estados/bloques:
+- gate por readiness (`readiness_gate_blocked`)
+- overview introductorio del modo cuando está desbloqueado
+- crear nueva sesión
+- reanudar última sesión
+- sesiones guardadas recientes
+- sesión activa
+- asignación del turno
+- historial de turnos
+- series por activo
+- informe final
+- CTA a Horizonte
+- Tutor IA
+- exportaciones
+- ranking local
+- share / reproducibilidad
+
+### Qué se cambió en la cabecera
+La cabecera general de `Modo Carrera` se reforzó como pantalla principal:
+- mejor alineación con `career-page-header`
+- mantiene eyebrow, título y subtítulo, pero con sensación más de modo premium que de pantalla técnica
+- se mantuvo el badge `Modo estratégico`
+
+### Qué se cambió en el gate de acceso
+Sin tocar la lógica del readiness gate:
+- se mantuvo la estructura ya existente
+- se alineó mejor con la estética cálida del rediseño global
+- el bloque premium pasó a usar una superficie más coherente con el sistema actual
+- se conservaron pasos, beneficios y acciones, pero con acabado visual más sólido
+
+### Qué se cambió en la franja overview inicial
+La overview strip pasó a sentirse más editorial y menos lista funcional:
+- cada item recibió un tratamiento más parecido a mini-panel de contexto
+- se añadieron etiquetas suaves (`Histórico`, `Turnos`, `Cierre`)
+- mejor relación entre beneficio del modo y expectativa del usuario
+
+### Qué se cambió en crear nueva carrera
+El bloque de setup es una de las zonas con más impacto real.
+
+#### Cambios principales
+- la card de creación de sesión se reforzó como bloque principal del modo
+- `career-section-heading` se trató como hero interno guiado
+- el copy de ayuda sobre crear o retomar se hizo más visible dentro del bloque de acciones
+- la card mantiene la misma estructura funcional, pero con una lectura más clara y menos sensación de “formulario acumulado”
+
+### Qué se cambió en sesiones guardadas / reanudar
+Sin tocar el comportamiento de reanudación:
+- el panel lateral de sesiones guardadas se integró mejor con la nueva identidad cálida
+- mejor sensación de panel de continuidad del usuario
+- mejor encaje visual con la card principal de setup
+
+### Qué se cambió en sesión activa / turno actual
+La sesión activa pasó a verse más como el centro operativo del modo:
+- cabecera de sesión elevada y más clara
+- capital actual y turno en curso encapsulados como mini-estados visibles
+- el builder de asignación se reempaquetó sobre una superficie propia interna
+- el resumen de peso total/activos se convirtió en una pill más intencional
+- el objetivo fue ordenar mejor la lectura: estado → asignación → acciones → histórico
+
+### Qué se cambió en series por activo
+El paso `3` ganó mejor framing visual:
+- cabecera más guiada
+- subtítulo corto explicando el uso de los tickers seleccionables
+- wrapper de gráfico integrado en la superficie cálida del sistema
+
+### Qué se cambió en informe final / resultado
+El paso `4` recibió un tratamiento más de cierre importante:
+- cabecera más clara con subtítulo explicativo
+- bloque de score elevado y más presentable
+- métricas, advertencias, exportación, ranking, Tutor IA y Horizonte quedaron mejor integrados dentro de paneles cálidos coherentes
+- no se tocó generación del informe, solo su presentación
+
+### Qué decisiones visuales guiaron la fase
+- dar a Carrera sensación de modo principal, no de dashboard técnico improvisado
+- reforzar continuidad de sesión y progreso
+- reducir el exceso de blanco plano
+- mantener la paleta cálida profesional sin volver al verde residual
+- usar paneles internos y jerarquía para ordenar complejidad sin borrar información
+- mantener CTAs con jerarquía clara: navy sólido para acción principal, ghost/secondary para apoyo
+
+### Qué estados visuales se revisaron
+Se revisaron visualmente, a nivel de estructura y CSS, estos bloques/estados:
+- gate bloqueado
+- overview del modo
+- crear nueva sesión
+- acciones de crear / reanudar
+- panel de sesiones guardadas
+- sesión activa
+- asignación del turno
+- historial de turnos
+- series por activo
+- informe final
+- score / métricas / alertas
+- CTA a Horizonte
+- Tutor IA
+- exportaciones
+- ranking
+- share payload
+- responsive intermedio para grids principales
+
+### Qué lógica se mantuvo intacta
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica de Carrera
+- persistencia de sesiones
+- creación o reanudación de sesiones
+- cierre de turnos
+- autoplay
+- informe final
+- Tutor IA
+- Horizonte
+- IDs del DOM
+- hooks JS
+- data attributes
+- auth
+- modo invitado
+- readiness
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/career.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validación manual real en Render de los distintos estados de Carrera, especialmente los que dependen de tener sesión activa y sesiones guardadas reales
+- conviene comprobar móvil e intermedio porque Carrera es una pantalla más compleja que las fases anteriores
+- el estado real de informe final, Tutor IA y continuidad hacia Horizonte debe revisarse visualmente en entorno real para confirmar que ningún panel quedó demasiado denso
+
+### Qué debe revisar el usuario en Render
+- cabecera general de `Modo Carrera`
+- gate bloqueado si aplica
+- franja overview inicial
+- crear nueva carrera
+- reanudar última sesión
+- panel de sesiones guardadas
+- sesión activa
+- asignación del turno
+- historial de turnos
+- series por activo
+- informe final
+- score, métricas y alertas
+- CTA a Horizonte
+- Tutor IA
+- exportaciones, ranking y share
+- desktop
+- responsive intermedio
+- móvil

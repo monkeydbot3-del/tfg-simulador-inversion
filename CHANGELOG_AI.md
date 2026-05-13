@@ -823,11 +823,22 @@
 
 ## 2026-05-13
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `e3a5b00`
 - Título: Iteración 73, separación del CTA final para corregir el desplazamiento del texto en el paso 05
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
   - `app/templates/analisis.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-13
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 74, rediseño visual de la experiencia de Modo Carrera
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/career.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

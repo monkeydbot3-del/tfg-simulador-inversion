@@ -87,6 +87,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Microcorrección de Fase 4.3 para fijar la geometría circular del badge numérico en el paso 05 y blindar el mismo tamaño/forma en todos los pasos del flujo, sin tocar lógica ni layout funcional.
 - Microcorrección final de Fase 4.4 para acercar el bloque textual del paso 05 al badge, reduciendo el hueco horizontal sin tocar la lógica ni la colocación funcional del CTA final.
 - Microcorrección adicional de Fase 4.5 tras validación visual real: el paso 05 deja de mezclar copy y CTA en la misma cabecera de tres columnas; la cabecera vuelve a patrón de dos columnas y el botón pasa a su propia fila visual dentro del mismo bloque, corrigiendo el desplazamiento excesivo del texto sin afectar la lógica del formulario.
+- Apertura de Fase 5 del rediseño frontend sobre `Modo Carrera`: se ha empezado a rediseñar visualmente la experiencia completa (gate, creación de sesión, sesiones guardadas, sesión activa, series e informe final) desde `app/templates/career.html` y `app/static/estilos.css`, sin tocar persistencia, turnos, sesiones ni lógica funcional.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
