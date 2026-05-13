@@ -5334,3 +5334,143 @@ body {
     justify-content: initial;
   }
 }
+
+
+.practice-header {
+  align-items: end;
+}
+
+.practice-step-card {
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 16px 34px rgba(23, 32, 51, 0.05);
+}
+
+.practice-step-card--support {
+  background: linear-gradient(180deg, rgba(255, 248, 241, 0.98), rgba(249, 242, 233, 0.92));
+}
+
+.practice-step-card--submit {
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.99), rgba(247, 241, 234, 0.96));
+}
+
+.practice-step-head,
+#form-comun .section-heading,
+#form-dca .section-heading,
+#form-sin-dca .section-heading,
+.analysis-submit-card .submit-bar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.analysis-intro {
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.analysis-intro .field,
+.analysis-intro .callout {
+  background: rgba(255, 253, 251, 0.82);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.analysis-intro .callout {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+}
+
+#modo-inversion .segmented-control {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+#modo-inversion .segmented-option span {
+  min-height: 112px;
+  padding: 18px 18px 16px;
+  background: rgba(255, 253, 251, 0.9);
+  border: 1px solid rgba(36, 59, 83, 0.12);
+  box-shadow: 0 12px 24px rgba(23, 32, 51, 0.04);
+}
+
+#modo-inversion .segmented-option strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text-strong);
+}
+
+#modo-inversion .segmented-option small {
+  display: block;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+#modo-inversion .segmented-option input[type="radio"]:checked + span {
+  background: linear-gradient(180deg, rgba(232, 238, 243, 0.95), rgba(243, 246, 249, 0.92));
+  border-color: rgba(36, 59, 83, 0.28);
+  box-shadow: 0 14px 28px rgba(36, 59, 83, 0.08);
+}
+
+#form-comun .form-grid,
+#form-dca .form-grid {
+  gap: 18px;
+}
+
+#form-comun textarea {
+  min-height: 132px;
+  resize: vertical;
+}
+
+#form-dca .field,
+#form-sin-dca .field,
+#form-comun .field {
+  gap: 10px;
+}
+
+.analysis-submit-card .submit-bar {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.analysis-submit-card .actions {
+  justify-self: end;
+}
+
+.analysis-submit-card .actions .btn {
+  min-width: 220px;
+}
+
+.precheck-dialog {
+  background: linear-gradient(180deg, rgba(255, 253, 251, 0.99), rgba(249, 242, 233, 0.97));
+}
+
+@media (max-width: 900px) {
+  .analysis-intro,
+  .analysis-submit-card .submit-bar,
+  .practice-step-head,
+  #form-comun .section-heading,
+  #form-dca .section-heading,
+  #form-sin-dca .section-heading {
+    grid-template-columns: 1fr;
+  }
+
+  #modo-inversion .segmented-control {
+    grid-template-columns: 1fr;
+  }
+
+  .analysis-submit-card .actions {
+    justify-self: stretch;
+  }
+
+  .analysis-submit-card .actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
+}
