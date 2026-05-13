@@ -7448,3 +7448,85 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 72 - Reajuste del bloque textual del paso 05 hacia la izquierda
+
+### Objetivo
+Aplicar la microcorrección final de Fase 4 para acercar el bloque textual del paso `05` al badge, reduciendo el hueco horizontal excesivo sin tocar ni el badge circular ni la colocación funcional del botón final.
+
+### Feedback recibido
+Tras revisar Render, el usuario indicó que:
+- el badge `05` ya estaba bien
+- el botón `Enviar propuesta` ya estaba bien
+- pero el bloque de texto (`Revisa los datos antes de enviar` + subtítulo) seguía demasiado desplazado hacia la derecha
+
+### Causa detectada
+La causa no era un fallo de estructura global del formulario, sino la suma de dos cosas dentro del paso `05`:
+- el `gap` horizontal común del sistema de cabeceras
+- la convivencia con la tercera columna del CTA dentro de `section-heading--with-actions`
+
+Eso hacía que el arranque del texto en `05` respirase demasiado respecto al badge, aunque el sistema general ya estuviera correcto.
+
+### Qué se ajustó
+Se aplicó un ajuste local y mínimo sobre `section-heading--with-actions` en `app/static/estilos.css`:
+- `column-gap: 10px` para reducir la separación horizontal badge → texto
+- `margin-left: -2px` en el primer bloque de texto para pegarlo un poco más hacia la izquierda sin romper el CTA
+
+### Resultado buscado
+Con esto:
+- el título del paso `05` arranca más cerca del badge
+- el subtítulo sigue esa misma alineación
+- desaparece parte del hueco visual raro entre badge y copy
+- el botón final conserva su buena colocación
+- el badge `05` se mantiene circular
+
+### Qué se mantuvo intacto
+No se tocó:
+- badge/círculo `05`
+- botón `Enviar propuesta`
+- lógica del formulario
+- DCA / Sin DCA
+- backend
+- endpoints
+- rutas Flask
+- JS
+- validaciones
+- envío del análisis
+- IDs
+- names
+- hooks
+- historial
+- auth
+- modo invitado
+- estructura HTML del paso `05`
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que el ajuste no se quede corto o se pase en alguna anchura intermedia
+- si aún se percibiera raro, ya debería ser un ajuste de 1-2 px, no un problema de layout
+
+### Qué debe revisar el usuario en Render
+- paso `05`
+- título del paso `05`
+- subtítulo del paso `05`
+- badge `05`
+- botón `Enviar propuesta`
+- comparación con pasos `03/04`
+- desktop
+- responsive intermedio
+- móvil

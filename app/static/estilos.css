@@ -5539,6 +5539,15 @@ body {
   align-items: start;
 }
 
+
+.section-heading--with-actions {
+  column-gap: 10px;
+}
+
+.section-heading--with-actions > div:first-of-type {
+  margin-left: -2px;
+}
+
 .section-heading--with-actions .actions {
   justify-self: end;
   align-self: center;
