@@ -6,7 +6,7 @@
 
 {% block content %}
 
-<section class="page-header page-header--with-badge">
+<section class="page-header page-header--with-badge career-page-header">
   <div>
     <p class="eyebrow">Simulación avanzada</p>
     <h1>Modo Carrera</h1>
@@ -70,29 +70,32 @@
   </div>
 </section>
 {% else %}
-<section class="career-overview-strip">
-  <article class="info-strip__item">
+<section class="career-overview-strip career-overview-strip--premium">
+  <article class="info-strip__item career-overview-item">
+    <span class="career-subtle-badge">Histórico</span>
     <strong>Sesiones históricas</strong>
     <p>Crea una partida sobre un periodo real y adapta decisiones a cada turno.</p>
   </article>
-  <article class="info-strip__item">
+  <article class="info-strip__item career-overview-item">
+    <span class="career-subtle-badge">Turnos</span>
     <strong>Control de cartera</strong>
     <p>Asigna pesos, activa DCA y revisa cómo evoluciona tu exposición.</p>
   </article>
-  <article class="info-strip__item">
+  <article class="info-strip__item career-overview-item">
+    <span class="career-subtle-badge">Cierre</span>
     <strong>Informe final</strong>
     <p>Compara portfolio, benchmark, alertas y ranking local en una sola vista.</p>
   </article>
 </section>
 
-<div id="career-app" class="career-layout career-layout--dashboard">
+<div id="career-app" class="career-layout career-layout--dashboard career-layout--redesigned">
 
   <section class="career-setup-shell">
     <article class="card card--elevated career-card career-card--setup career-card--setup-form">
 
       <div class="card-section">
 
-        <div class="career-section-heading">
+        <div class="career-section-heading career-section-heading--hero">
           <div>
             <span class="career-step-badge">Paso 1</span>
             <h2>Crear nueva sesión</h2>
@@ -222,6 +225,7 @@
 
 
         <div class="career-setup-actions-card">
+          <p class="muted career-setup-helper">Puedes empezar una simulación nueva o retomar la última si ya habías avanzado antes.</p>
           <div class="actions-row actions-row--panel career-action-bar">
 
             <button id="career-create-btn" class="btn btn-primary btn-large" type="button">
@@ -258,7 +262,7 @@
 
     <div class="card-section">
 
-      <div class="career-session-header">
+      <div class="career-session-header career-session-header--elevated">
 
         <div>
 
@@ -299,9 +303,9 @@
 
 
 
-      <div class="career-turn-builder">
+      <div class="career-turn-builder career-turn-builder--surface">
 
-        <div class="turn-builder-head">
+        <div class="turn-builder-head career-panel-head career-panel-head--stacked">
 
           <div>
             <span class="career-subtle-badge">Asignación</span>
@@ -402,11 +406,12 @@
 
     <div class="card-section">
 
-      <div class="career-panel-head">
+      <div class="career-panel-head career-panel-head--series">
 
         <div>
           <span class="career-step-badge">Paso 3</span>
           <h2>Series por activo</h2>
+          <p class="muted">Activa o desactiva tickers para comparar mejor la evolución relativa de cada posición.</p>
         </div>
 
         <div class="career-series-controls" id="career-series-tickers"></div>
@@ -441,11 +446,12 @@
 
     <div class="card-section">
 
-      <div class="career-panel-head">
+      <div class="career-panel-head career-panel-head--report">
 
         <div>
           <span class="career-step-badge">Paso 4</span>
           <h2>Informe final</h2>
+          <p class="muted">Cierra la partida con una lectura comparada entre cartera, benchmark, alertas y resultado educativo final.</p>
         </div>
 
         <div class="actions-row">
