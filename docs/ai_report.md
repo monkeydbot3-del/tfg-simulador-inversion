@@ -6910,3 +6910,166 @@ Resultado:
 - posición de `Resultado final`
 - longitud visual de la línea timeline
 - comportamiento en móvil
+
+## Iteración 67 - Rediseño visual de Modo Práctica / Nuevo análisis
+
+### Objetivo
+Abrir la Fase 4 del rediseño frontend para llevar `Modo Práctica / Nuevo análisis` al mismo nivel visual que home y `Aprender`, sin tocar funcionalidad.
+
+La meta no era convertir el formulario en un wizard real, sino hacer que se lea como un flujo guiado:
+1. elegir activo
+2. elegir estrategia
+3. ajustar parámetros
+4. revisar y enviar
+
+### Archivos localizados como responsables
+Se localizaron como piezas principales:
+- `app/templates/analisis.html`
+- `app/static/estilos.css`
+- `app/static/app.js`
+
+#### Confirmación importante
+- `app.js` contiene la lógica de visibilidad DCA/Sin DCA, validación del payload y envío del análisis
+- en esta iteración **no se modificó esa lógica**
+- el archivo se revisó solo para no romper hooks, IDs ni comportamiento existente
+
+### Qué se cambió en la cabecera
+Se mantuvo el encabezado existente (`Nuevo análisis`, copy y badge `Flujo principal`), pero se reforzó su integración como cabecera de una pantalla de acción:
+- mejor alineación mediante `practice-header`
+- mejor relación entre título, subtítulo y badge
+- sin convertirlo en un hero enorme que compita con el formulario
+
+### Qué se cambió en ticker + “Antes de empezar”
+El primer bloque se convirtió en un paso inicial más explícito del flujo.
+
+#### Cambios principales
+- se añadió una cabecera interna de paso (`01`)
+- el bloque del ticker gana más rol como inicio del análisis
+- el panel lateral `Antes de empezar` se integra mejor con la superficie cálida del sistema
+- tanto el campo como la ayuda quedan contenidos en subpaneles suaves dentro de la card principal
+
+Objetivo:
+- que el usuario entienda desde el principio qué activo va a analizar y con qué hipótesis debe empezar
+
+### Qué se cambió en DCA / Sin DCA
+La selección de modo de inversión se reforzó para que se sienta como elección de estrategia y no como dos cajas sueltas.
+
+#### Cambios principales
+- se añadió paso visual (`02`)
+- las dos opciones ocupan una rejilla más clara y equilibrada
+- mayor altura mínima para que se lean como decisiones equivalentes
+- mejor estado seleccionado
+- mejor separación entre título y texto secundario
+- hover, foco y selección más intencionados visualmente
+
+Importante:
+- no se tocó la lógica que muestra u oculta `form-dca` y `form-sin-dca`
+
+### Qué se cambió en campos principales
+El bloque de parámetros generales pasó a leerse como el tercer paso del flujo.
+
+#### Cambios principales
+- se añadió cabecera de paso (`03`)
+- mejor jerarquía entre título y microcopy
+- spacing más limpio entre campos
+- textarea de justificación con más presencia y altura mínima cómoda
+- campos integrados dentro de una card cálida y sobria
+
+Objetivo:
+- menos formulario plano
+- más sensación de bloque guiado y razonado
+
+### Qué se cambió en parámetros DCA
+El bloque DCA se trató como un subpaso dependiente, no como un panel aislado sin narrativa.
+
+#### Cambios principales
+- paso visual (`04`)
+- copy breve que explica qué se configura ahí
+- superficie ligeramente diferenciada (`practice-step-card--support`)
+- grid más equilibrado
+
+### Qué se cambió en compra única
+El bloque alternativo `Sin DCA` también se integró en la misma lógica de paso `04` para que el flujo mantenga coherencia visual cuando cambia la estrategia.
+
+### Qué se cambió en el bloque final de envío
+El cierre del formulario se convirtió en un paso final más claro.
+
+#### Cambios principales
+- paso visual (`05`)
+- `submit-bar` reorganizado en una rejilla más clara
+- CTA `Enviar propuesta` mejor anclado y con ancho mínimo consistente
+- superficie final diferenciada pero contenida
+
+Objetivo:
+- que el envío se perciba como cierre del flujo y no como botón flotando al final
+
+### Decisiones visuales clave
+- mantener la identidad cálida-profesional ya fijada en Fases 2 y 3
+- reforzar lectura por pasos sin crear wizard funcional real
+- usar superficies cálidas y jerarquía, no más cajas arbitrarias
+- mantener botones navy sólidos
+- evitar verde residual y exceso de blanco plano
+
+### Estados visuales revisados
+Se revisaron visualmente los estilos para:
+- estado inicial del formulario
+- ticker + ayuda previa
+- DCA seleccionado
+- Sin DCA seleccionado
+- campos DCA visibles
+- campos alternativos visibles
+- campos principales y textarea
+- bloque final de revisión/envío
+- responsive móvil/intermedio
+
+### Qué lógica se mantuvo intacta
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica de simulación
+- lógica DCA / Sin DCA
+- validaciones funcionales
+- envío del análisis
+- nombres de inputs
+- IDs usados por JS
+- hooks JS
+- gráficos
+- historial
+- auth
+- modo invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/analisis.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validación visual real en Render del formulario completo, especialmente en móvil y en anchuras intermedias
+- conviene comprobar que la nueva cabecera por pasos no sature demasiado la pantalla si el usuario llega ya con intención directa de rellenar
+- cualquier bug previo de lógica DCA/Sin DCA o de generación del análisis queda fuera del alcance de esta fase
+
+### Qué debe revisar el usuario en Render
+- cabecera `Nuevo análisis`
+- bloque ticker
+- panel `Antes de empezar`
+- selección DCA / Sin DCA
+- estado seleccionado de cada estrategia
+- campos principales
+- textarea de justificación
+- bloque `Parámetros DCA`
+- bloque final `Revisa los datos`
+- botón `Enviar propuesta`
+- comportamiento móvil e intermedio

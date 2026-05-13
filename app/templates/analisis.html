@@ -3,7 +3,7 @@
 {% block title %}Nuevo an&aacute;lisis · Simulador{% endblock %}
 
 {% block content %}
-<section class="page-header page-header--with-badge">
+<section class="page-header page-header--with-badge practice-header">
   <div>
     <p class="eyebrow">Análisis guiado</p>
     <h1>Nuevo an&aacute;lisis</h1>
@@ -14,8 +14,15 @@
   <span class="badge badge-soft">Flujo principal</span>
 </section>
 
-<section class="card card--elevated analysis-intro-card">
+<section class="card card--elevated analysis-intro-card practice-step-card">
   <div class="card-section">
+    <div class="practice-step-head">
+      <span class="career-step-badge">01</span>
+      <div>
+        <h3>Elige el activo que quieres analizar</h3>
+        <p class="muted">Empieza con un ticker válido y una hipótesis simple antes de definir el resto del escenario.</p>
+      </div>
+    </div>
     <div class="analysis-intro">
       <div class="field field--grow">
         <label class="muted" for="anl-ticker">Ticker</label>
@@ -32,11 +39,12 @@
   </div>
 </section>
 
-<section id="modo-inversion" class="card card--elevated">
+<section id="modo-inversion" class="card card--elevated practice-step-card">
   <div class="card-section">
     <div class="section-heading">
+      <span class="career-step-badge">02</span>
       <div>
-        <h3>Modo de inversi&oacute;n</h3>
+        <h3>Elige la estrategia de inversión</h3>
         <p class="muted">Selecciona si quieres simular aportaciones periódicas o una única compra inicial.</p>
       </div>
     </div>
@@ -59,8 +67,15 @@
   </div>
 </section>
 
-<section id="form-comun" class="card card--elevated">
+<section id="form-comun" class="card card--elevated practice-step-card">
   <div class="card-section">
+    <div class="section-heading">
+      <span class="career-step-badge">03</span>
+      <div>
+        <h3>Ajusta los parámetros principales</h3>
+        <p class="muted">Define capital, horizonte, supuestos de crecimiento y la justificación que sostendrá tu propuesta.</p>
+      </div>
+    </div>
     <div class="form-grid">
       <div class="field">
         <label for="importe-inicial" class="muted">Importe inicial (&euro;)</label>
@@ -124,9 +139,15 @@
   </div>
 </section>
 
-<section id="form-dca" class="card card--elevated">
+<section id="form-dca" class="card card--elevated practice-step-card practice-step-card--support">
   <div class="card-section">
-    <h4>Par&aacute;metros DCA</h4>
+    <div class="section-heading">
+      <span class="career-step-badge">04</span>
+      <div>
+        <h4>Par&aacute;metros DCA</h4>
+        <p class="muted">Configura cómo y cuándo se harán las aportaciones periódicas dentro del escenario.</p>
+      </div>
+    </div>
     <div class="form-grid">
       <div class="field">
         <label for="dca-aporte" class="muted">Aportaci&oacute;n peri&oacute;dica (&euro;)</label>
@@ -153,9 +174,10 @@
   </div>
 </section>
 
-<section id="form-sin-dca" class="card card--elevated hidden" hidden>
+<section id="form-sin-dca" class="card card--elevated hidden practice-step-card practice-step-card--support" hidden>
   <div class="card-section">
     <div class="section-heading">
+      <span class="career-step-badge">04</span>
       <div>
         <h4>Compra única</h4>
         <p class="muted">Indica la fecha de compra para calcular correctamente la inversión inicial sin aportaciones periódicas.</p>
@@ -169,9 +191,10 @@
   </div>
 </section>
 
-<section class="card card--elevated analysis-submit-card">
+<section class="card card--elevated analysis-submit-card practice-step-card practice-step-card--submit">
   <div class="card-section">
     <div class="submit-bar">
+      <span class="career-step-badge">05</span>
       <div>
         <strong>Revisa los datos antes de enviar</strong>
         <p class="muted">Cuando lo envíes, la app generará la evaluación automática y el resumen asociado.</p>
