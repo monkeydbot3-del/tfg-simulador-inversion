@@ -7530,3 +7530,97 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 73 - Separación del CTA final para corregir el desplazamiento del texto en el paso 05
+
+### Objetivo
+Aplicar la corrección real tras la validación visual del usuario: el problema del paso `05` no se resolvía afinando gaps dentro de una cabecera de tres columnas, porque la causa estructural era que el CTA final compartía la misma línea/cabecera que el badge y el copy.
+
+### Feedback recibido
+La captura enviada por el usuario mostró claramente que:
+- el badge `05` ya estaba correcto
+- el botón estaba razonablemente bien
+- pero el bloque de texto seguía demasiado desplazado a la derecha, casi como si existiera una columna fantasma entre el badge y el copy
+
+### Diagnóstico corregido
+La hipótesis de la iteración 72 se quedó corta.
+
+No era solo un problema de `gap`, sino de estructura visual:
+- el step `05` seguía usando una cabecera de tres columnas (`badge + texto + CTA`)
+- eso reservaba ancho horizontal a la derecha ya en la misma línea del encabezado
+- como consecuencia, el copy no respiraba como en `03/04`, sino como un bloque empujado dentro de una composición distinta
+
+### Qué se cambió
+Se dejó de mezclar el CTA con la cabecera del paso.
+
+#### En `app/templates/analisis.html`
+- el step `05` dejó de usar `section-heading--with-actions`
+- ahora usa `section-heading section-heading--stacked-submit` para la cabecera real (`badge + texto`)
+- el botón `Enviar propuesta` salió de esa cabecera y pasó a una fila visual propia dentro del mismo bloque, mediante `actions actions--submit-step`
+
+#### En `app/static/estilos.css`
+Se añadió una variante específica y mínima:
+- `.section-heading--stacked-submit` con patrón de dos columnas (`badge + texto`)
+- `.actions--submit-step` con separación superior y sangrado horizontal controlado para que el botón siga quedando bien dentro del bloque
+- responsive móvil para que el botón recupere anchura completa donde toca
+
+Además:
+- se eliminaron las reglas previas de `section-heading--with-actions`, que ya no respondían al problema real
+- se retiró el ajuste de microempuje horizontal anterior, porque dejaba de tener sentido con la nueva estructura
+
+### Resultado buscado
+Con esta corrección:
+- el texto del paso `05` vuelve a arrancar como en `03/04`
+- el badge `05` queda junto al copy, sin columnas fantasma
+- el CTA sigue dentro del bloque visual final, pero ya no empuja la cabecera hacia la derecha
+- el cierre del formulario mantiene claridad y jerarquía sin forzar una sola fila imposible
+
+### Qué se mantuvo intacto
+No se tocó:
+- lógica del formulario
+- DCA / Sin DCA
+- backend
+- endpoints
+- rutas Flask
+- JS
+- validaciones
+- envío del análisis
+- IDs
+- names
+- hooks
+- historial
+- auth
+- modo invitado
+- copy del paso `05`
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/analisis.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que el nuevo apilado del CTA mantiene una percepción limpia del cierre en desktop, intermedio y móvil
+- si aún hubiera algún matiz, ya sería de spacing fino vertical del botón, no del arranque del copy
+
+### Qué debe revisar el usuario en Render
+- paso `05`
+- arranque del título del paso `05`
+- arranque del subtítulo del paso `05`
+- relación visual entre badge y copy
+- posición del botón `Enviar propuesta`
+- comparación con pasos `03/04`
+- desktop
+- responsive intermedio
+- móvil

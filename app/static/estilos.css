@@ -5529,44 +5529,29 @@ body {
   margin: 0;
 }
 
-.analysis-submit-card .submit-bar {
-  grid-template-columns: auto minmax(0, 1fr) auto;
+
+
+
+.section-heading--stacked-submit {
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
 }
 
-
-.section-heading--with-actions {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
+.actions--submit-step {
+  margin-top: 18px;
+  padding-left: 56px;
 }
 
-
-.section-heading--with-actions {
-  column-gap: 10px;
-}
-
-.section-heading--with-actions > div:first-of-type {
-  margin-left: -2px;
-}
-
-.section-heading--with-actions .actions {
-  justify-self: end;
-  align-self: center;
-}
-
-.section-heading--with-actions .actions .btn {
+.actions--submit-step .btn {
   min-width: 220px;
 }
 
 @media (max-width: 900px) {
-  .section-heading--with-actions {
-    grid-template-columns: 1fr;
+  .actions--submit-step {
+    padding-left: 0;
   }
 
-  .section-heading--with-actions .actions {
-    justify-self: stretch;
-  }
-
-  .section-heading--with-actions .actions .btn {
+  .actions--submit-step .btn {
     width: 100%;
     min-width: 0;
   }

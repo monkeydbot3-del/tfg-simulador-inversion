@@ -813,10 +813,21 @@
 
 ## 2026-05-13
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `c62d809`
 - Título: Iteración 72, reajuste del bloque textual del paso 05 hacia la izquierda
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-13
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 73, separación del CTA final para corregir el desplazamiento del texto en el paso 05
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/analisis.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
