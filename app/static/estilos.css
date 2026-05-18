@@ -6072,3 +6072,112 @@ body {
     min-height: 340px;
   }
 }
+
+
+.horizon-page-header--compact {
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.horizon-page-header__meta--compact {
+  gap: 6px;
+}
+
+.horizon-hero-card--compact {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.horizon-hero-card__head--compact {
+  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.9fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.horizon-hero-card--compact .horizon-hero-card__content {
+  gap: 8px;
+}
+
+.horizon-hero-card--compact .horizon-hero-card__content h2 {
+  margin: 6px 0 0;
+}
+
+.horizon-disclaimer-banner--compact {
+  margin-top: 0;
+  padding: 14px 16px;
+}
+
+.horizon-card--primary-builder {
+  order: 1;
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.99), rgba(243, 234, 223, 0.96));
+}
+
+.horizon-card--primary-builder .card-section {
+  gap: 20px;
+}
+
+.horizon-section-intro--compact {
+  gap: 8px;
+}
+
+.horizon-source-banner--compact {
+  margin-top: 0;
+  padding: 14px 16px;
+}
+
+.horizon-builder-note {
+  margin: -4px 0 0;
+}
+
+.horizon-card--primary-results {
+  order: 2;
+}
+
+.horizon-card--primary-results .card-section {
+  gap: 20px;
+}
+
+.horizon-results-head {
+  margin-bottom: 2px;
+}
+
+.horizon-chart-wrapper--scenario {
+  min-height: 440px;
+}
+
+.horizon-disclaimer-inline--compact {
+  margin-top: 0;
+  padding: 14px 16px;
+}
+
+.horizon-grid--scenario {
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+.horizon-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .horizon-hero-card__head--compact {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .horizon-chart-wrapper--scenario {
+    min-height: 380px;
+  }
+}
+
+@media (max-width: 720px) {
+  .horizon-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .horizon-chart-wrapper--scenario {
+    min-height: 320px;
+  }
+}

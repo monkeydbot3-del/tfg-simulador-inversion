@@ -94,6 +94,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Microcorrección de Fase 5.4 para expandir la franja de acciones de `Crear nueva sesión` a todo el ancho disponible del panel: se detectó que el bloqueo venía de seguir incrustada dentro del `form-grid`; se separó como fila completa bajo los campos, manteniendo los dos CTAs grandes y simétricos sin tocar lógica.
 - Microiteración de Fase 5.5 para expandir también la selección de `Periodo de juego` a ancho completo dentro del setup: se convirtió esa sección en una fila protagonista con dos opciones grandes y simétricas, manteniendo intacta la lógica de periodo aleatorio/manual y el resto de Carrera.
 - Apertura de Fase 6 del rediseño frontend sobre `Modo Horizonte`: rediseño visual de `app/templates/horizon.html` y `app/static/estilos.css` para presentar Horizonte como módulo experimental, prudente y educativo, sin tocar simulación, rutas, gráficos ni hooks JS.
+- Microiteración 6.1 sobre Horizonte para corregir jerarquía visual: hero más compacto, menos texto redundante, configurador colocado como bloque principal visible y resultado/gráfica con mucho más protagonismo, manteniendo intacta toda la lógica funcional.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
