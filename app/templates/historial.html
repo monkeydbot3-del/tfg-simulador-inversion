@@ -3,7 +3,7 @@
 {% block title %}Historial · Simulador{% endblock %}
 
 {% block content %}
-<section class="page-header page-header--with-badge">
+<section class="page-header page-header--with-badge history-page-header">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       <div class="stack stack--sm">
@@ -23,9 +23,9 @@
   <span class="badge badge-soft">Registro histórico</span>
 </section>
 
-<section class="card card--elevated">
+<section class="card card--elevated history-card">
   <div class="card-section">
-    <div class="form-grid">
+    <div class="form-grid history-filter-grid">
       <div class="field">
         <label class="muted" for="his-ticker">Ticker</label>
         <input id="his-ticker" placeholder="Ticker" />
@@ -51,7 +51,7 @@
       </div>
     </div>
 
-    <div class="actions-row actions-row--panel">
+    <div class="actions-row actions-row--panel history-actions-row">
       <div class="actions-row__left">
         <button id="his-filtrar" class="btn btn-primary">Filtrar</button>
         <button id="his-prev" class="btn btn-outline">Anterior</button>
@@ -63,7 +63,7 @@
     </div>
   </div>
 
-  <div class="card-section table-wrapper table-wrapper--soft">
+  <div class="card-section table-wrapper table-wrapper--soft history-table-shell">
     <table class="data-table">
       <thead>
         <tr>

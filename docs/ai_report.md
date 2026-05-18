@@ -8927,3 +8927,161 @@ Resultado:
 - relación visual con la fila de botones de debajo
 - responsive intermedio
 - móvil
+
+## Iteración 84 - Pasada global final de coherencia visual y responsive
+
+### Objetivo
+Abrir la Fase 7 como revisión global final del rediseño frontend, ya no para rehacer pantallas, sino para detectar y corregir incoherencias residuales entre vistas, componentes y estados visibles.
+
+La intención fue cerrar el frontend con una última pasada de consistencia visual, responsive y jerarquía, sin tocar lógica ni abrir nuevas funcionalidades.
+
+### Pantallas revisadas
+Se revisaron estructuralmente y en términos de coherencia visual, como mínimo:
+- Home
+- Login
+- Registro
+- Navbar global (`base.html`)
+- Aprender
+- Readiness quiz
+- Modo Práctica / Nuevo análisis
+- Modo Carrera
+- Modo Horizonte
+- Historial
+- Modales de detalle / exportación asociados a análisis e historial
+
+### Incoherencias encontradas
+Durante la revisión final se detectaron varias incoherencias reales, pero no masivas:
+
+#### 1. Historial seguía más cerca del sistema visual antiguo
+- cabecera correcta, pero sin identidad propia equivalente a otras pantallas clave
+- card principal más plana que Home/Carrera/Horizonte
+- tabla y filtros todavía algo más “legacy” en sensación visual
+
+#### 2. Tablas y wrappers blandos frente al nuevo sistema cálido
+- `table-wrapper--soft` y `data-table` seguían usando un lenguaje más neutro o heredado
+- el hover y las filas alternas no terminaban de conversar con la paleta cálida final del rediseño
+
+#### 3. Botones legacy secundarios
+- seguían existiendo variantes `btn-outline` y `btn--sec` con una respuesta visual menos alineada al sistema actual
+- no era una ruptura grave, pero sí una incoherencia de cierre
+
+#### 4. Modales y detalle de backtest demasiado blancos o poco integrados
+- algunos modales seguían más planos que el resto de superficies principales
+- el detalle del backtest y sus listas internas podían sentirse de una capa visual anterior
+
+### Cambios aplicados
+Se decidió actuar solo donde había impacto transversal claro, con cambios pequeños y CSS-first.
+
+#### En `app/templates/historial.html`
+Se añadieron clases de contexto para poder afinar la pantalla sin tocar lógica:
+- `history-page-header`
+- `history-card`
+- `history-filter-grid`
+- `history-actions-row`
+- `history-table-shell`
+
+#### En `app/static/estilos.css`
+Se aplicó una pasada de coherencia sobre Historial, tablas, botones legacy y modales:
+
+##### Historial
+- la pantalla principal pasó a usar una superficie más cálida y alineada con el resto del sistema
+- los filtros ganaron mejor respiración
+- la fila de acciones quedó mejor distribuida
+- la tabla se integró dentro de una shell más consistente con Carrera y Horizonte
+
+##### Tablas
+- cabeceras con fondo cálido coherente
+- filas alternas más suaves
+- hover menos verdoso heredado y más integrado en la nueva paleta
+- mejor lectura general sin tocar datos ni comportamiento
+
+##### Botones secundarios legacy
+- `btn-outline` y `btn--sec` se alinearon mejor con el sistema actual
+- mejor borde, fondo y hover
+- más coherencia con botones secundarios recientes
+
+##### Modales y backtest
+- se dio a `modal`, `modal__content`, `#modal .modal` y `#modalBacktest .modal__content` una superficie cálida coherente
+- el header de modal se integró mejor con el resto del sistema
+- la lista `kv` del backtest ganó estructura de chips/tarjetas sobrias
+- el bloque `notes` ganó mejor contenedor
+
+### Qué se decidió no tocar
+No se tocaron pantallas o bloques que ya estaban razonablemente cerrados visualmente:
+- Home
+- Login
+- Registro
+- Aprender
+- Readiness
+- Práctica
+- Carrera
+- Horizonte
+
+Tampoco se abrió una nueva ronda de rediseño profundo de ninguna vista. La decisión fue conscientemente conservadora: corregir solo incoherencias reales y dejar intacto lo que ya funcionaba.
+
+### Qué lógica se confirma que no se tocó
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica JS
+- cálculos
+- generación de escenarios
+- Chart.js
+- persistencia
+- sesiones
+- auth
+- modo invitado
+- readiness gate
+- Tutor IA funcional
+- Modo Carrera funcional
+- Modo Horizonte funcional
+- IDs
+- names
+- data attributes
+- hooks JS
+- formularios funcionales
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/historial.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos o puntos pendientes
+- sigue pendiente validación manual real en Render de la coherencia entre Historial y el resto de pantallas principales
+- conviene revisar especialmente móvil en Historial por densidad de botones en la fila de acciones y por scroll horizontal de tabla
+- los estados de error/carga dependen aún en buena parte de rutas y datos reales, así que merece revisión manual final del conjunto antes de dar el frontend por cerrado
+- queda como deuda visual menor revisar en algún momento el cierre estructural redundante detectado en `horizon.html`, aunque no se tocó en esta fase por no ser un problema visible prioritario
+
+### Qué debe revisar el usuario en Render
+- Home
+- Login
+- Registro
+- Navbar global
+- Aprender
+- Práctica
+- Carrera
+- Horizonte
+- Historial
+- modales de detalle / backtest si aparecen
+- responsive intermedio
+- móvil
+
+Puntos concretos a comprobar:
+- que Historial ya no parezca de otra etapa visual
+- que botones secundarios/outline se sientan coherentes con el resto del sistema
+- que tablas y wrappers tengan una lectura más cálida y limpia
+- que los modales no parezcan demasiado blancos o legacy
+- que no haya overflow horizontal ni roturas de navbar o formularios
