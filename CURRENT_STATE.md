@@ -95,6 +95,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Microiteración de Fase 5.5 para expandir también la selección de `Periodo de juego` a ancho completo dentro del setup: se convirtió esa sección en una fila protagonista con dos opciones grandes y simétricas, manteniendo intacta la lógica de periodo aleatorio/manual y el resto de Carrera.
 - Apertura de Fase 6 del rediseño frontend sobre `Modo Horizonte`: rediseño visual de `app/templates/horizon.html` y `app/static/estilos.css` para presentar Horizonte como módulo experimental, prudente y educativo, sin tocar simulación, rutas, gráficos ni hooks JS.
 - Microiteración 6.1 sobre Horizonte para corregir jerarquía visual: hero más compacto, menos texto redundante, configurador colocado como bloque principal visible y resultado/gráfica con mucho más protagonismo, manteniendo intacta toda la lógica funcional.
+- Microiteración adicional de pulido sobre Horizonte: simplificación del aviso derecho del hero, más aire interno en el bloque izquierdo y redistribución equilibrada de la botonera del configurador, sin tocar lógica ni estructura funcional principal.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
