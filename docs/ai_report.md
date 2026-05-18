@@ -7972,3 +7972,135 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 76 - Corrección de navegación global y simetría de acciones en Carrera
+
+### Objetivo
+Aplicar una microiteración de corrección sobre la Fase 5.1 para resolver dos problemas concretos detectados en Render:
+1. la navbar global seguía sin aparecer en `Modo Carrera`
+2. el bloque de acciones de `Crear nueva sesión` se veía desequilibrado y poco cuidado
+
+El resto de la pantalla gustaba y debía mantenerse esencialmente igual:
+- gate perfecto
+- `Tus sesiones` bien colocada
+- Carrera activa bien
+- informe final bien
+
+### Feedback real recibido
+Tras revisar la versión en Render, el usuario indicó que:
+- la navegación global seguía sin mostrarse dentro de Carrera
+- en la parte superior solo se veía la marca / logo, no los links principales
+- la zona de acciones `Crear sesión` + `Reanudar última sesión` quedaba rara, estrecha y poco simétrica
+
+### Causa real encontrada de la navbar
+La iteración anterior había eliminado la mini-navbar especial de Carrera, pero la navegación global seguía sin aparecer por una segunda causa más profunda en `app/templates/base.html`.
+
+La plantilla base seguía renderizando los enlaces principales solo bajo esta condición:
+- `_nav_mode == 'practice'`
+
+Eso significa que, aunque ya no existiera la rama especial de Carrera, cualquier pantalla con `nav_mode = 'career'` seguía quedándose fuera del bloque que dibuja:
+- `Inicio`
+- `Aprender`
+- `Práctica`
+- `Carrera`
+- `Horizonte`
+- bloque de sesión / login / invitado
+
+### Cómo se restauró la navegación completa
+Se corrigió la condición en `app/templates/base.html` para que la navegación global principal se renderice también en los modos principales de la app:
+- `practice`
+- `career`
+- `horizon`
+- `learn`
+- `home`
+
+Resultado buscado:
+- Carrera deja de depender de una variante propia
+- vuelve a usar exactamente la misma navbar global que el resto de pantallas importantes
+- `Carrera` puede aparecer activa sin inventar una navegación específica
+
+### Qué se cambió en el bloque de acciones de Crear nueva sesión
+En `app/templates/career.html`:
+- se mantuvo la lógica del bloque
+- se limpió la estructura visual del cierre del setup
+- la card de acciones pasa a una variante más equilibrada (`career-setup-actions-card--balanced`)
+- la barra de acciones pasa a una variante controlada (`career-action-bar--balanced`)
+
+En `app/static/estilos.css`:
+- se dio un tratamiento de card de cierre más claro a la zona de acciones
+- los botones pasan a una composición más simétrica y proporcionada
+- el CTA principal ocupa correctamente el protagonismo
+- la acción secundaria deja de quedar descolocada
+- en móvil la composición vuelve a apilarse limpiamente
+
+### Resultado buscado en Crear nueva sesión
+Con este ajuste:
+- `Crear sesión` se lee como acción principal clara
+- `Reanudar última sesión` se mantiene secundaria pero bien integrada
+- el cierre del bloque deja de parecer una columna rara o una caja estrecha forzada
+- la zona queda más alineada con la calidad visual del formulario superior
+
+### Qué se mantuvo intacto
+No se tocó:
+- gate / pantalla bloqueada
+- `Tus sesiones`
+- Carrera activa
+- asignación del turno
+- historial
+- series
+- informe final
+- Tutor IA
+- ranking
+- share
+- exportaciones
+- Horizonte
+- backend
+- endpoints
+- rutas Flask
+- lógica de sesiones
+- persistencia
+- cálculos
+- turnos
+- autoplay
+- readiness gate funcional
+- hooks JS
+- IDs
+- names
+- auth
+- invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/base.html`
+- `app/templates/career.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validar en Render que la navbar global restaurada no afecte negativamente al resto de pantallas principales en desktop/intermedio
+- conviene comprobar que la nueva barra de acciones del setup respira bien con distintos anchos de viewport
+- el resto de Carrera no debería haberse visto afectado, pero conviene una pasada rápida visual para confirmar que todo sigue estable
+
+### Qué debe revisar el usuario en Render
+- navbar en `Modo Carrera`
+- navbar en Home
+- navbar en Aprender
+- navbar en Práctica
+- bloque `Crear nueva sesión`
+- botón `Crear sesión`
+- acción `Reanudar última sesión`
+- `Tus sesiones` debajo
+- desktop
+- responsive intermedio
+- móvil
