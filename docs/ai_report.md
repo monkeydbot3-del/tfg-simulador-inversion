@@ -8104,3 +8104,125 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 77 - Equilibrio visual de acciones en Crear nueva sesión
+
+### Objetivo
+Aplicar una microiteración muy localizada sobre `Modo Carrera` para corregir únicamente la composición visual del cierre del bloque `Crear nueva sesión`.
+
+El resto del modo ya estaba bien según feedback real:
+- navbar corregida
+- gate bien
+- `Tus sesiones` bien
+- Carrera activa bien
+- informe final bien
+
+Por tanto, esta iteración se centró solo en hacer que las acciones del setup dejen de parecer una caja rara y pasen a sentirse como un cierre limpio y simétrico.
+
+### Feedback visual recibido
+El usuario indicó que la franja de acciones con:
+- `Crear sesión`
+- `Reanudar última sesión`
+
+seguía viéndose mal porque:
+- la composición era rara
+- el botón principal quedaba encajado de forma torpe
+- la secundaria estaba mal colocada
+- la caja se seguía percibiendo estrecha y desequilibrada
+- el ancho disponible no se aprovechaba bien
+
+### Causa detectada
+La causa visual estaba en la solución previa aplicada en Fase 5.2.
+
+Se había intentado equilibrar el cierre con una rejilla asimétrica:
+- `1fr + auto`
+
+Eso hacía que:
+- `Crear sesión` se comportase como bloque expandido
+- `Reanudar última sesión` quedase como remate corto o acción residual
+- el cierre no se percibiera como dos acciones hermanas, sino como una principal + una pieza arrastrada
+
+### Solución visual aplicada
+Se decidió pasar a una composición mucho más clara y simétrica:
+- dos acciones grandes
+- mismo alto
+- misma anchura visual
+- mismo peso espacial
+- separación limpia entre ambas
+- jerarquía expresada por estilo, no por deformación del layout
+
+#### En `app/templates/career.html`
+- se mantuvo la estructura del bloque de acciones
+- `Reanudar última sesión` pasó a usar estilo `btn-secondary btn-large`
+- no se tocaron IDs ni lógica
+
+#### En `app/static/estilos.css`
+- `career-action-bar--balanced` pasó a usar una rejilla de dos columnas iguales:
+  - `repeat(2, minmax(0, 1fr))`
+- se aumentó ligeramente el gap
+- ambos botones pasan a ocupar todo el ancho de su columna
+- ambos comparten altura visual (`min-height: 54px`)
+- en responsive móvil se apilan limpiamente en una sola columna
+
+### Resultado buscado
+Con esto:
+- `Crear sesión` y `Reanudar última sesión` se ven como dos acciones grandes y bien resueltas
+- aprovechan mejor el ancho disponible
+- desaparece la sensación de caja estrecha y mal balanceada
+- la jerarquía se mantiene porque una sigue siendo primary y la otra secondary, pero sin desequilibrio espacial feo
+
+### Qué se mantuvo intacto
+No se tocó:
+- navbar actual
+- layout general de Carrera
+- campos de `Crear nueva sesión`
+- `Tus sesiones` debajo
+- pantalla bloqueada
+- Carrera activa
+- informe final
+- backend
+- endpoints
+- rutas Flask
+- lógica de crear sesión
+- lógica de reanudar
+- sesiones
+- persistencia
+- cálculos
+- readiness
+- Tutor IA
+- hooks JS
+- IDs
+- names
+- auth
+- invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/career.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente validar en Render si la versión con dos columnas iguales encaja bien en desktop e intermedio con el ancho real del contenedor
+- en principio no debería afectar nada más del modo, pero conviene confirmar que la navbar sigue correcta y que `Tus sesiones` debajo no se ha movido visualmente
+
+### Qué debe revisar el usuario en Render
+- `Crear nueva sesión` en desktop
+- zona de acciones
+- botón `Crear sesión`
+- acción `Reanudar última sesión`
+- relación entre ambos
+- responsive intermedio
+- móvil
+- navbar en Carrera (solo para confirmar que sigue bien)
