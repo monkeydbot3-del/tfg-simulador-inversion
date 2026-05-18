@@ -63,13 +63,6 @@
       <div class="top-nav__session top-nav__session--minimal">
         <a class="btn btn-nav btn-nav--subtle" href="{{ url_for('main.home') }}">Volver al inicio</a>
       </div>
-      {% elif _nav_mode == 'career' %}
-      <nav class="top-nav__links" aria-label="Principal">
-        <a class="nav-link active" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
-      </nav>
-      <div class="top-nav__session">
-        <a class="btn btn-nav" href="{{ url_for('main.home') }}">Volver al inicio</a>
-      </div>
       {% elif _nav_mode == 'manual' %}
       <nav class="top-nav__links" aria-label="Principal">
         <a class="nav-link active" href="{{ url_for('main.home') }}">Inicio</a>

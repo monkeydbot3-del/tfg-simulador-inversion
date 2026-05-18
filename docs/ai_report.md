@@ -7822,3 +7822,153 @@ Resultado:
 - desktop
 - responsive intermedio
 - móvil
+
+## Iteración 75 - Pulido de navegación, setup y contraste en Modo Carrera
+
+### Objetivo
+Aplicar una iteración de pulido sobre la Fase 5 inicial de Carrera a partir del feedback real visto en Render.
+
+Los tres objetivos concretos eran:
+1. restaurar la navbar global de la app dentro de Carrera
+2. reordenar el setup para que `Crear nueva sesión` tenga protagonismo completo y `Tus sesiones` quede debajo
+3. mejorar contraste y separación visual dentro de sesión activa e informe final, sin rehacer el modo ni tocar lógica
+
+### Feedback real recibido
+El feedback principal fue:
+- en Carrera aparecía una navbar especial recortada (`Modo Carrera` + `Volver al inicio`) en lugar de la navegación normal de la app
+- `Crear nueva sesión` y `Tus sesiones` competían horizontalmente cuando no debían hacerlo
+- dentro de la sesión activa y del informe había demasiado monocromatismo y algunos bloques se fundían demasiado entre sí
+- la pantalla bloqueada gustaba y no debía rehacerse
+
+### Cómo se restauró la navbar global en Carrera
+Se detectó la causa en `app/templates/base.html`:
+- existía una rama específica para `nav_mode == 'career'`
+- esa rama sustituía la navegación global por una mini navbar especial
+
+Se corrigió eliminando esa rama especial para que Carrera vuelva a usar la navegación global estándar de la app, igual que el resto de pantallas principales.
+
+Resultado buscado:
+- volver a mostrar `Inicio`, `Aprender`, `Práctica`, `Carrera`, `Horizonte`
+- mantener bloque de sesión / invitado / login / logout según el estado real
+- conservar `Carrera` como item activo, pero sin una navbar distinta
+
+### Qué se cambió en Crear nueva sesión
+En `app/templates/career.html`:
+- el setup se reordenó para que `Crear nueva sesión` quede claramente como bloque principal a ancho completo
+- se reforzó la lectura vertical del flujo: overview → setup principal → continuidad secundaria → resto del modo
+
+En `app/static/estilos.css`:
+- `career-setup-shell` pasa a una variante apilada (`career-setup-shell--stacked`)
+- la card principal del setup ocupa todo el ancho disponible
+- se mantiene intacta la estructura funcional del formulario y sus acciones
+
+### Qué se cambió en Tus sesiones
+El bloque `Tus sesiones` dejó de competir lateralmente con el setup:
+- pasó a una sección inferior propia (`career-saved-sessions-shell`)
+- ahora funciona como continuidad secundaria del usuario, no como panel rival en la misma fila
+- se mantuvo su comportamiento y estado oculto/visible tal cual
+- se reforzó su anchura completa y su lectura como bloque independiente
+
+### Qué se hizo con la pantalla bloqueada
+La pantalla bloqueada / gate por readiness se mantuvo esencialmente igual.
+
+No se rehízo.
+No se tocó la lógica.
+No fue el foco principal de la iteración.
+
+Solo se mantuvo la coherencia con el sistema visual que ya venía de la Fase 5 inicial.
+
+### Qué se mejoró en contraste y diferenciación dentro de Carrera activa
+Aquí estuvo el mayor pulido visual.
+
+Se reforzó la separación entre bloques usando superficies cálidas diferenciadas, sin recurrir a colores chillones ni volver al verde raro.
+
+#### Zonas reforzadas
+- card principal del setup
+- card de sesión activa
+- card de series
+- card de informe final
+- panel de sesiones guardadas
+- builder de asignación del turno
+- historial de turnos
+- wrappers de tablas
+- wrappers de charts
+- bloque de score
+- métricas
+- alertas
+- CTA a Horizonte
+- Tutor IA
+- exportación
+- ranking
+- share / reproducibilidad
+
+#### Criterios aplicados
+- panel principal con blanco cálido / crema muy suave
+- paneles secundarios con niveles distintos de superficie
+- wrappers de tablas y charts con borde más fuerte y mejor fondo
+- informe final con bloques más distinguibles entre sí
+- score con identidad más clara
+- alertas, Horizonte, Tutor IA, ranking y exportaciones con superficies separadas pero coherentes
+
+### Qué se mantuvo intacto
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica de Carrera
+- sesiones
+- persistencia
+- cálculos
+- turnos
+- autoplay
+- informe final funcional
+- readiness gate funcional
+- Tutor IA funcional
+- Horizonte funcional
+- hooks JS
+- IDs
+- names
+- auth
+- invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/base.html`
+- `app/templates/career.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- falta validar en Render que la navbar global restaurada se vea exactamente igual de bien que en el resto de pantallas
+- conviene revisar si el apilado del setup y sesiones recientes respira bien en desktop e intermedio
+- sigue pendiente validar con datos reales todos los estados densos del informe final y sesión activa para confirmar que la nueva diferenciación visual no quede demasiado cargada
+
+### Qué debe revisar el usuario en Render
+- navbar completa dentro de `Modo Carrera`
+- estado bloqueado / gate
+- vista general al entrar en Carrera
+- bloque `Crear nueva sesión`
+- bloque `Tus sesiones`
+- sesión activa
+- asignación del turno
+- historial de turnos
+- series por activo
+- informe final
+- score, métricas y alertas
+- CTA a Horizonte
+- Tutor IA
+- exportación / ranking / share
+- desktop
+- responsive intermedio
+- móvil
