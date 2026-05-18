@@ -5863,3 +5863,14 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+.career-card--setup-form .form-grid {
+  margin-bottom: 0;
+}
+
+.career-card--setup-form .career-setup-actions-card--balanced {
+  width: 100%;
+  max-width: none;
+  margin-top: 22px;
+}

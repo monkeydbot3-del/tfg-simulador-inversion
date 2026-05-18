@@ -8226,3 +8226,100 @@ Resultado:
 - responsive intermedio
 - móvil
 - navbar en Carrera (solo para confirmar que sigue bien)
+
+## Iteración 78 - Expansión a ancho completo de acciones en Crear nueva sesión
+
+### Objetivo
+Aplicar una microcorrección final para que la franja de acciones de `Crear nueva sesión` ocupe de verdad todo el ancho disponible del panel principal.
+
+La iteración 77 había resuelto el equilibrio entre acciones, pero todavía quedaba un problema espacial: ambas seguían viéndose encerradas dentro de una caja limitada, sin aprovechar la anchura libre del bloque principal.
+
+### Feedback visual recibido
+El feedback del usuario fue claro:
+- los dos botones ya eran más coherentes como acciones
+- pero seguían dentro de una cajita estrecha
+- no ocupaban el ancho libre del panel
+- visualmente seguían pareciendo comprimidos o incrustados dentro del formulario
+
+### Causa detectada
+La causa real no estaba ya en el grid interno de botones, sino en dónde vivía el bloque de acciones dentro de la estructura del setup.
+
+Aunque el action bar ya usaba dos columnas iguales, seguía colocado dentro del `form-grid`, por lo que heredaba el contexto del grid del formulario y no se comportaba como una franja de cierre de ancho completo.
+
+### Corrección aplicada
+Se corrigió en dos niveles:
+
+#### En `app/templates/career.html`
+- el bloque de acciones se sacó visualmente del `form-grid`
+- pasa a quedar como una fila propia debajo de los campos
+- sigue dentro de la card principal del setup, pero ya no incrustado como un elemento más del grid del formulario
+
+#### En `app/static/estilos.css`
+- se reforzó que `career-setup-actions-card--balanced` ocupe el ancho completo
+- se eliminó cualquier sensación de anchura limitada heredada
+- se añadió separación superior limpia respecto al bloque de campos
+
+### Resultado buscado
+Con esto:
+- la zona de acciones se ve como una franja amplia de cierre del setup
+- `Crear sesión` y `Reanudar última sesión` aprovechan el ancho útil real del panel
+- desaparece la sensación de cajita pequeña incrustada dentro del formulario
+- se mantiene la jerarquía visual entre principal y secundaria
+- en móvil ambas acciones siguen apilándose a ancho completo
+
+### Qué se mantuvo intacto
+No se tocó:
+- navbar actual
+- layout general de Carrera
+- campos de `Crear nueva sesión`
+- `Tus sesiones` debajo
+- pantalla bloqueada
+- Carrera activa
+- informe final
+- backend
+- endpoints
+- rutas Flask
+- lógica de crear sesión
+- lógica de reanudar
+- sesiones
+- persistencia
+- cálculos
+- readiness
+- Tutor IA
+- hooks JS
+- IDs
+- names
+- auth
+- invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/career.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que la franja ya se percibe realmente expandida en desktop, no solo técnicamente fuera del grid
+- conviene revisar anchura intermedia y móvil para validar que la separación vertical siga limpia y que la navbar en Carrera continúa correcta
+
+### Qué debe revisar el usuario en Render
+- `Crear nueva sesión` desktop
+- zona de acciones
+- botón `Crear sesión`
+- acción `Reanudar última sesión`
+- relación entre ambos
+- ancho total ocupado por la franja de acciones
+- responsive intermedio
+- móvil
+- navbar en Carrera, solo para confirmar que sigue bien
