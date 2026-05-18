@@ -845,8 +845,20 @@
 
 ## 2026-05-18
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `75f586b`
 - Título: Iteración 75, pulido de navegación, setup y contraste en Modo Carrera
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/base.html`
+  - `app/templates/career.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-18
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 76, corrección de navegación global y simetría de acciones en Carrera
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
