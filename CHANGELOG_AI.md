@@ -935,11 +935,22 @@
 
 ## 2026-05-18
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `a6e392c`
 - Título: Iteración 83, refuerzo de la fila de inputs principal del configurador de Horizonte
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
   - `app/templates/horizon.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-18
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 84, pasada global final de coherencia visual y responsive
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/historial.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

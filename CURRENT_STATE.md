@@ -97,6 +97,7 @@ Después de leer este archivo, relee siempre esos cuatro documentos antes de toc
 - Microiteración 6.1 sobre Horizonte para corregir jerarquía visual: hero más compacto, menos texto redundante, configurador colocado como bloque principal visible y resultado/gráfica con mucho más protagonismo, manteniendo intacta toda la lógica funcional.
 - Microiteración adicional de pulido sobre Horizonte: simplificación del aviso derecho del hero, más aire interno en el bloque izquierdo y redistribución equilibrada de la botonera del configurador, sin tocar lógica ni estructura funcional principal.
 - Ajuste final de inputs en Horizonte: la fila `Horizonte` + `Valor inicial (€)` pasa a tratarse como una banda protagonista del configurador con dos columnas equilibradas y mayor peso visual, manteniendo intactos IDs, names y comportamiento funcional.
+- Apertura de Fase 7 como pasada global final de coherencia visual y responsive: se revisaron pantallas principales y se corrigieron incoherencias residuales en Historial, tablas, modales y botones legacy para alinearlos con el sistema cálido actual sin tocar lógica ni estructura funcional profunda.
 - Validación real en Render del `readiness quiz` completo en flujo autenticado e invitado.
 - Posible microiteración metodológica de prudencia en Horizonte si las trayectorias siguen pareciendo demasiado optimistas.
 - Mejora de velocidad de arranque cognitivo del bot mediante documentación operativa como este archivo.
