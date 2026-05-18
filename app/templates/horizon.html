@@ -14,12 +14,12 @@
   </div>
 </section>
 
-<section class="horizon-shell" id="horizon-app"
+<section class="horizon-shell horizon-shell--redesigned" id="horizon-app"
   data-max-assets="{{ horizon_config.max_assets }}"
   data-default-horizon="{{ horizon_config.default_horizon_years }}"
   data-max-horizon="{{ horizon_config.max_horizon_years }}"
   data-acknowledged="{{ 'true' if horizon_config.acknowledged else 'false' }}">
-  <article class="card card--elevated horizon-hero-card">
+  <article class="card card--elevated horizon-hero-card horizon-hero-card--editorial">
     <div class="horizon-hero-card__head">
       <div class="horizon-hero-card__content">
         <p class="eyebrow">Modo experimental</p>
@@ -38,19 +38,28 @@
         </div>
       </aside>
     </div>
-    <div class="horizon-disclaimer-banner">
-      <strong>Esta simulación no predice el futuro.</strong>
+    <div class="horizon-disclaimer-banner horizon-disclaimer-banner--hero">
+      <div>
+        <span class="career-subtle-badge">Lectura prudente</span>
+        <strong>Esta simulación no predice el futuro.</strong>
+      </div>
       <p>{{ horizon_config.disclaimer }}</p>
     </div>
   </article>
 
-  <section class="horizon-grid">
-    <article class="card card--elevated horizon-card horizon-card--controls">
+  <section class="horizon-grid horizon-grid--scenario">
+    <article class="card card--elevated horizon-card horizon-card--controls horizon-card--scenario-builder">
       <div class="card-section">
-        <div>
-          <span class="career-step-badge">Paso 1</span>
-          <h2>Configura el escenario experimental</h2>
-          <p class="muted">Selecciona activos, define un horizonte y genera una continuación ficticia basada en patrones históricos.</p>
+        <div class="horizon-section-intro">
+          <div>
+            <span class="career-step-badge">Paso 1</span>
+            <h2>Configura el escenario experimental</h2>
+            <p class="muted">Define el punto de partida, ajusta el horizonte temporal y prepara una continuación hipotética basada en patrones históricos, siempre con lectura educativa.</p>
+          </div>
+          <div class="horizon-section-prompt">
+            <strong>Flujo recomendado</strong>
+            <p class="muted">Define escenario, ajusta supuestos, genera Horizonte e interpreta el resultado con prudencia.</p>
+          </div>
         </div>
 
         <div class="horizon-source-banner" id="horizon-source-banner">
@@ -65,7 +74,7 @@
           <p>{{ horizon_config.disclaimer }}</p>
         </div>
 
-        <div class="form-grid">
+        <div class="form-grid horizon-form-grid">
           <label class="field field--wide">
             <span>Tickers (máximo {{ horizon_config.max_assets }})</span>
             <input id="horizon-tickers" type="text" placeholder="Ej: AAPL, MSFT, NVDA" />
@@ -87,7 +96,7 @@
           </label>
         </div>
 
-        <div class="horizon-actions">
+        <div class="horizon-actions horizon-actions--builder">
           <button type="button" class="btn btn-primary btn-large" id="horizon-generate-btn">Generar escenario experimental</button>
           <button type="button" class="btn btn-secondary" id="horizon-rerun-btn" disabled>Generar otro escenario</button>
         </div>
@@ -100,9 +109,9 @@
       </div>
     </article>
 
-    <article class="card card--elevated horizon-card horizon-card--results">
+    <article class="card card--elevated horizon-card horizon-card--results horizon-card--scenario-results">
       <div class="card-section">
-        <div class="career-panel-head">
+        <div class="career-panel-head horizon-results-head">
           <div>
             <span class="career-step-badge">Paso 2</span>
             <h2>Resultado del escenario</h2>
@@ -118,7 +127,7 @@
           <p>{{ horizon_config.disclaimer }}</p>
         </div>
 
-        <div class="chart-wrapper chart-wrapper--career horizon-chart-wrapper">
+        <div class="chart-wrapper chart-wrapper--career horizon-chart-wrapper horizon-chart-wrapper--scenario">
           <div class="loading-surface loading-surface--inline hidden" id="horizon-loading" aria-live="polite">
             <span class="global-loading-spinner" aria-hidden="true"></span>
             <span>Obteniendo datos de mercado y generando escenario experimental. Si la fuente limita temporalmente la petición, reintentaremos automáticamente.</span>
@@ -128,13 +137,13 @@
         </div>
         <p class="muted horizon-transition-note">A partir de la línea divisoria comienza el tramo ficticio del escenario experimental.</p>
 
-        <div class="career-metrics horizon-metrics" id="horizon-metrics">
+        <div class="career-metrics career-metrics--dashboard horizon-metrics" id="horizon-metrics">
           <div class="metric-card"><h4>Valor proyectado</h4><ul class="metric-list" id="horizon-metric-portfolio"><li>Genera un escenario para ver métricas.</li></ul></div>
           <div class="metric-card"><h4>Riesgo simulado</h4><ul class="metric-list" id="horizon-metric-risk"><li>Se mostrará volatilidad experimental.</li></ul></div>
           <div class="metric-card"><h4>Activos usados</h4><ul class="metric-list" id="horizon-metric-assets"><li>Se listarán los activos válidos incluidos.</li></ul></div>
         </div>
 
-        <div class="career-warnings">
+        <div class="career-warnings horizon-warnings-panel">
           <h4>Advertencias y exclusiones</h4>
           <p id="horizon-status-message" class="muted horizon-status-message">Si la fuente de mercado falla o limita temporalmente las peticiones, verás aquí un mensaje claro y reutilizable.</p>
           <div id="horizon-warnings-list" class="warning-chips"><span class="status-chip status-chip--ok">Sin advertencias todavía</span></div>
