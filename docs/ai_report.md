@@ -8829,3 +8829,101 @@ Resultado:
 - desktop
 - anchura intermedia
 - móvil
+
+## Iteración 83 - Refuerzo de la fila de inputs principal del configurador de Horizonte
+
+### Objetivo
+Aplicar un ajuste final y localizado en el configurador de Horizonte para que la fila `Horizonte` + `Valor inicial (€)` deje de verse como dos inputs discretos y pase a comportarse como una banda importante del flujo, con el mismo criterio visual ya usado en la franja de acciones y en `Periodo de juego` de Carrera.
+
+### Problema detectado
+Tras reforzar hero y botonera, la fila compuesta por:
+- `Horizonte`
+- `Valor inicial (€)`
+
+seguía heredando el tratamiento genérico del formulario.
+
+Eso provocaba que:
+- ocupase menos presencia visual de la que pedía el bloque
+- se sintiera como dos inputs sueltos
+- no acompañase bien a la franja de acciones inmediatamente inferior
+- perdiese simetría frente al resto de decisiones importantes del configurador
+
+### Qué impedía que tuviera suficiente peso visual
+El problema principal era estructural y de superficie:
+- ambos campos seguían renderizando como labels `field` genéricas dentro del `form-grid`
+- no tenían un contenedor protagonista propio
+- no se les había asignado una rejilla explícita de dos columnas iguales con tratamiento visual compartido
+- por tanto seguían percibiéndose como una fila secundaria y no como una decisión fuerte del builder
+
+### Qué se cambió en la fila
+En `app/templates/horizon.html`:
+- `Horizonte` y `Valor inicial (€)` se agruparon dentro de `horizon-builder-field-row`
+- cada campo pasó a usar la variante `horizon-builder-field horizon-builder-field--balanced`
+
+En `app/static/estilos.css`:
+- `horizon-builder-field-row` se definió como banda de ancho completo (`grid-column: 1 / -1`)
+- se configuró con dos columnas iguales
+- se añadió gap limpio y simétrico
+- cada campo ganó una superficie propia con padding, borde y mejor presencia visual
+- `select` e `input` quedaron con altura visual homogénea
+- en móvil la fila vuelve a una sola columna limpia
+
+### Cómo quedó en desktop
+En desktop:
+- `Horizonte` y `Valor inicial (€)` aparecen en una fila de dos columnas iguales
+- ambas columnas ocupan el ancho disponible de forma equilibrada
+- labels e inputs se alinean mejor
+- la fila se lee como una decisión importante del configurador
+- visualmente conversa mucho mejor con la botonera de debajo
+
+### Cómo queda en móvil
+En móvil:
+- la fila se apila en una sola columna
+- se mantiene el padding interno y la presencia de cada campo
+- sigue leyendo como un bloque importante y no como inputs perdidos
+- no se genera overflow horizontal
+
+### Qué se mantuvo intacto
+No se tocó:
+- backend
+- endpoints
+- rutas
+- lógica JS
+- hooks
+- IDs
+- names
+- comportamiento del formulario
+- hero
+- disclaimer
+- resultado
+- gráfica
+- botones principales salvo coherencia visual indirecta
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que la banda tiene el suficiente peso visual real en desktop y anchura intermedia
+- conviene comprobar que la nueva superficie de ambos campos no compite demasiado con la fila de botones
+- merece revisión manual que el apilado en móvil siga limpio con teclado/viewport real
+
+### Qué debe revisar el usuario en Render
+- configurador de Horizonte desktop
+- fila `Horizonte` / `Valor inicial (€)`
+- relación visual con la fila de botones de debajo
+- responsive intermedio
+- móvil

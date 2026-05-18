@@ -924,8 +924,19 @@
 
 ## 2026-05-18
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `0f7df13`
 - Título: Iteración 82, pulido del hero y de la botonera del configurador en Horizonte
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/horizon.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-18
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 83, refuerzo de la fila de inputs principal del configurador de Horizonte
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
