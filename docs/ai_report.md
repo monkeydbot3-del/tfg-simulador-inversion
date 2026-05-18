@@ -8323,3 +8323,115 @@ Resultado:
 - responsive intermedio
 - móvil
 - navbar en Carrera, solo para confirmar que sigue bien
+
+## Iteración 79 - Expansión a ancho completo de la selección de periodo en Carrera
+
+### Objetivo
+Aplicar una microcorrección final para que la sección `Periodo de juego` use la misma lógica visual de ancho completo que ya había quedado bien en la franja de acciones de `Crear sesión` / `Reanudar última sesión`.
+
+El objetivo era puramente visual:
+- dos opciones grandes
+- simétricas
+- separadas
+- ocupando todo el ancho disponible
+- sin tocar la lógica de selección aleatoria/manual
+
+### Feedback visual recibido
+Tras revisar la versión en Render, el usuario observó que la sección:
+- `Periodo aleatorio según la dificultad`
+- `Elegir fechas manualmente`
+
+seguía apareciendo como una columna pequeña a la izquierda.
+
+Eso producía varios problemas visuales:
+- desaprovechaba el ancho disponible del setup
+- rompía la simetría respecto a la franja de acciones inferior
+- hacía que el bloque de periodo pareciera un subgrupo estrecho en vez de una decisión importante del flujo
+
+### Qué impedía que las opciones ocuparan todo el ancho
+El problema no estaba en la lógica de los radios ni en los hooks, sino en la composición visual del bloque:
+- el wrapper de `Periodo de juego` seguía sin declararse como una fila claramente protagonista del formulario
+- la segmented control usaba la base genérica, pero no estaba reforzada como una fila de dos bloques grandes dentro del setup de Carrera
+- faltaba marcar explícitamente ese tramo como ancho completo y con una rejilla simétrica propia
+
+### Qué se cambió para expandirlas
+En `app/templates/career.html`:
+- se añadió una clase específica al grupo de periodo: `career-field-group--period`
+- se añadió una clase específica al segmented control de esa zona: `career-period-control`
+
+En `app/static/estilos.css`:
+- se reforzó que `field--wide` del setup ocupe toda la anchura (`grid-column: 1 / -1`)
+- `career-field-group--period` pasó a comportarse como grupo protagonista de ancho completo
+- `career-period-control` pasó a una rejilla explícita de dos columnas iguales
+- se aumentó el gap y se reforzó el ancho completo
+- las opciones ganan altura mínima, mejor centrado y mejor presentación como bloques hermanos
+- en móvil vuelven a apilarse en una sola columna a ancho completo
+
+### Resultado buscado
+Con esto:
+- `Periodo aleatorio según la dificultad` y `Elegir fechas manualmente` se leen como dos decisiones importantes del setup
+- ocupan una fila completa del formulario
+- tienen anchura equivalente y buena separación
+- conservan claramente el estado seleccionado/no seleccionado
+- mantienen coherencia visual con la franja `Crear sesión` / `Reanudar última sesión`
+
+### Qué se mantuvo intacto
+No se tocó:
+- navbar actual
+- layout general de Carrera
+- campos de `Crear nueva sesión`
+- franja `Crear sesión / Reanudar última sesión`
+- `Tus sesiones` debajo
+- pantalla bloqueada
+- Carrera activa
+- informe final
+- texto actual
+- paleta actual
+- backend
+- endpoints
+- rutas Flask
+- lógica de crear sesión
+- lógica de reanudar
+- lógica de periodo aleatorio/manual
+- sesiones
+- persistencia
+- cálculos
+- readiness
+- Tutor IA
+- hooks JS
+- IDs
+- names
+- auth
+- invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/career.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que la nueva fila de periodo se percibe realmente tan amplia y simétrica como la franja de acciones inferior
+- conviene revisar intermedio y móvil para asegurar que el apilado no deja cajas demasiado altas ni separación rara
+- el resto de Carrera no debería haberse movido, pero merece una comprobación rápida visual de consistencia
+
+### Qué debe revisar el usuario en Render
+- `Crear nueva sesión` desktop
+- sección `Periodo de juego`
+- opción `Periodo aleatorio según la dificultad`
+- opción `Elegir fechas manualmente`
+- comparación con la franja `Crear/Reanudar`
+- responsive intermedio
+- móvil
+- navbar en Carrera, solo para confirmar que sigue bien
