@@ -5874,3 +5874,37 @@ body {
   max-width: none;
   margin-top: 22px;
 }
+
+
+.career-card--setup .field--wide {
+  grid-column: 1 / -1;
+}
+
+.career-field-group--period {
+  width: 100%;
+  gap: 14px;
+}
+
+.career-period-control {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.career-period-control .segmented-option {
+  min-width: 0;
+}
+
+.career-period-control .segmented-option span {
+  min-height: 72px;
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  padding-inline: 18px;
+}
+
+@media (max-width: 900px) {
+  .career-period-control {
+    grid-template-columns: 1fr;
+  }
+}
