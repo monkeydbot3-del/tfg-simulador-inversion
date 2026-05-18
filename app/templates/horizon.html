@@ -55,20 +55,22 @@
             <input id="horizon-tickers" type="text" placeholder="Ej: AAPL, MSFT, NVDA" />
             <small class="muted">Separados por coma. Si vienes desde Carrera intentaremos precargarlos.</small>
           </label>
-          <label class="field">
-            <span>Horizonte</span>
-            <select id="horizon-years">
-              <option value="1">1 año</option>
-              <option value="2">2 años</option>
-              <option value="3" selected>3 años</option>
-              <option value="4">4 años</option>
-              <option value="5">5 años</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Valor inicial (€)</span>
-            <input id="horizon-initial-value" type="number" min="1000" step="500" value="10000" />
-          </label>
+          <div class="horizon-builder-field-row">
+            <label class="field horizon-builder-field horizon-builder-field--balanced">
+              <span>Horizonte</span>
+              <select id="horizon-years">
+                <option value="1">1 año</option>
+                <option value="2">2 años</option>
+                <option value="3" selected>3 años</option>
+                <option value="4">4 años</option>
+                <option value="5">5 años</option>
+              </select>
+            </label>
+            <label class="field horizon-builder-field horizon-builder-field--balanced">
+              <span>Valor inicial (€)</span>
+              <input id="horizon-initial-value" type="number" min="1000" step="500" value="10000" />
+            </label>
+          </div>
         </div>
 
         <div class="horizon-actions horizon-actions--builder horizon-actions--balanced">

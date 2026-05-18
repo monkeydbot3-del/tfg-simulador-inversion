@@ -6233,3 +6233,36 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+.horizon-builder-field-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.horizon-builder-field {
+  min-width: 0;
+  padding: 16px 18px 18px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.98), rgba(244, 236, 226, 0.94));
+  border: 1px solid rgba(23, 33, 43, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.58);
+}
+
+.horizon-builder-field span {
+  margin-bottom: 2px;
+}
+
+.horizon-builder-field select,
+.horizon-builder-field input {
+  min-height: 54px;
+}
+
+@media (max-width: 720px) {
+  .horizon-builder-field-row {
+    grid-template-columns: 1fr;
+  }
+}
