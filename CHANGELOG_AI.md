@@ -891,11 +891,22 @@
 
 ## 2026-05-18
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `99ac837`
 - Título: Iteración 79, expansión a ancho completo de la selección de periodo en Carrera
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
   - `app/templates/career.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-18
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 80, apertura de Fase 6 con rediseño visual de Modo Horizonte
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/horizon.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`

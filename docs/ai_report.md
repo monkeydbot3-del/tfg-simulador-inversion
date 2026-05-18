@@ -8435,3 +8435,177 @@ Resultado:
 - responsive intermedio
 - móvil
 - navbar en Carrera, solo para confirmar que sigue bien
+
+## Iteración 80 - Apertura de Fase 6 con rediseño visual de Modo Horizonte
+
+### Objetivo
+Abrir la Fase 6 del rediseño frontend elevando visualmente `Modo Horizonte` al nivel del resto de la app, sin tocar su funcionalidad y dejando mucho más claro que se trata de una simulación experimental, educativa y no predictiva.
+
+### Archivos localizados como responsables de Horizonte
+Se localizaron como piezas principales de la experiencia Horizonte:
+- `app/templates/horizon.html`
+- `app/static/estilos.css`
+- `app/static/app.js` como capa de hidratación y estados, revisada solo para identificar hooks y estados existentes
+
+No fue necesario tocar backend ni rutas para esta iteración.
+
+### Estados detectados antes de rediseñar
+A partir de la plantilla y del bloque JS existente se identificaron estos estados reales:
+- pantalla inicial de Horizonte
+- cabecera principal con badges y copy experimental
+- formulario/configuración manual
+- entrada independiente
+- continuación desde Carrera con precarga de contexto
+- disclaimer obligatorio persistente
+- modal de aceptación previa
+- estado de carga durante la simulación
+- estado vacío antes de generar escenario
+- estado de éxito con escenario generado
+- estado de error con mensaje de proveedor o simulación
+- bloque de advertencias/exclusiones
+- gráfico principal con tramo histórico y tramo experimental
+- métricas principales
+
+No se inventaron estados nuevos ni se alteró la lógica que activa cada uno.
+
+### Diagnóstico visual previo
+Horizonte ya tenía una base funcional razonable, pero seguía sintiéndose más como una pantalla técnica con varias cards que como un módulo experimental bien guiado.
+
+Los problemas principales eran:
+- cabecera correcta pero todavía algo genérica
+- jerarquía visual mejorable entre introducción, configuración y resultados
+- disclaimers presentes pero no suficientemente integrados en la narrativa visual
+- constructor de escenario algo plano para una fase de rediseño ya avanzada
+- resultados correctos pero aún poco editorializados como “escenario hipotético”
+
+### Cambios en la cabecera
+Se mantuvo la estructura general, pero se reforzó la lectura de Horizonte como módulo experimental:
+- la shell principal pasó a `horizon-shell--redesigned`
+- la hero card pasó a `horizon-hero-card--editorial`
+- se ajustó la jerarquía visual del bloque principal con una superficie más cálida y académica
+- el bloque lateral de interpretación prudente ganó más presencia como lectura correcta del resultado
+- el disclaimer principal pasó a una versión más editorial (`horizon-disclaimer-banner--hero`) con mejor separación entre mensaje clave y explicación
+
+Objetivo conseguido en esta parte:
+- que se entienda mejor que Horizonte explora escenarios hipotéticos y no previsiones reales
+
+### Cambios en formulario / configuración
+Sin tocar `IDs`, `names` ni hooks:
+- se reforzó la lectura del bloque como configurador de escenario experimental
+- se añadió una introducción visual con `horizon-section-intro`
+- se añadió un subbloque de guía de uso con `horizon-section-prompt`
+- el `form-grid` pasó a una variante `horizon-form-grid` con mejor respiración y mejor lectura por bloques
+- el campo ancho de tickers se reforzó explícitamente a fila completa
+- la zona de acciones se refinó como `horizon-actions--builder` para que la CTA principal tenga más peso y mejor proporción
+
+Objetivo conseguido en esta parte:
+- que el bloque se lea como flujo de configuración del escenario, no como formulario técnico plano
+
+### Cambios en avisos y disclaimers
+Se mejoró su presencia, sin volverlos agresivos:
+- disclaimer hero más visible y más cálido
+- reforzado el bloque `horizon-warning-card`
+- mantenido el aviso inline del resultado con mejor integración visual
+- mejor integración del bloque `horizon-hero-note`
+- mantenimiento del modal obligatorio existente sin alterar su lógica
+
+Objetivo conseguido en esta parte:
+- que el usuario vea el carácter no predictivo de Horizonte sin sentir que la pantalla se convierte en texto legal
+
+### Cambios en resultados, gráfico y métricas
+Sin tocar Chart.js ni datasets:
+- el bloque de resultados se reforzó como `horizon-card--scenario-results`
+- la cabecera del resultado ganó una variante `horizon-results-head`
+- el contenedor del gráfico pasó a `horizon-chart-wrapper--scenario` con una superficie más clara y cuidada
+- las métricas reutilizan el patrón `career-metrics--dashboard` para leerlas mejor como panel comparativo
+- el bloque de advertencias pasó a `horizon-warnings-panel` con una superficie coherente con el resto de resultados
+- se mejoraron fondos, bordes, contraste y respiración de los metadatos provenientes de Carrera
+
+Objetivo conseguido en esta parte:
+- que el resultado se lea como escenario generado e interpretable, no como una supuesta predicción del mercado
+
+### Relación con Carrera
+No se tocó la lógica de precarga ni de conexión, pero sí su presentación:
+- el banner de origen sigue distinguiendo entrada independiente frente a continuidad desde Carrera
+- el metabloque de origen queda mejor integrado y más legible
+- visualmente la continuación desde Carrera se entiende más como “capa Horizonte” sobre el final de la partida
+
+### Qué lógica se mantuvo intacta
+Se confirma que no se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica de Horizonte
+- generación de escenarios
+- cálculo de datos
+- Chart.js
+- gráficos
+- datos históricos
+- conexión con Carrera
+- informes
+- auth
+- modo invitado
+- readiness
+- Modo Carrera
+- Modo Práctica
+- Tutor IA
+- IDs usados por JS
+- hooks JS
+- names de inputs
+- modal funcional de aceptación
+- carga de estado, loading, errores o rerun
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Estados visuales revisados
+Se revisaron al menos a nivel estructural y de diseño:
+- desktop de Horizonte
+- hero inicial
+- bloque de configuración
+- disclaimer persistente
+- banner de entrada independiente
+- metabloque de continuación desde Carrera
+- bloque de resultados
+- gráfico principal
+- métricas
+- advertencias y exclusiones
+- estado vacío del gráfico antes de generar escenario
+- estado de carga existente
+- estado de error existente
+- responsive intermedio
+- móvil
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- sigue pendiente la validación real en Render del equilibrio entre hero, builder y resultados con datos reales cargados
+- conviene revisar especialmente el gráfico y la altura total de la columna izquierda en móvil
+- merece comprobación manual la experiencia cuando Horizonte entra precargado desde Carrera, porque es donde más cambia la densidad del bloque superior
+
+### Qué debe revisar el usuario en Render
+- Modo Horizonte desktop
+- cabecera principal
+- hero experimental
+- disclaimer principal
+- bloque de configuración
+- CTA de generar escenario
+- resultado generado si aparece
+- gráfico principal
+- métricas
+- bloque de advertencias
+- experiencia precargada desde Carrera si aplica
+- responsive intermedio
+- móvil
