@@ -6181,3 +6181,55 @@ body {
     min-height: 320px;
   }
 }
+
+
+.horizon-hero-card__head--compact {
+  padding: 10px 0;
+}
+
+.horizon-hero-card--compact .horizon-hero-card__content {
+  padding: 8px 0 8px 18px;
+}
+
+.horizon-disclaimer-banner--compact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: stretch;
+  justify-content: center;
+}
+
+.horizon-disclaimer-banner--compact strong,
+.horizon-disclaimer-banner--compact p {
+  margin: 0;
+}
+
+.horizon-disclaimer-banner--compact p {
+  max-width: 34ch;
+}
+
+.horizon-actions--balanced {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.horizon-actions--balanced .btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.horizon-actions--balanced .btn-secondary {
+  min-height: 54px;
+}
+
+@media (max-width: 720px) {
+  .horizon-hero-card--compact .horizon-hero-card__content {
+    padding-left: 0;
+  }
+
+  .horizon-actions--balanced {
+    grid-template-columns: 1fr;
+  }
+}

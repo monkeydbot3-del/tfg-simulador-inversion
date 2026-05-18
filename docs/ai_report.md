@@ -8739,3 +8739,93 @@ Resultado:
 - desktop
 - anchura intermedia
 - móvil
+
+## Iteración 82 - Pulido del hero y de la botonera del configurador en Horizonte
+
+### Objetivo
+Aplicar una microiteración de pulido visual sobre la base ya buena de Horizonte, corrigiendo dos problemas concretos vistos en Render:
+- la caja de advertencia derecha del hero se veía fea y rara en su composición
+- la distribución de botones del configurador no estaba visualmente bien resuelta
+
+No se buscó rehacer la pantalla, solo afinar estas dos tensiones visibles.
+
+### Feedback visual recibido
+El feedback fue muy concreto:
+- la advertencia derecha del hero parecía una caja partida o mal distribuida
+- el título quedaba a la izquierda y el texto a la derecha de forma extraña
+- el bloque izquierdo del hero estaba demasiado pegado al borde
+- la zona de botones del configurador se veía descompensada, como improvisada o mal repartida
+
+### Qué se cambió en el hero
+Se actuó sobre dos frentes:
+
+#### 1. Simplificación de la advertencia derecha
+La advertencia dejó de usar una composición larga con texto excesivo y pasó a una nota breve y limpia:
+- se sustituyó el contenido por dos frases muy cortas
+- el mensaje principal queda en `Escenario experimental, no predictivo.`
+- la línea de apoyo queda en `No anticipa el mercado ni sustituye decisiones reales.`
+- se evitó por completo el efecto de “título a la izquierda / párrafo a la derecha”
+- el bloque ahora se comporta como una nota prudente compacta, no como una segunda mini editorial
+
+#### 2. Más aire en el bloque izquierdo
+Para que el contenido principal del hero respire mejor:
+- se añadió más padding interior al bloque izquierdo
+- se evitó que el copy arrancara tan pegado al borde del recuadro
+- se reforzó el equilibrio visual entre el mensaje principal y el aviso derecho
+
+### Qué se cambió en la botonera del configurador
+La zona de acciones del configurador pasó a una composición explícitamente equilibrada:
+- se añadió la variante `horizon-actions--balanced`
+- el bloque usa una distribución en grid para repartir mejor acción principal y secundaria
+- ambos botones ocupan mejor su espacio y se leen como acciones hermanas bien colocadas
+- se mantiene la jerarquía visual (`btn-primary` frente a `btn-secondary`), pero con una disposición mucho más limpia
+- en móvil vuelven a apilarse de forma controlada
+
+### Qué se mantuvo intacto
+No se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica del modo Horizonte
+- generación del escenario
+- gráficos
+- hooks JS
+- IDs
+- names
+- integración con Carrera
+- navbar
+- paleta general ya establecida
+- estructura general que ya funcionaba
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render que el aviso del hero ya no se percibe como caja rara o partida en desktop real
+- conviene revisar anchura intermedia para asegurar que la nota prudente siga compacta sin romper el balance
+- merece comprobación visual que la botonera mantenga buen equilibrio con textos largos o cuando el botón secundario esté deshabilitado
+
+### Qué debe revisar el usuario en Render
+- hero de Horizonte
+- caja de advertencia derecha
+- padding del texto izquierdo del hero
+- configurador del escenario
+- fila de botones del configurador
+- estado vacío del resultado
+- desktop
+- anchura intermedia
+- móvil
