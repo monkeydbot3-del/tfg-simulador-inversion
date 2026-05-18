@@ -5724,3 +5724,115 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+
+.career-setup-shell--stacked {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+.career-setup-shell--stacked .career-card--setup-form {
+  width: 100%;
+}
+
+.career-saved-sessions-shell {
+  display: block;
+}
+
+.career-saved-sessions-shell .career-card--saved {
+  width: 100%;
+}
+
+.career-card--setup-form,
+.career-card--active,
+#career-series-card,
+#career-report-card {
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.99), rgba(245, 238, 230, 0.96));
+}
+
+.career-card--saved {
+  background: linear-gradient(180deg, rgba(251, 245, 237, 0.98), rgba(244, 235, 225, 0.94));
+}
+
+.career-session-card .card-section,
+.career-card--active .card-section,
+#career-series-card .card-section,
+#career-report-card .card-section {
+  gap: 24px;
+}
+
+.career-turn-builder--surface {
+  background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(248, 241, 233, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+.career-turns-history,
+.career-series-controls,
+.career-horizon-cta,
+.career-ai-tutor,
+.career-export,
+.career-ranking,
+.career-share,
+.career-warnings {
+  background: linear-gradient(180deg, rgba(255, 252, 248, 0.95), rgba(243, 235, 225, 0.9));
+  border: 1px solid var(--color-border);
+}
+
+.career-turns-history {
+  border-radius: 22px;
+  padding: 18px 20px;
+}
+
+.career-turns-history summary {
+  font-weight: 700;
+  color: var(--color-text-strong);
+}
+
+.career-turns-table-wrapper,
+.career-ranking-table-wrapper,
+.career-share-output,
+.chart-wrapper--career {
+  background: rgba(255, 254, 251, 0.98);
+  border: 1px solid var(--color-border-strong);
+  box-shadow: 0 10px 22px rgba(23, 32, 51, 0.04);
+}
+
+.career-turns-table thead,
+.career-ranking-table thead,
+.career-breakdown-table thead {
+  background: rgba(240, 230, 217, 0.95);
+}
+
+.career-turns-table tbody tr:nth-child(even),
+.career-ranking-table tbody tr:nth-child(even),
+.career-breakdown-table tbody tr:nth-child(even) {
+  background: rgba(250, 245, 238, 0.86);
+}
+
+.career-score--elevated {
+  background: linear-gradient(180deg, rgba(255, 250, 244, 0.99), rgba(243, 233, 221, 0.95));
+  border-color: rgba(169, 110, 78, 0.28);
+}
+
+.career-metrics--dashboard .metric-card {
+  background: linear-gradient(180deg, rgba(255, 254, 251, 0.98), rgba(247, 241, 234, 0.94));
+}
+
+.career-warnings {
+  background: linear-gradient(180deg, rgba(255, 249, 243, 0.98), rgba(247, 237, 226, 0.94));
+}
+
+.career-horizon-cta {
+  background: linear-gradient(180deg, rgba(247, 242, 236, 0.98), rgba(240, 231, 221, 0.94));
+}
+
+.career-ai-tutor {
+  background: linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(244, 237, 228, 0.94));
+}
+
+.career-export,
+.career-ranking,
+.career-share {
+  background: linear-gradient(180deg, rgba(252, 247, 241, 0.98), rgba(242, 233, 223, 0.94));
+}
