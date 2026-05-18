@@ -8609,3 +8609,133 @@ Resultado:
 - experiencia precargada desde Carrera si aplica
 - responsive intermedio
 - móvil
+
+## Iteración 81 - Mejora de jerarquía y flujo experimental en Horizonte
+
+### Objetivo
+Aplicar una microiteración de reestructuración visual sobre Fase 6 para corregir el principal problema detectado en Render: Horizonte seguía dedicando demasiado peso a texto, explicaciones y cajas secundarias, mientras el configurador y la gráfica no dominaban la página como herramienta principal.
+
+La meta de esta iteración fue invertir la jerarquía visual:
+1. hero breve
+2. configurador claramente visible y protagonista
+3. resultado con gráfica dominante
+4. advertencias y lectura prudente como apoyo final
+
+### Feedback recibido
+El feedback visual recibido fue claro:
+- había demasiado texto explicativo o redundante
+- el formulario quedaba demasiado abajo y lateralizado
+- el configurador podía pasar desapercibido
+- la gráfica y el resultado no dominaban visualmente como debían
+- la página se sentía demasiado explicativa y poco orientada a la acción
+
+### Reestructuración visual aplicada
+Se aplicó una reestructuración de jerarquía, no una fase nueva de estilo independiente.
+
+#### 1. Hero mucho más compacto
+Se redujo el hero para dejar paso rápido a la herramienta:
+- la cabecera principal pasó a una variante más compacta
+- se redujeron chips redundantes
+- se eliminó el bloque lateral con acumulación de badges
+- se condensó el mensaje principal en una sola idea fuerte
+- el disclaimer principal quedó integrado en una única caja breve y visible
+
+#### 2. Configurador arriba y claramente protagonista
+Se eliminó la sensación de que el formulario vivía escondido entre bloques secundarios:
+- el configurador pasa a ser el primer bloque principal de trabajo
+- la card del builder se reforzó como `horizon-card--primary-builder`
+- el copy introductorio se redujo a una sola explicación operativa breve
+- la CTA principal queda visible con más rapidez al entrar
+- la referencia a Carrera se mantiene, pero reducida a una nota breve y elegante
+
+#### 3. Resultado y gráfica con más presencia real
+Se reforzó el bloque de resultado para que la herramienta tenga un segundo foco claro tras configurar:
+- el resultado pasó a una variante `horizon-card--primary-results`
+- el contenedor del gráfico ganó más altura y protagonismo
+- la gráfica se consolidó como centro visual del bloque
+- se mantuvieron métricas y advertencias, pero subordinadas a la lectura del gráfico
+
+#### 4. Reducción clara de texto redundante
+Se eliminaron o redujeron varias capas pedagógicas repetidas:
+- desaparece `Flujo recomendado` como caja propia
+- desaparece `Método en lenguaje claro` como bloque independiente
+- desaparece el bloque amplio de `Aviso obligatorio` dentro del builder
+- se reducen badges redundantes del hero
+- se simplifica la repetición de disclaimers
+
+La idea clave se mantiene, pero ya no se repite en exceso:
+- es experimental
+- no es predictivo
+- no sirve para decisiones reales
+- puede continuar desde Carrera
+
+### Qué texto se redujo o fusionó
+Se redujo o fusionó concretamente:
+- subtítulo del header principal
+- hero secundario demasiado explicativo
+- pila de tres badges redundantes
+- bloque `Flujo recomendado`
+- bloque `Método en lenguaje claro`
+- bloque amplio `Aviso obligatorio` dentro del configurador
+- disclaimer inline del resultado, ahora más corto
+- copy de entrada manual, ahora más compacto
+
+### Cómo se mantuvo claro el carácter experimental
+Sin saturar la página:
+- se dejó un disclaimer principal breve en la parte superior
+- el resultado conserva un aviso corto y claro de lectura prudente
+- el modal funcional obligatorio se mantiene intacto
+- el lenguaje visible sigue dejando claro que no es predicción ni asesoramiento
+
+### Qué lógica se mantuvo intacta
+Se confirma que no se tocó:
+- backend
+- endpoints
+- rutas Flask
+- lógica JS
+- lógica de simulación
+- generación de escenario
+- Chart.js
+- datos y métricas
+- integración con Carrera
+- modal/disclaimer funcional
+- IDs
+- hooks JS
+- names de inputs
+- auth / invitado
+
+### Archivos tocados
+- `CURRENT_STATE.md`
+- `app/static/estilos.css`
+- `app/templates/horizon.html`
+- `CHANGELOG_AI.md`
+- `docs/ai_report.md`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `25 passed`
+
+### Riesgos pendientes
+- queda pendiente confirmar en Render si el resultado generado se percibe ya claramente más dominante con datos reales
+- conviene revisar especialmente la relación visual entre configurador y gráfica en anchuras intermedias
+- merece comprobación manual el caso precargado desde Carrera para asegurar que el bloque de contexto breve sigue siendo suficiente
+
+### Qué debe revisar el usuario en Render
+- hero de Horizonte
+- configurador del escenario
+- CTA principal
+- estado vacío del resultado
+- resultado generado
+- gráfico principal
+- métricas
+- advertencias / exclusiones
+- continuación desde Carrera si aplica
+- desktop
+- anchura intermedia
+- móvil

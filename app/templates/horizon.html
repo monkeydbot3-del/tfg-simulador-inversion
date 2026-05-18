@@ -2,15 +2,14 @@
 {% block title %}Modo Horizonte{% endblock %}
 
 {% block content %}
-<section class="page-header page-header--with-badge horizon-page-header">
+<section class="page-header page-header--with-badge horizon-page-header horizon-page-header--compact">
   <div class="horizon-page-header__copy">
-    <p class="eyebrow">Proyección experimental basada en patrones históricos</p>
+    <p class="eyebrow">Escenario experimental</p>
     <h1>Modo Horizonte</h1>
-    <p class="muted">Explora una continuación ficticia de cartera usando remezcla de rentabilidades históricas, siempre como simulación educativa y no predictiva.</p>
+    <p class="muted">Explora una continuación hipotética basada en patrones históricos. Úsalo como simulación educativa, no como predicción real.</p>
   </div>
-  <div class="horizon-page-header__meta">
-    <span class="badge badge-soft">Experimental</span>
-    <span class="badge badge-soft">No predictivo</span>
+  <div class="horizon-page-header__meta horizon-page-header__meta--compact">
+    <span class="badge badge-soft">Experimental y no predictivo</span>
   </div>
 </section>
 
@@ -19,60 +18,36 @@
   data-default-horizon="{{ horizon_config.default_horizon_years }}"
   data-max-horizon="{{ horizon_config.max_horizon_years }}"
   data-acknowledged="{{ 'true' if horizon_config.acknowledged else 'false' }}">
-  <article class="card card--elevated horizon-hero-card horizon-hero-card--editorial">
-    <div class="horizon-hero-card__head">
+  <article class="card card--elevated horizon-hero-card horizon-hero-card--editorial horizon-hero-card--compact">
+    <div class="horizon-hero-card__head horizon-hero-card__head--compact">
       <div class="horizon-hero-card__content">
-        <p class="eyebrow">Modo experimental</p>
-        <h2>Genera un escenario hipotético de continuidad</h2>
-        <p class="muted">Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa.</p>
+        <p class="eyebrow">Lectura prudente</p>
+        <h2>Genera escenarios hipotéticos y analízalos con cautela</h2>
+        <p class="muted">Horizonte remezcla patrones históricos para construir una continuación experimental. No anticipa el mercado ni sustituye una decisión real de inversión.</p>
       </div>
-      <aside class="horizon-hero-card__aside">
-        <div class="horizon-badge-stack">
-          <span class="badge badge-soft">No predictivo</span>
-          <span class="badge badge-soft">Uso educativo</span>
-          <span class="badge badge-soft">Experimental</span>
-        </div>
-        <div class="horizon-hero-note">
-          <strong>Lectura correcta del resultado</strong>
-          <p class="muted">Interprétalo como un escenario generado, no como una previsión fiable del mercado.</p>
-        </div>
-      </aside>
-    </div>
-    <div class="horizon-disclaimer-banner horizon-disclaimer-banner--hero">
-      <div>
-        <span class="career-subtle-badge">Lectura prudente</span>
-        <strong>Esta simulación no predice el futuro.</strong>
+      <div class="horizon-disclaimer-banner horizon-disclaimer-banner--hero horizon-disclaimer-banner--compact">
+        <strong>No es una predicción.</strong>
+        <p>{{ horizon_config.disclaimer }}</p>
       </div>
-      <p>{{ horizon_config.disclaimer }}</p>
     </div>
   </article>
 
-  <section class="horizon-grid horizon-grid--scenario">
-    <article class="card card--elevated horizon-card horizon-card--controls horizon-card--scenario-builder">
+  <article class="card card--elevated horizon-card horizon-card--controls horizon-card--scenario-builder horizon-card--primary-builder">
       <div class="card-section">
-        <div class="horizon-section-intro">
+        <div class="horizon-section-intro horizon-section-intro--compact">
           <div>
             <span class="career-step-badge">Paso 1</span>
-            <h2>Configura el escenario experimental</h2>
-            <p class="muted">Define el punto de partida, ajusta el horizonte temporal y prepara una continuación hipotética basada en patrones históricos, siempre con lectura educativa.</p>
-          </div>
-          <div class="horizon-section-prompt">
-            <strong>Flujo recomendado</strong>
-            <p class="muted">Define escenario, ajusta supuestos, genera Horizonte e interpreta el resultado con prudencia.</p>
+            <h2>Configura el escenario</h2>
+            <p class="muted">Elige activos, horizonte temporal y valor inicial para generar una continuación experimental.</p>
           </div>
         </div>
 
-        <div class="horizon-source-banner" id="horizon-source-banner">
-          <strong>Entrada independiente</strong>
-          <p class="muted">Puedes construir un escenario manualmente o venir desde el informe final de Carrera.</p>
+        <div class="horizon-source-banner horizon-source-banner--compact" id="horizon-source-banner">
+          <strong>También puedes continuar desde Carrera</strong>
+          <p class="muted">Si llegas desde una partida, intentaremos precargar su contexto final automáticamente.</p>
         </div>
 
         <div class="horizon-source-meta hidden" id="horizon-source-meta" aria-live="polite"></div>
-
-        <div class="horizon-warning-card">
-          <p class="eyebrow">Aviso obligatorio</p>
-          <p>{{ horizon_config.disclaimer }}</p>
-        </div>
 
         <div class="form-grid horizon-form-grid">
           <label class="field field--wide">
@@ -101,15 +76,11 @@
           <button type="button" class="btn btn-secondary" id="horizon-rerun-btn" disabled>Generar otro escenario</button>
         </div>
 
-        <div class="horizon-method-card">
-          <h3>Método en lenguaje claro</h3>
-          <p>{{ horizon_config.method_description }}</p>
-          <p class="muted">La parte azul del gráfico muestra una base histórica normalizada suficientemente amplia cuando está disponible. La parte discontinua representa una continuación hipotética generada a partir de patrones históricos, no una predicción real.</p>
-        </div>
+        <p class="muted horizon-builder-note">La gráfica combinará base histórica y una continuación ficticia para ayudarte a razonar el escenario con prudencia.</p>
       </div>
     </article>
 
-    <article class="card card--elevated horizon-card horizon-card--results horizon-card--scenario-results">
+    <article class="card card--elevated horizon-card horizon-card--results horizon-card--scenario-results horizon-card--primary-results">
       <div class="card-section">
         <div class="career-panel-head horizon-results-head">
           <div>
@@ -122,9 +93,9 @@
           </div>
         </div>
 
-        <div class="horizon-disclaimer-inline">
-          <strong>No predictivo.</strong>
-          <p>{{ horizon_config.disclaimer }}</p>
+        <div class="horizon-disclaimer-inline horizon-disclaimer-inline--compact">
+          <strong>Escenario experimental, no previsión real.</strong>
+          <p>Interprétalo como una simulación educativa basada en patrones históricos.</p>
         </div>
 
         <div class="chart-wrapper chart-wrapper--career horizon-chart-wrapper horizon-chart-wrapper--scenario">

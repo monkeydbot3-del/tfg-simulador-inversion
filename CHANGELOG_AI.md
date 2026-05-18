@@ -902,8 +902,19 @@
 
 ## 2026-05-18
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `aae7212`
 - Título: Iteración 80, apertura de Fase 6 con rediseño visual de Modo Horizonte
+- Archivos tocados:
+  - `CURRENT_STATE.md`
+  - `app/static/estilos.css`
+  - `app/templates/horizon.html`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+
+## 2026-05-18
+- Rama: `feature/frontend-redesign-v2`
+- Commit: `PENDIENTE`
+- Título: Iteración 81, mejora de jerarquía y flujo experimental en Horizonte
 - Archivos tocados:
   - `CURRENT_STATE.md`
   - `app/static/estilos.css`
