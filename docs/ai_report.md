@@ -9085,3 +9085,260 @@ Puntos concretos a comprobar:
 - que tablas y wrappers tengan una lectura más cálida y limpia
 - que los modales no parezcan demasiado blancos o legacy
 - que no haya overflow horizontal ni roturas de navbar o formularios
+
+## Fase 8 - Consolidación final del rediseño frontend en main
+
+### Objetivo
+Cerrar el trabajo del rediseño frontend consolidando en  la versión final validada en Render, sin introducir cambios visuales nuevos ni modificaciones funcionales.
+
+### Diagnóstico previo de ramas
+Se ejecutó el diagnóstico pedido sobre:
+- 
+- 
+- 
+
+Conclusión:
+-  contenía todo el estado final validado
+-  contenía los commits de trabajo limpios del rediseño
+-  no introducía cambios funcionales propios adicionales, solo commits de merge de preview sobre esos mismos cambios
+-  estaba por detrás y era seguro consolidar sobre ella
+
+Por ello se eligió  como rama fuente de integración final.
+
+### Protección previa
+Antes del merge se creó y publicó el tag de seguridad:
+- 
+
+### Validación previa al merge
+Sobre la rama fuente final se ejecutó:
+- 
+- All checks passed!
+- 
+- ============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0
+rootdir: /root/.openclaw/workspace/tfg-web-ci-python-bot
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.0.0
+collected 25 items
+
+tests/test_analisis.py ....                                              [ 16%]
+tests/test_analisis_export_csv.py ..                                     [ 24%]
+tests/test_analisis_filtros.py ...                                       [ 36%]
+tests/test_analisis_paginado.py .                                        [ 40%]
+tests/test_analisis_storage.py ..                                        [ 48%]
+tests/test_career_report.py ..                                           [ 56%]
+tests/test_empresas.py .                                                 [ 60%]
+tests/test_empresas_busqueda.py ..                                       [ 68%]
+tests/test_empresas_datos.py .                                           [ 72%]
+tests/test_empresas_filtro.py ..                                         [ 80%]
+tests/test_empresas_paginado.py ..                                       [ 88%]
+tests/test_frontend.py .                                                 [ 92%]
+tests/test_health.py .                                                   [ 96%]
+tests/test_smoke.py .                                                    [100%]
+
+=============================== warnings summary ===============================
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:64
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:64: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'
+    prop = Group((name + Suppress("=") + comma_separated(value)) | oneOf(_CONSTANTS))
+
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85: PyparsingDeprecationWarning: 'parseString' deprecated - use 'parse_string'
+    parse = parser.parseString(pattern)
+
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89: PyparsingDeprecationWarning: 'resetCache' deprecated - use 'reset_cache'
+    parser.resetCache()
+
+app/__init__.py:28
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/__init__.py:28: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    or datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+tests/test_analisis.py: 3 warnings
+tests/test_analisis_export_csv.py: 2 warnings
+tests/test_analisis_filtros.py: 16 warnings
+tests/test_analisis_paginado.py: 6 warnings
+tests/test_analisis_storage.py: 1 warning
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/routes.py:2049: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat() + "Z",
+
+tests/test_analisis_filtros.py::test_filtro_por_fecha_desde_hasta
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/tests/test_analisis_filtros.py:59: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    hoy = datetime.utcnow()
+
+tests/test_career_report.py::test_career_report_survives_extreme_losses
+tests/test_career_report.py::test_career_report_handles_missing_history
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/career.py:784: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    today = datetime.utcnow().date().isoformat()
+
+tests/test_career_report.py::test_career_report_survives_extreme_losses
+tests/test_career_report.py::test_career_report_handles_missing_history
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/career.py:2533: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at = datetime.utcnow().isoformat()
+
+tests/test_career_report.py: 13 warnings
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/career.py:3036: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    pending_turn["closed_at"] = datetime.utcnow().isoformat()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Coverage XML written to file coverage.xml
+======================= 25 passed, 60 warnings in 7.79s ========================
+
+Resultado:
+- 
+
+### Merge final en main
+Se realizó:
+- merge fuente: 
+- commit de merge en : 
+- mensaje: 
+
+No fue necesario aplicar cambios manuales de código ni resolver conflictos complejos.
+
+### Validación posterior al merge
+Tras integrar en  se repitió:
+- 
+- All checks passed!
+- 
+- ============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0
+rootdir: /root/.openclaw/workspace/tfg-web-ci-python-bot
+configfile: pytest.ini
+plugins: anyio-4.13.0, cov-7.0.0
+collected 25 items
+
+tests/test_analisis.py ....                                              [ 16%]
+tests/test_analisis_export_csv.py ..                                     [ 24%]
+tests/test_analisis_filtros.py ...                                       [ 36%]
+tests/test_analisis_paginado.py .                                        [ 40%]
+tests/test_analisis_storage.py ..                                        [ 48%]
+tests/test_career_report.py ..                                           [ 56%]
+tests/test_empresas.py .                                                 [ 60%]
+tests/test_empresas_busqueda.py ..                                       [ 68%]
+tests/test_empresas_datos.py .                                           [ 72%]
+tests/test_empresas_filtro.py ..                                         [ 80%]
+tests/test_empresas_paginado.py ..                                       [ 88%]
+tests/test_frontend.py .                                                 [ 92%]
+tests/test_health.py .                                                   [ 96%]
+tests/test_smoke.py .                                                    [100%]
+
+=============================== warnings summary ===============================
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:64
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:64: PyparsingDeprecationWarning: 'oneOf' deprecated - use 'one_of'
+    prop = Group((name + Suppress("=") + comma_separated(value)) | oneOf(_CONSTANTS))
+
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:85: PyparsingDeprecationWarning: 'parseString' deprecated - use 'parse_string'
+    parse = parser.parseString(pattern)
+
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/.venv-ci/lib/python3.12/site-packages/matplotlib/_fontconfig_pattern.py:89: PyparsingDeprecationWarning: 'resetCache' deprecated - use 'reset_cache'
+    parser.resetCache()
+
+app/__init__.py:28
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/__init__.py:28: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    or datetime.utcnow().strftime("%Y%m%d%H%M%S")
+
+tests/test_analisis.py: 3 warnings
+tests/test_analisis_export_csv.py: 2 warnings
+tests/test_analisis_filtros.py: 16 warnings
+tests/test_analisis_paginado.py: 6 warnings
+tests/test_analisis_storage.py: 1 warning
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/routes.py:2049: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    "timestamp": datetime.utcnow().isoformat() + "Z",
+
+tests/test_analisis_filtros.py::test_filtro_por_fecha_desde_hasta
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/tests/test_analisis_filtros.py:59: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    hoy = datetime.utcnow()
+
+tests/test_career_report.py::test_career_report_survives_extreme_losses
+tests/test_career_report.py::test_career_report_handles_missing_history
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/career.py:784: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    today = datetime.utcnow().date().isoformat()
+
+tests/test_career_report.py::test_career_report_survives_extreme_losses
+tests/test_career_report.py::test_career_report_handles_missing_history
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/career.py:2533: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at = datetime.utcnow().isoformat()
+
+tests/test_career_report.py: 13 warnings
+  /root/.openclaw/workspace/tfg-web-ci-python-bot/app/career.py:3036: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    pending_turn["closed_at"] = datetime.utcnow().isoformat()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.3-final-0 ________________
+
+Coverage XML written to file coverage.xml
+======================= 25 passed, 60 warnings in 8.32s ========================
+
+Resultado:
+- 
+
+### Publicación y tag final
+-  se empujó a 
+- se creó y publicó el tag final:
+  - 
+
+### Ramas conservadas
+Se mantuvieron, como pediste:
+- 
+- 
+- 
+
+### Estado final del proyecto
+ queda ahora como rama oficial buena con:
+- rediseño frontend completo consolidado
+- iteraciones de Home/Auth/Navbar, Aprender, Práctica, Carrera y Horizonte integradas
+- revisión global final incluida
+- validación local completa superada
+
+### Archivos modificados en esta fase
+No se modificó código de producto de la app.
+Solo se actualizaron archivos de seguimiento:
+- 
+- 
+- 
+
+### Qué se dejó intacto
+No se tocaron:
+- estilos nuevos
+- lógica funcional
+- backend
+- rutas
+- persistencia
+- auth
+- Modo Carrera
+- Modo Horizonte
+- readiness
+- Tutor IA
+- CI
+
+### Revisión final recomendada
+Tras la consolidación conviene revisar:
+- que GitHub muestre  actualizada correctamente
+- que el tag final aparezca en remoto
+- que Render siga desplegando la rama esperada si aún apunta a preview
+- que, si se decide mover producción a , el servicio quede apuntando a la rama correcta

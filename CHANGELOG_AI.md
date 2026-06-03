@@ -954,3 +954,14 @@
   - `app/templates/historial.html`
   - `CHANGELOG_AI.md`
   - `docs/ai_report.md`
+
+## 2026-06-03
+- Rama fuente de consolidación: 
+- Commit de merge en : 
+- Título: Fase 8, consolidación final del rediseño frontend en 
+- Tag de seguridad previo: 
+- Tag final: 
+- Ramas conservadas:
+  - 
+  - 
+  - 
