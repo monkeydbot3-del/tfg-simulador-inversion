@@ -1,25 +1,214 @@
 import csv
 import io
 import json
+import logging
 import math
+import os
+import random
+import time
 import unicodedata
 import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from cachetools import TTLCache
+
 from flask import (
     Blueprint,
     Response,
     jsonify,
+    redirect,
     render_template,
     request,
     send_from_directory,
+    session,
+    url_for,
 )
 import pandas as pd
 import yfinance as yf
+from yfinance.exceptions import YFRateLimitError
+
+try:
+    from openai import OpenAI
+except Exception:
+    OpenAI = None
+
+from .services.auth_service import get_user_by_id
+from .models import ReadinessQuizResult
+from .services.history_service import list_analysis_for_user, save_analysis_for_user
 
 
 bp = Blueprint("main", __name__)
+logger = logging.getLogger(__name__)
+
+READINESS_PASS_SCORE = 7
+READINESS_TOTAL_QUESTIONS = 10
+READINESS_QUIZ_SESSION_KEY = "readiness_quiz_questions"
+HORIZON_MAX_ASSETS = 5
+HORIZON_DEFAULT_HORIZON_YEARS = 3
+HORIZON_MAX_HORIZON_YEARS = 5
+HORIZON_WARNING_KEY = "horizon_disclaimer_ack"
+HORIZON_DISCLAIMER_TEXT = (
+    "Esta simulación no predice el futuro. Se trata de una proyección experimental generada a partir de patrones históricos. "
+    "En inversión, los resultados pasados no garantizan resultados futuros. Esta herramienta tiene finalidad educativa y demostrativa, "
+    "no debe usarse para tomar decisiones financieras reales."
+)
+HORIZON_METHOD_DESCRIPTION = (
+    "Este modo remezcla patrones de rentabilidad histórica para construir una trayectoria futura hipotética. "
+    "No calcula lo que va a ocurrir, sino un escenario experimental posible dentro de una simulación educativa. "
+    "Para construir el escenario se utiliza una muestra de rentabilidades históricas suficientemente amplia cuando está disponible. "
+    "Aun así, el resultado es solo una trayectoria hipotética y no una estimación fiable del futuro."
+)
+HORIZON_MIN_HISTORY_YEARS = 5
+HORIZON_DEFAULT_HISTORY_YEARS = 10
+HORIZON_MAX_HISTORY_YEARS = 15
+HORIZON_MAX_HISTORY_POINTS = 220
+HORIZON_MAX_MONTHLY_RETURN = 0.35
+HORIZON_HISTORY_CACHE_TTL_SECONDS = 120
+HORIZON_HISTORY_RETRY_DELAYS_SECONDS = (0.0, 0.8, 1.6)
+HORIZON_HISTORY_CACHE: TTLCache = TTLCache(
+    maxsize=128, ttl=HORIZON_HISTORY_CACHE_TTL_SECONDS
+)
+AI_TUTOR_DISCLAIMER = (
+    "Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. "
+    "No constituye asesoramiento financiero ni una recomendación de inversión real."
+)
+AI_TUTOR_DEFAULT_MODEL = os.environ.get("OPENAI_MODEL") or "gpt-4.1-mini"
+AI_TUTOR_TIMEOUT_SECONDS = float(os.environ.get("OPENAI_TIMEOUT_SECONDS") or 18)
+AI_TUTOR_MAX_OUTPUT_TOKENS = int(os.environ.get("OPENAI_MAX_OUTPUT_TOKENS") or 800)
+AI_TUTOR_MAX_WARNINGS = 6
+READINESS_QUIZ_QUESTIONS = [
+    {
+        "id": "risk_return",
+        "prompt": "¿Qué suele ocurrir cuando una inversión ofrece potencial de rentabilidad más alto?",
+        "options": [
+            "Normalmente también implica más riesgo.",
+            "Garantiza beneficios sin caídas.",
+            "Siempre bate al benchmark.",
+            "Reduce automáticamente la volatilidad.",
+        ],
+        "correctIndex": 0,
+        "explanation": "Mayor rentabilidad esperada suele venir acompañada de mayor incertidumbre y oscilación.",
+        "topic": "riesgo-rentabilidad",
+    },
+    {
+        "id": "diversification",
+        "prompt": "¿Cuál es el principal objetivo de diversificar una cartera?",
+        "options": [
+            "Reducir el impacto de un único activo o sector.",
+            "Eliminar por completo el riesgo.",
+            "Duplicar siempre la rentabilidad.",
+            "Evitar comparar con un benchmark.",
+        ],
+        "correctIndex": 0,
+        "explanation": "Diversificar ayuda a no depender demasiado de una sola posición, aunque no elimina todo el riesgo.",
+        "topic": "diversificación",
+    },
+    {
+        "id": "benchmark",
+        "prompt": "En esta aplicación, ¿para qué sirve el benchmark?",
+        "options": [
+            "Para comparar el comportamiento de tu cartera frente a una referencia.",
+            "Para fijar automáticamente el precio de compra.",
+            "Para ocultar la volatilidad del portfolio.",
+            "Para guardar sesiones en el historial.",
+        ],
+        "correctIndex": 0,
+        "explanation": "El benchmark permite ver si tu cartera lo hace mejor, peor o parecido a una referencia de mercado.",
+        "topic": "benchmark",
+    },
+    {
+        "id": "volatility",
+        "prompt": "¿Qué describe mejor la volatilidad?",
+        "options": [
+            "La intensidad con la que el valor de una inversión sube y baja en el tiempo.",
+            "El capital inicial invertido.",
+            "La rentabilidad acumulada garantizada.",
+            "La cantidad de turnos del modo carrera.",
+        ],
+        "correctIndex": 0,
+        "explanation": "La volatilidad mide la variabilidad de los precios o rendimientos, no si algo es bueno o malo por sí solo.",
+        "topic": "volatilidad",
+    },
+    {
+        "id": "dca",
+        "prompt": "¿Qué representa DCA o inversión periódica en la app?",
+        "options": [
+            "Aportar cantidades periódicas para repartir el punto de entrada en el tiempo.",
+            "Comprar solo cuando el benchmark cae.",
+            "Una técnica para eliminar drawdowns.",
+            "Un modo de exportar el informe final.",
+        ],
+        "correctIndex": 0,
+        "explanation": "DCA reparte las compras en el tiempo y puede suavizar el riesgo de entrar todo en un solo punto.",
+        "topic": "dca",
+    },
+    {
+        "id": "drawdown",
+        "prompt": "¿Qué indica un drawdown en el informe final?",
+        "options": [
+            "La caída desde un máximo previo hasta un mínimo posterior.",
+            "La rentabilidad anual compuesta exacta.",
+            "El número de operaciones realizadas.",
+            "El peso del benchmark en la cartera.",
+        ],
+        "correctIndex": 0,
+        "explanation": "El drawdown ayuda a entender cuánto llegó a retroceder una estrategia desde su mejor punto anterior.",
+        "topic": "drawdown",
+    },
+    {
+        "id": "simulation_vs_real",
+        "prompt": "¿Qué diferencia clave existe entre esta app y una inversión real?",
+        "options": [
+            "La app simula escenarios con datos históricos y no ejecuta operaciones reales.",
+            "La app garantiza resultados futuros.",
+            "La app elimina los riesgos de mercado.",
+            "La app obliga a comprar acciones reales al cerrar un turno.",
+        ],
+        "correctIndex": 0,
+        "explanation": "La herramienta es educativa: compara escenarios y decisiones, pero no invierte dinero real.",
+        "topic": "simulación",
+    },
+    {
+        "id": "career_turns",
+        "prompt": "¿Qué implica tomar decisiones por turnos en el Modo Carrera?",
+        "options": [
+            "Ajustar la cartera en distintos tramos históricos y observar cómo evoluciona.",
+            "Repetir siempre la misma asignación sin contexto.",
+            "Ignorar los eventos y el benchmark.",
+            "Bloquear el historial del usuario.",
+        ],
+        "correctIndex": 0,
+        "explanation": "El Modo Carrera divide el periodo en fases para que tomes decisiones y veas su impacto acumulado.",
+        "topic": "modo-carrera",
+    },
+    {
+        "id": "final_report",
+        "prompt": "En el informe final, ¿qué comparan Portfolio, Benchmark y Tracking?",
+        "options": [
+            "El resultado de tu cartera, la referencia de mercado y la diferencia entre ambos.",
+            "Tres formas distintas de guardar la sesión.",
+            "El capital inicial, el capital final y el correo del usuario.",
+            "La teoría, el historial y el login.",
+        ],
+        "correctIndex": 0,
+        "explanation": "Portfolio resume tu estrategia, Benchmark la referencia y Tracking cómo te separas de ella.",
+        "topic": "informe-final",
+    },
+    {
+        "id": "auth_history",
+        "prompt": "¿Qué ventaja principal tiene usar una cuenta autenticada frente al modo invitado?",
+        "options": [
+            "Conservar historial y progreso, incluido el acceso al Modo Carrera, entre sesiones.",
+            "Eliminar automáticamente la volatilidad.",
+            "Obtener una rentabilidad mejor en el informe.",
+            "Acceder a precios futuros reales.",
+        ],
+        "correctIndex": 0,
+        "explanation": "La autenticación permite persistir historial, sesiones de carrera y el aprobado del test entre accesos.",
+        "topic": "usuarios-autenticados",
+    },
+]
 
 
 # ----------------------
@@ -27,7 +216,12 @@ bp = Blueprint("main", __name__)
 # ----------------------
 @bp.get("/")
 def home():
-    return render_template("home.html", active="home", nav_mode="landing")
+    if not _current_user_id() and not session.get("guest"):
+        return redirect(url_for("auth.login_page"))
+    current_user = get_user_by_id(_current_user_id()) if _current_user_id() else None
+    return render_template(
+        "home.html", active="home", nav_mode="landing", current_user=current_user
+    )
 
 
 @bp.get("/inicio")
@@ -54,12 +248,117 @@ def analisis_page():
 
 @bp.get("/historial")
 def historial_page():
+    if _is_guest_user():
+        return redirect(url_for("main.home"))
+    if not _current_user_id():
+        return redirect(url_for("auth.login_page"))
     return render_template("historial.html", active="historial", nav_mode="practice")
+
+
+def _current_user_id() -> int | None:
+    raw = session.get("user_id")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_guest_user() -> bool:
+    return bool(session.get("guest")) and not bool(session.get("user_id"))
+
+
+def _build_readiness_question_set() -> list[dict]:
+    prepared = []
+    for item in READINESS_QUIZ_QUESTIONS:
+        options = []
+        for index, label in enumerate(item["options"]):
+            options.append(
+                {
+                    "id": f"{item['id']}:opt:{index}",
+                    "label": label,
+                    "correct": index == int(item["correctIndex"]),
+                }
+            )
+        random.shuffle(options)
+        prepared.append(
+            {
+                "id": item["id"],
+                "prompt": item["prompt"],
+                "options": options,
+                "explanation": item["explanation"],
+                "topic": item["topic"],
+            }
+        )
+    random.shuffle(prepared)
+    return prepared
+
+
+def _get_or_create_readiness_question_set(force_new: bool = False) -> list[dict]:
+    stored = session.get(READINESS_QUIZ_SESSION_KEY)
+    if force_new or not stored:
+        stored = _build_readiness_question_set()
+        session[READINESS_QUIZ_SESSION_KEY] = stored
+        session.modified = True
+    return stored
+
+
+def _clear_readiness_question_set() -> None:
+    session.pop(READINESS_QUIZ_SESSION_KEY, None)
+    session.modified = True
+
+
+def _readiness_status_payload() -> dict:
+    current_user_id = _current_user_id()
+    if current_user_id:
+        record = (
+            ReadinessQuizResult.select()
+            .where(ReadinessQuizResult.user == current_user_id)
+            .first()
+        )
+        passed = bool(record.passed) if record else False
+        return {
+            "passed": passed,
+            "score": record.score if record else 0,
+            "total_questions": (
+                record.total_questions if record else READINESS_TOTAL_QUESTIONS
+            ),
+            "pass_score": READINESS_PASS_SCORE,
+            "storage": "server",
+            "user_authenticated": True,
+            "guest": False,
+            "passed_at": (
+                record.passed_at.isoformat() + "Z"
+                if record and record.passed_at
+                else None
+            ),
+        }
+
+    guest_payload = session.get("readiness_guest") or {}
+    passed = bool(guest_payload.get("passed"))
+    return {
+        "passed": passed,
+        "score": int(guest_payload.get("score") or 0),
+        "total_questions": int(
+            guest_payload.get("total_questions") or READINESS_TOTAL_QUESTIONS
+        ),
+        "pass_score": READINESS_PASS_SCORE,
+        "storage": "session",
+        "user_authenticated": False,
+        "guest": _is_guest_user(),
+        "passed_at": guest_payload.get("passed_at"),
+    }
 
 
 @bp.get("/aprende")
 def aprende_page():
-    return render_template("aprende.html", active="aprende", nav_mode="practice")
+    return render_template(
+        "aprende.html",
+        active="aprende",
+        nav_mode="practice",
+        readiness_status=_readiness_status_payload(),
+        readiness_pass_score=READINESS_PASS_SCORE,
+        readiness_total_questions=READINESS_TOTAL_QUESTIONS,
+    )
 
 
 @bp.get("/manual")
@@ -67,9 +366,1257 @@ def manual_page():
     return render_template("manual.html", active="manual", nav_mode="manual")
 
 
+def _horizon_ack_key() -> str:
+    user_id = _current_user_id()
+    if user_id:
+        return f"user:{user_id}"
+    if _is_guest_user():
+        return "guest"
+    return "anon"
+
+
+def _horizon_acknowledged() -> bool:
+    payload = session.get(HORIZON_WARNING_KEY) or {}
+    if not isinstance(payload, dict):
+        return False
+    return bool(payload.get(_horizon_ack_key()))
+
+
+def _set_horizon_acknowledged() -> None:
+    payload = session.get(HORIZON_WARNING_KEY) or {}
+    if not isinstance(payload, dict):
+        payload = {}
+    payload[_horizon_ack_key()] = True
+    session[HORIZON_WARNING_KEY] = payload
+    session.modified = True
+
+
+def _normalize_horizon_weights(assets: list[dict]) -> list[dict]:
+    cleaned = []
+    total_weight = 0.0
+    for asset in assets:
+        ticker = str(asset.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        try:
+            weight = float(asset.get("weight") or 0)
+        except (TypeError, ValueError):
+            weight = 0.0
+        if weight < 0:
+            weight = 0.0
+        cleaned.append({"ticker": ticker, "weight": weight})
+        total_weight += weight
+
+    if not cleaned:
+        return []
+
+    if total_weight <= 0:
+        even_weight = round(1 / len(cleaned), 6)
+        return [{**asset, "weight": even_weight} for asset in cleaned]
+
+    return [{**asset, "weight": asset["weight"] / total_weight} for asset in cleaned]
+
+
+def _horizon_identity_payload() -> dict:
+    return {
+        "acknowledged": _horizon_acknowledged(),
+        "disclaimer": HORIZON_DISCLAIMER_TEXT,
+        "method_description": HORIZON_METHOD_DESCRIPTION,
+        "max_assets": HORIZON_MAX_ASSETS,
+        "default_horizon_years": HORIZON_DEFAULT_HORIZON_YEARS,
+        "max_horizon_years": HORIZON_MAX_HORIZON_YEARS,
+    }
+
+
+@bp.get("/modo-horizonte")
+def horizon_page():
+    return render_template(
+        "horizon.html",
+        active="horizon",
+        nav_mode="practice",
+        horizon_config=_horizon_identity_payload(),
+    )
+
+
+@bp.post("/api/horizon/disclaimer/accept")
+def horizon_accept_disclaimer_api():
+    _set_horizon_acknowledged()
+    return jsonify({"ok": True, **_horizon_identity_payload()})
+
+
+@bp.get("/api/horizon/from-career/<session_id>")
+def horizon_from_career_api(session_id: str):
+    from .career import _resolve_session_for_request, _session_analysis_range
+
+    session_payload = _resolve_session_for_request(session_id)
+    if not session_payload:
+        return (
+            jsonify({"error": "No se pudo acceder a la sesión de carrera indicada."}),
+            404,
+        )
+
+    warnings: list[str] = []
+
+    latest_alloc = []
+    completed_turns = session_payload.get("completed_turns") or []
+    if completed_turns:
+        last_snapshot = completed_turns[-1] or {}
+        latest_alloc = last_snapshot.get("alloc") or []
+    if not latest_alloc:
+        decisions = session_payload.get("decisions") or []
+        if decisions:
+            latest_alloc = (decisions[-1] or {}).get("alloc") or []
+
+    assets = []
+    for position in latest_alloc:
+        ticker = str(position.get("ticker") or "").strip().upper()
+        if not ticker or ticker == "CASH":
+            continue
+        try:
+            weight = float(position.get("weight") or 0)
+        except (TypeError, ValueError):
+            weight = 0.0
+        assets.append({"ticker": ticker, "weight": weight})
+
+    if not assets:
+        portfolio = session_payload.get("portfolio") or {}
+        positions = portfolio.get("positions") or []
+        for position in positions:
+            ticker = str(position.get("ticker") or "").strip().upper()
+            if not ticker or ticker == "CASH":
+                continue
+            try:
+                weight = float(position.get("weight") or 0)
+            except (TypeError, ValueError):
+                weight = 0.0
+            assets.append({"ticker": ticker, "weight": weight})
+
+    had_explicit_weights = any(float(item.get("weight") or 0) > 0 for item in assets)
+    normalized_assets = _normalize_horizon_weights(assets)[:HORIZON_MAX_ASSETS]
+    if normalized_assets and not had_explicit_weights:
+        warnings.append(
+            "No se encontraron pesos finales exactos; se han usado pesos equivalentes."
+        )
+
+    tickers = [item["ticker"] for item in normalized_assets]
+    weights = [round(float(item["weight"]), 6) for item in normalized_assets]
+
+    final_value = (
+        session_payload.get("capital_current")
+        or session_payload.get("capital")
+        or session_payload.get("capital_initial")
+    )
+    if completed_turns:
+        final_value = (completed_turns[-1] or {}).get("portfolio_value") or final_value
+
+    try:
+        initial_value = float(final_value)
+    except (TypeError, ValueError):
+        initial_value = 10000.0
+        warnings.append(
+            "No se encontró valor final de cartera; se usa valor inicial por defecto."
+        )
+    else:
+        if initial_value <= 0:
+            initial_value = 10000.0
+            warnings.append(
+                "No se encontró valor final de cartera; se usa valor inicial por defecto."
+            )
+
+    try:
+        _start_d, projection_end_d, career_period_start, career_period_end = (
+            _session_analysis_range(session_payload)
+        )
+    except Exception:
+        period = session_payload.get("period") or {}
+        career_period_start = str(period.get("start") or "")
+        career_period_end = str(period.get("end") or career_period_start or "")
+        projection_end_d = None
+
+    projection_start = (
+        projection_end_d.isoformat()
+        if projection_end_d is not None
+        else (career_period_end or None)
+    )
+
+    return jsonify(
+        {
+            "ok": True,
+            "source": "career",
+            "session_id": session_id,
+            "display_name": "Continuación desde Modo Carrera",
+            "tickers": tickers,
+            "weights": weights,
+            "assets": normalized_assets,
+            "initial_value": max(initial_value, 1000.0),
+            "career_period_start": career_period_start or None,
+            "career_period_end": career_period_end or None,
+            "projection_start": projection_start,
+            "warnings": warnings,
+            "disclaimer": HORIZON_DISCLAIMER_TEXT,
+            "method_description": HORIZON_METHOD_DESCRIPTION,
+        }
+    )
+
+
+@bp.post("/api/horizon/simulate")
+def horizon_simulate_api():
+    payload = request.get_json(silent=True) or {}
+    tickers_raw = payload.get("tickers")
+    weights_raw = payload.get("weights")
+    assets_raw = payload.get("assets")
+    source = str(payload.get("source") or "manual").strip().lower() or "manual"
+    session_id = str(payload.get("session_id") or "").strip()
+    projection_start_raw = str(payload.get("projection_start") or "").strip()
+
+    assets_input = []
+    if isinstance(assets_raw, list) and assets_raw:
+        assets_input = assets_raw
+    elif isinstance(tickers_raw, list):
+        if isinstance(weights_raw, list) and len(weights_raw) == len(tickers_raw):
+            assets_input = [
+                {"ticker": ticker, "weight": weight}
+                for ticker, weight in zip(tickers_raw, weights_raw)
+            ]
+        else:
+            assets_input = [{"ticker": item} for item in tickers_raw]
+
+    assets = _normalize_horizon_weights(assets_input)
+    if not assets:
+        return (
+            jsonify(
+                {
+                    "error": "Debes seleccionar al menos un activo válido para generar el escenario experimental."
+                }
+            ),
+            400,
+        )
+    if len(assets) > HORIZON_MAX_ASSETS:
+        return (
+            jsonify(
+                {
+                    "error": f"El modo Horizonte admite como máximo {HORIZON_MAX_ASSETS} activos en esta versión."
+                }
+            ),
+            400,
+        )
+
+    try:
+        horizon_years = int(payload.get("horizon") or HORIZON_DEFAULT_HORIZON_YEARS)
+    except (TypeError, ValueError):
+        horizon_years = 0
+    if horizon_years < 1 or horizon_years > HORIZON_MAX_HORIZON_YEARS:
+        return (
+            jsonify(
+                {
+                    "error": f"Selecciona un horizonte válido entre 1 y {HORIZON_MAX_HORIZON_YEARS} años."
+                }
+            ),
+            400,
+        )
+
+    try:
+        initial_value = float(payload.get("initial_value") or 10000)
+    except (TypeError, ValueError):
+        initial_value = 10000.0
+    if initial_value <= 0:
+        return jsonify({"error": "El valor inicial debe ser mayor que cero."}), 400
+
+    if source == "career" and session_id:
+        from .career import _resolve_session_for_request
+
+        if not _resolve_session_for_request(session_id):
+            return (
+                jsonify(
+                    {
+                        "error": "No puedes usar una sesión de carrera ajena o inexistente como origen."
+                    }
+                ),
+                404,
+            )
+
+    projection_start = None
+    if projection_start_raw:
+        try:
+            projection_start = date.fromisoformat(projection_start_raw)
+        except ValueError:
+            projection_start = None
+
+    end_d = projection_start or date.today()
+    history_years = _get_horizon_history_years(horizon_years)
+    start_d = end_d - timedelta(days=365 * history_years)
+    warnings = []
+    valid_assets = []
+    monthly_returns = []
+    provider_temporarily_limited = False
+    had_clamped_outliers = False
+
+    for asset in assets:
+        ticker = asset["ticker"]
+        try:
+            df = _download_history_df(ticker, start_d, end_d, include_actions=False)
+            price_series = _extract_market_price_series(df, ticker)
+            monthly, return_meta = _compute_horizon_monthly_returns(
+                price_series, ticker
+            )
+        except BacktestError as exc:
+            if exc.status_code >= 500:
+                provider_temporarily_limited = True
+            warnings.append(str(exc))
+            continue
+        except HorizonSimulationError as exc:
+            warnings.append(str(exc))
+            continue
+        except Exception:
+            warnings.append(
+                f"{ticker} se ha excluido porque no se pudo normalizar su histórico de mercado."
+            )
+            continue
+
+        min_required_points = max(36, horizon_years * 12)
+        if (
+            price_series.empty
+            or len(price_series) < 252
+            or len(monthly) < min_required_points
+        ):
+            warnings.append(
+                f"{ticker} se ha excluido porque no dispone de una muestra histórica suficientemente amplia para este horizonte experimental."
+            )
+            continue
+
+        if return_meta.get("had_outliers"):
+            had_clamped_outliers = True
+            warnings.append(
+                f"{ticker} contiene retornos mensuales extremos en el histórico reciente. Se ha limitado su impacto para evitar una proyección experimental absurda."
+            )
+
+        valid_assets.append(
+            {
+                "ticker": ticker,
+                "weight": asset["weight"],
+                "series": price_series,
+                "monthly_points": len(monthly),
+            }
+        )
+        monthly_returns.append(monthly.rename(ticker))
+
+    if not valid_assets:
+        status_code = 503 if provider_temporarily_limited else 400
+        error_message = (
+            "No se pudieron obtener datos del activo en este momento. La fuente de mercado ha limitado temporalmente las peticiones. Prueba de nuevo dentro de unos segundos o utiliza otro activo."
+            if provider_temporarily_limited
+            else "No hay datos históricos suficientes para construir el escenario experimental con los activos seleccionados."
+        )
+        return jsonify({"error": error_message, "warnings": warnings}), status_code
+
+    total_valid_weight = sum(item["weight"] for item in valid_assets) or 1.0
+    valid_assets = [
+        {**item, "weight": item["weight"] / total_valid_weight} for item in valid_assets
+    ]
+
+    hist_frames = []
+    for item in valid_assets:
+        series = item["series"]
+        values = pd.to_numeric(series, errors="coerce").dropna()
+        if values.empty:
+            continue
+        normalized = values / float(values.iloc[0]) * 100
+        normalized = _downsample_horizon_series(
+            normalized, max_points=HORIZON_MAX_HISTORY_POINTS
+        )
+        hist_frames.append(normalized.rename(item["ticker"]))
+    hist_df = (
+        pd.concat(hist_frames, axis=1).dropna(how="all")
+        if hist_frames
+        else pd.DataFrame()
+    )
+    if hist_df.empty:
+        return (
+            jsonify(
+                {
+                    "error": "No se pudo construir la serie histórica base para el escenario experimental.",
+                    "warnings": warnings,
+                }
+            ),
+            400,
+        )
+    hist_df = hist_df.ffill().dropna(how="any")
+    hist_weights = pd.Series(
+        {
+            item["ticker"]: item["weight"]
+            for item in valid_assets
+            if item["ticker"] in hist_df.columns
+        }
+    )
+    hist_weights = hist_weights / hist_weights.sum()
+    blended_hist = hist_df.mul(hist_weights, axis=1).sum(axis=1)
+
+    monthly_df = pd.concat(monthly_returns, axis=1).dropna(how="all")
+    monthly_df = monthly_df.ffill().dropna(how="any")
+    if monthly_df.empty:
+        return (
+            jsonify(
+                {
+                    "error": "No se pudieron combinar patrones mensuales suficientes para generar el escenario experimental.",
+                    "warnings": warnings,
+                }
+            ),
+            400,
+        )
+
+    weights = pd.Series({item["ticker"]: item["weight"] for item in valid_assets})
+    available_cols = [col for col in monthly_df.columns if col in weights.index]
+    monthly_df = monthly_df[available_cols]
+    weights = weights[available_cols]
+    weights = weights / weights.sum()
+    blended_monthly = monthly_df.mul(weights, axis=1).sum(axis=1)
+    if blended_monthly.empty:
+        return (
+            jsonify(
+                {
+                    "error": "No hay patrones mensuales suficientes para proyectar el escenario experimental.",
+                    "warnings": warnings,
+                }
+            ),
+            400,
+        )
+
+    future_months = horizon_years * 12
+    rng_seed = (
+        sum(sum(ord(ch) for ch in item["ticker"]) for item in valid_assets)
+        + future_months
+        + int(initial_value)
+    )
+    rng = random.Random(rng_seed)
+    sample_pool = blended_monthly.tolist()
+    simulated_returns = [
+        float(sample_pool[rng.randrange(len(sample_pool))])
+        for _ in range(future_months)
+    ]
+
+    future_anchor = end_d + timedelta(days=30)
+    future_dates = pd.date_range(start=future_anchor, periods=future_months, freq="ME")
+    last_hist_value = float(blended_hist.iloc[-1]) if not blended_hist.empty else 100.0
+    projected_base = [last_hist_value]
+    projected_value = [float(initial_value)]
+    for ret in simulated_returns:
+        projected_base.append(projected_base[-1] * (1 + float(ret)))
+        projected_value.append(projected_value[-1] * (1 + float(ret)))
+
+    historical_series = [
+        [idx.isoformat(), round(float(value), 4)] for idx, value in blended_hist.items()
+    ]
+    projected_series = (
+        [[blended_hist.index[-1].date().isoformat(), round(float(last_hist_value), 4)]]
+        if not blended_hist.empty
+        else []
+    )
+    projected_series.extend(
+        [
+            [
+                future_dates[idx].date().isoformat(),
+                round(float(projected_base[idx + 1]), 4),
+            ]
+            for idx in range(future_months)
+        ]
+    )
+
+    final_value = projected_value[-1]
+    scenario_total_return = (final_value / initial_value) - 1 if initial_value else 0.0
+    scenario_annualized_return = (
+        (final_value / initial_value) ** (1 / horizon_years) - 1
+        if initial_value and horizon_years > 0
+        else 0.0
+    )
+    scenario_volatility = (
+        pd.Series(simulated_returns).std() * math.sqrt(12)
+        if len(simulated_returns) > 1
+        else 0.0
+    )
+
+    return jsonify(
+        {
+            "disclaimer": HORIZON_DISCLAIMER_TEXT,
+            "historical_series": historical_series,
+            "projected_series": projected_series,
+            "metrics": {
+                "initial_value": round(float(initial_value), 2),
+                "projected_final_value": round(float(final_value), 2),
+                "scenario_total_return": round(float(scenario_total_return), 6),
+                "scenario_annualized_return": round(
+                    float(scenario_annualized_return), 6
+                ),
+                "scenario_volatility": round(float(scenario_volatility), 6),
+                "assets_used": [item["ticker"] for item in valid_assets],
+                "horizon_years": horizon_years,
+                "history_years_used": history_years,
+                "history_points_displayed": len(blended_hist),
+                "monthly_samples_used": len(blended_monthly),
+                "extreme_returns_limited": had_clamped_outliers,
+            },
+            "scenario_note": "Este resultado corresponde a una trayectoria generada aleatoriamente a partir de retornos históricos. No representa una expectativa ni una previsión.",
+            "warnings": warnings,
+            "method_description": HORIZON_METHOD_DESCRIPTION,
+            "source": source,
+            "session_id": session_id or None,
+            "projection_start": (
+                projection_start.isoformat() if projection_start else None
+            ),
+            "assets": [
+                {"ticker": item["ticker"], "weight": round(float(item["weight"]), 6)}
+                for item in valid_assets
+            ],
+        }
+    )
+
+
 @bp.get("/modo-carrera")
 def career_page():
-    return render_template("career.html", active="career", nav_mode="career")
+    readiness_status = _readiness_status_payload()
+    return render_template(
+        "career.html",
+        active="career",
+        nav_mode="career",
+        readiness_status=readiness_status,
+        readiness_gate_blocked=not readiness_status.get("passed"),
+    )
+
+
+def _ai_tutor_is_configured() -> bool:
+    return bool(os.environ.get("OPENAI_API_KEY")) and OpenAI is not None
+
+
+@bp.get("/api/ai/status")
+def ai_status_api():
+    return jsonify({"configured": _ai_tutor_is_configured()})
+
+
+def _sanitize_ai_value(value):
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, str)):
+        return value
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return None
+        return value
+    if isinstance(value, datetime):
+        return value.isoformat() + "Z"
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {
+            str(key): _sanitize_ai_value(item)
+            for key, item in value.items()
+            if _sanitize_ai_value(item) is not None
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [
+            item
+            for item in (_sanitize_ai_value(item) for item in value)
+            if item is not None
+        ]
+    return str(value)
+
+
+def _safe_round_number(value, digits: int = 4):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if math.isnan(number) or math.isinf(number):
+        return None
+    return round(number, digits)
+
+
+def _extract_json_object_from_text(raw_text: str) -> dict | None:
+    text = (raw_text or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = json.loads(text)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    snippet = text[start : end + 1]
+    try:
+        parsed = json.loads(snippet)
+        return parsed if isinstance(parsed, dict) else None
+    except json.JSONDecodeError:
+        return None
+
+
+def _truncate_text(value, max_len: int = 240):
+    text = str(value or "").strip()
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1].rstrip() + "…"
+
+
+def _build_career_ai_payload(session: dict, report: dict) -> dict:
+    report = report or {}
+    meta = report.get("meta") or {}
+    portfolio_metrics = (report.get("portfolio_equity") or {}).get("metrics") or {}
+    benchmark = report.get("benchmark") or {}
+    benchmark_metrics = benchmark.get("metrics") or {}
+    tracking = report.get("tracking") or {}
+    score = report.get("score") or {}
+    turns = report.get("turns") or []
+    if not isinstance(turns, list):
+        turns = []
+    theoretical = report.get("theoretical") or {}
+    warnings = []
+
+    tickers = []
+    seen = set()
+    for turn in turns:
+        if not isinstance(turn, dict):
+            continue
+        for item in turn.get("alloc") or []:
+            if not isinstance(item, dict):
+                continue
+            ticker = str(item.get("ticker") or "").strip().upper()
+            if ticker and ticker not in seen:
+                seen.add(ticker)
+                tickers.append(ticker)
+
+    latest_alloc = []
+    if turns:
+        latest_turn = turns[-1] if isinstance(turns[-1], dict) else {}
+        latest_alloc = [
+            {
+                "ticker": str(item.get("ticker") or "").strip().upper(),
+                "weight": _safe_round_number(item.get("weight"), 4),
+            }
+            for item in (latest_turn.get("alloc") or [])
+            if isinstance(item, dict) and item.get("ticker")
+        ]
+
+    if not latest_alloc:
+        warnings.append(
+            "Hay datos limitados en esta sesión, por lo que el análisis se centra en las métricas disponibles."
+        )
+
+    payload = {
+        "simulation_type": "career_mode",
+        "session_id": meta.get("session_id"),
+        "difficulty": meta.get("difficulty"),
+        "historical_period": report.get("range") or {},
+        "player_alias": meta.get("player") or None,
+        "tickers_used": tickers[:12],
+        "latest_allocation": latest_alloc[:10],
+        "turns_total": meta.get("turns_total"),
+        "turns_closed": meta.get("turns_closed"),
+        "initial_value": meta.get("capital_initial"),
+        "final_value": meta.get("capital_current"),
+        "invested_so_far": meta.get("invested_so_far"),
+        "pnl_abs": meta.get("pnl_abs"),
+        "pnl_pct": meta.get("pnl_pct"),
+        "portfolio_metrics": {
+            "cagr": portfolio_metrics.get("CAGR"),
+            "volatility": portfolio_metrics.get("vol_annual"),
+            "max_drawdown": portfolio_metrics.get("max_drawdown"),
+            "total_return": portfolio_metrics.get("total_return"),
+        },
+        "benchmark": {
+            "ticker": benchmark.get("ticker"),
+            "cagr": benchmark_metrics.get("CAGR"),
+            "volatility": benchmark_metrics.get("vol_annual"),
+            "max_drawdown": benchmark_metrics.get("max_drawdown"),
+            "total_return": benchmark_metrics.get("total_return"),
+        },
+        "tracking": {
+            "active_return": tracking.get("active_return"),
+            "tracking_error": tracking.get("tracking_error"),
+            "information_ratio": tracking.get("information_ratio"),
+        },
+        "score": {
+            "stars": score.get("stars"),
+            "value": score.get("value"),
+            "notes": score.get("notes"),
+        },
+        "warnings": [
+            _truncate_text(item, 220)
+            for item in ((report.get("warnings") or [])[:AI_TUTOR_MAX_WARNINGS])
+            + warnings
+            if item
+        ],
+        "theoretical_summary": {
+            key: theoretical.get(key)
+            for key in ("k1", "k2", "k3", "method")
+            if theoretical.get(key) is not None
+        },
+        "event_counts": {
+            "turns_with_events": sum(
+                1
+                for turn in turns
+                if isinstance(turn, dict)
+                and (turn.get("events_applied") or turn.get("events_new"))
+            ),
+            "events_applied_total": sum(
+                len(turn.get("events_applied") or [])
+                for turn in turns
+                if isinstance(turn, dict)
+            ),
+        },
+    }
+    return _sanitize_ai_value(payload) or {}
+
+
+def _generate_career_ai_analysis(ai_payload: dict) -> dict:
+    if not _ai_tutor_is_configured():
+        raise RuntimeError("El Tutor IA no está configurado en este entorno.")
+
+    model_name = os.environ.get("OPENAI_MODEL") or AI_TUTOR_DEFAULT_MODEL
+    timeout_seconds = AI_TUTOR_TIMEOUT_SECONDS
+    client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), timeout=timeout_seconds)
+    system_prompt = (
+        "Eres un tutor educativo de inversión simulada dentro de una aplicación académica. "
+        "Tu tarea es explicar los resultados de una simulación histórica o experimental de forma clara, pedagógica y prudente. "
+        "No das asesoramiento financiero real, no recomiendas comprar ni vender activos, no predices el futuro y no afirmas que una estrategia vaya a funcionar en mercados reales. "
+        "Analizas únicamente los datos proporcionados por la aplicación con finalidad educativa. "
+        "Responde siempre en español, con tono claro y didáctico y relativamente breve. "
+        'Debes incluir literalmente este disclaimer en la respuesta final: "'
+        + AI_TUTOR_DISCLAIMER
+        + '". '
+        "Devuelve exclusivamente JSON válido con estas claves: "
+        "summary, strengths, improvements, benchmark_analysis, risk_notes, historical_context, learning_recommendations, final_advice, disclaimer. "
+        "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings cortos. "
+        "No inventes datos no presentes en el payload. Si falta información, dilo con honestidad. "
+        "Mantén la respuesta compacta y útil, evitando párrafos largos."
+    )
+    user_prompt = (
+        "Analiza esta simulación del Modo Carrera con finalidad educativa. "
+        "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura. "
+        "Si faltan datos, dilo explícitamente y céntrate en las métricas disponibles.\n\n"
+        f"Datos resumidos de simulación:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
+    )
+    openai_started_at = time.monotonic()
+    logger.info(
+        "ai.tutor.openai_start",
+        extra={
+            "session_id": ai_payload.get("session_id"),
+            "turns_closed": ai_payload.get("turns_closed"),
+            "model": model_name,
+            "timeout_seconds": timeout_seconds,
+            "payload_chars": len(user_prompt),
+        },
+    )
+    try:
+        response = client.responses.create(
+            model=model_name,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.3,
+            max_output_tokens=AI_TUTOR_MAX_OUTPUT_TOKENS,
+        )
+    except Exception as exc:
+        error_name = exc.__class__.__name__
+        elapsed = round(time.monotonic() - openai_started_at, 3)
+        if "Timeout" in error_name or "timeout" in str(exc).lower():
+            logger.warning(
+                "ai.tutor.openai_timeout",
+                extra={
+                    "session_id": ai_payload.get("session_id"),
+                    "model": model_name,
+                    "elapsed_seconds": elapsed,
+                },
+            )
+            raise TimeoutError(
+                "El Tutor IA ha tardado demasiado en responder. Inténtalo de nuevo en unos segundos."
+            ) from exc
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": ai_payload.get("session_id"),
+                "phase": "openai_call",
+                "model": model_name,
+                "elapsed_seconds": elapsed,
+                "error_name": error_name,
+            },
+        )
+        raise
+
+    content = getattr(response, "output_text", "") or ""
+    logger.info(
+        "ai.tutor.openai_done",
+        extra={
+            "session_id": ai_payload.get("session_id"),
+            "model": model_name,
+            "elapsed_seconds": round(time.monotonic() - openai_started_at, 3),
+            "content_length": len(content),
+        },
+    )
+
+    parsed = _extract_json_object_from_text(content)
+    if not parsed:
+        fallback_text = content.strip()
+        if fallback_text:
+            logger.warning(
+                "ai.tutor.parse_fallback",
+                extra={
+                    "session_id": ai_payload.get("session_id"),
+                    "content_length": len(fallback_text),
+                },
+            )
+            parsed = {
+                "summary": fallback_text,
+                "strengths": [],
+                "improvements": [],
+                "benchmark_analysis": "La respuesta del proveedor no llegó en formato estructurado completo. Se muestra un resumen textual con los datos disponibles.",
+                "risk_notes": [],
+                "historical_context": "Los datos de la sesión se han interpretado de forma limitada debido al formato de respuesta recibido.",
+                "learning_recommendations": [],
+                "final_advice": "Puedes volver a intentarlo si quieres obtener una estructura más completa del análisis educativo.",
+                "disclaimer": AI_TUTOR_DISCLAIMER,
+            }
+        else:
+            raise ValueError(
+                "La respuesta del proveedor de IA llegó vacía o no contenía JSON utilizable."
+            )
+
+    logger.info(
+        "ai.tutor.parse_done",
+        extra={
+            "session_id": ai_payload.get("session_id"),
+            "keys": sorted(parsed.keys())[:12],
+        },
+    )
+    parsed["disclaimer"] = AI_TUTOR_DISCLAIMER
+    return _sanitize_ai_value(parsed) or {"disclaimer": AI_TUTOR_DISCLAIMER}
+
+
+@bp.get("/api/readiness/status")
+def readiness_status_api():
+    payload = _readiness_status_payload()
+    payload["required_score"] = READINESS_PASS_SCORE
+    payload["total_questions_default"] = READINESS_TOTAL_QUESTIONS
+    return jsonify(payload)
+
+
+@bp.post("/api/ai/career-analysis/<session_id>")
+def ai_career_analysis_api(session_id: str):
+    from .career import get_career_report_for_session
+
+    endpoint_started_at = time.monotonic()
+    logger.info("ai.tutor.start", extra={"session_id": session_id})
+
+    if not _ai_tutor_is_configured():
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "El Tutor IA no está configurado en este entorno.",
+                    "error_type": "ai_not_configured",
+                    "retryable": False,
+                    "details": "Falta configuración del proveedor IA en este despliegue.",
+                }
+            ),
+            503,
+        )
+
+    try:
+        report = get_career_report_for_session(session_id, include_series=False)
+        logger.info(
+            "ai.tutor.report_ready",
+            extra={"session_id": session_id, "has_report": bool(report)},
+        )
+    except Exception as exc:
+        message = getattr(exc, "description", str(exc))
+        status_code = getattr(exc, "code", 400)
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "report",
+                "status_code": status_code,
+                "message": message[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": message
+                    or "Primero genera el informe final de la carrera antes de usar el Tutor IA.",
+                    "error_type": "career_report_unavailable",
+                    "retryable": False,
+                    "details": "No se pudo preparar el informe base de la sesión para el Tutor IA.",
+                }
+            ),
+            status_code,
+        )
+
+    if not report:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "session_resolve",
+                "status_code": 404,
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "No puedes analizar una sesión ajena o inexistente.",
+                    "error_type": "session_not_found",
+                    "retryable": False,
+                    "details": "La sesión indicada no existe o no es accesible para este usuario.",
+                }
+            ),
+            404,
+        )
+
+    turns = report.get("turns") or []
+    if not isinstance(turns, list) or not turns:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "report_validation",
+                "status_code": 422,
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "Esta sesión no contiene datos suficientes para generar un análisis IA.",
+                    "error_type": "insufficient_session_data",
+                    "retryable": False,
+                    "details": "La sesión no tiene turnos o métricas suficientes para un análisis educativo estable.",
+                }
+            ),
+            422,
+        )
+
+    ai_payload = _build_career_ai_payload({}, report)
+    logger.info(
+        "ai.tutor.summary_ready",
+        extra={
+            "session_id": session_id,
+            "tickers": len(ai_payload.get("tickers_used") or []),
+            "turns_closed": ai_payload.get("turns_closed"),
+            "warnings": len(ai_payload.get("warnings") or []),
+            "payload_chars": len(json.dumps(ai_payload, ensure_ascii=False)),
+        },
+    )
+    try:
+        analysis = _generate_career_ai_analysis(ai_payload)
+    except TimeoutError as exc:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "timeout",
+                "status_code": 504,
+                "elapsed_seconds": round(time.monotonic() - endpoint_started_at, 3),
+                "message": str(exc)[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "El Tutor IA ha tardado demasiado en responder. Inténtalo de nuevo en unos segundos.",
+                    "error_type": "ai_timeout",
+                    "retryable": True,
+                    "details": "La llamada al proveedor de IA superó el tiempo máximo configurado para esta app.",
+                }
+            ),
+            504,
+        )
+    except RuntimeError as exc:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "config",
+                "status_code": 503,
+                "message": str(exc)[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": str(exc),
+                    "error_type": "ai_not_configured",
+                    "retryable": False,
+                    "details": "El Tutor IA no está disponible en este entorno.",
+                }
+            ),
+            503,
+        )
+    except ValueError as exc:
+        logger.warning(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "parse",
+                "status_code": 502,
+                "message": str(exc)[:200],
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "El proveedor de IA no respondió correctamente. Puedes intentarlo de nuevo más tarde.",
+                    "error_type": "ai_parse_error",
+                    "retryable": True,
+                    "details": "La respuesta del proveedor no se pudo interpretar de forma segura para esta sesión.",
+                }
+            ),
+            502,
+        )
+    except Exception:
+        logger.exception(
+            "ai.tutor.error",
+            extra={
+                "session_id": session_id,
+                "phase": "openai_or_analysis",
+                "elapsed_seconds": round(time.monotonic() - endpoint_started_at, 3),
+            },
+        )
+        return (
+            jsonify(
+                {
+                    "ok": False,
+                    "error": "No se pudo generar el análisis IA para esta sesión.",
+                    "error_type": "ai_analysis_error",
+                    "retryable": True,
+                    "details": "El proveedor de IA no respondió correctamente. Puedes intentarlo de nuevo más tarde.",
+                    "warnings": [
+                        "La generación depende de un servicio externo y puede fallar temporalmente."
+                    ],
+                }
+            ),
+            502,
+        )
+
+    sections = [
+        {
+            "title": "Resumen general",
+            "type": "text",
+            "content": analysis.get("summary"),
+        },
+        {
+            "title": "Qué has hecho bien",
+            "type": "list",
+            "content": analysis.get("strengths") or [],
+        },
+        {
+            "title": "Qué podrías mejorar",
+            "type": "list",
+            "content": analysis.get("improvements") or [],
+        },
+        {
+            "title": "Comparación con benchmark",
+            "type": "text",
+            "content": analysis.get("benchmark_analysis"),
+        },
+        {
+            "title": "Riesgos detectados",
+            "type": "list",
+            "content": analysis.get("risk_notes") or [],
+        },
+        {
+            "title": "Contexto histórico",
+            "type": "text",
+            "content": analysis.get("historical_context"),
+        },
+        {
+            "title": "Conceptos para repasar",
+            "type": "list",
+            "content": analysis.get("learning_recommendations") or [],
+        },
+        {
+            "title": "Conclusión educativa",
+            "type": "text",
+            "content": analysis.get("final_advice"),
+        },
+    ]
+    logger.info(
+        "ai.tutor.session_resolved",
+        extra={
+            "session_id": session_id,
+            "elapsed_seconds": round(time.monotonic() - endpoint_started_at, 3),
+        },
+    )
+    return jsonify(
+        {
+            "ok": True,
+            "analysis": analysis,
+            "sections": sections,
+            "disclaimer": AI_TUTOR_DISCLAIMER,
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "warnings": ai_payload.get("warnings") or [],
+        }
+    )
+
+
+@bp.get("/api/readiness/questions")
+def readiness_questions_api():
+    restart = request.args.get("restart") in {"1", "true", "yes"}
+    questions = _get_or_create_readiness_question_set(force_new=restart)
+    public_questions = []
+    for index, item in enumerate(questions, start=1):
+        public_questions.append(
+            {
+                "id": item["id"],
+                "prompt": item["prompt"],
+                "options": [
+                    {"id": option["id"], "label": option["label"]}
+                    for option in item["options"]
+                ],
+                "explanation": item["explanation"],
+                "topic": item["topic"],
+                "step": index,
+                "contextTitle": (
+                    "Conceptos básicos" if index <= 5 else "Cómo leer la simulación"
+                ),
+                "contextHint": (
+                    "Piensa en riesgo, diversificación, benchmark y horizonte temporal."
+                    if index <= 5
+                    else "Relaciona cada respuesta con las pantallas, métricas y decisiones de la app."
+                ),
+            }
+        )
+    return jsonify(
+        {
+            "questions": public_questions,
+            "pass_score": READINESS_PASS_SCORE,
+            "total_questions": len(public_questions),
+        }
+    )
+
+
+@bp.post("/api/readiness/submit")
+def readiness_submit_api():
+    payload = request.get_json(silent=True) or {}
+    answers = payload.get("answers") or []
+    if not isinstance(answers, list):
+        return jsonify({"error": "El formato de respuestas no es válido."}), 400
+
+    question_set = _get_or_create_readiness_question_set()
+    if len(answers) != len(question_set):
+        return (
+            jsonify(
+                {"error": "Debes responder todas las preguntas del recorrido final."}
+            ),
+            400,
+        )
+
+    score = 0
+    result_items = []
+    question_map = {item["id"]: item for item in question_set}
+    for answer in answers:
+        if not isinstance(answer, dict):
+            return (
+                jsonify({"error": "Cada respuesta debe indicar pregunta y opción."}),
+                400,
+            )
+        question_id = answer.get("questionId")
+        option_id = answer.get("optionId")
+        question = question_map.get(question_id)
+        if not question:
+            return (
+                jsonify(
+                    {"error": "Se ha detectado una pregunta no válida en el intento."}
+                ),
+                400,
+            )
+        selected_option = next(
+            (option for option in question["options"] if option["id"] == option_id),
+            None,
+        )
+        correct_option = next(
+            (option for option in question["options"] if option["correct"]), None
+        )
+        is_correct = bool(
+            selected_option
+            and correct_option
+            and selected_option["id"] == correct_option["id"]
+        )
+        if is_correct:
+            score += 1
+        result_items.append(
+            {
+                "id": question["id"],
+                "prompt": question["prompt"],
+                "selectedOptionId": selected_option["id"] if selected_option else None,
+                "selectedLabel": selected_option["label"] if selected_option else None,
+                "correctOptionId": correct_option["id"] if correct_option else None,
+                "correctLabel": correct_option["label"] if correct_option else None,
+                "correct": is_correct,
+                "explanation": question["explanation"],
+                "topic": question["topic"],
+            }
+        )
+
+    passed = score >= READINESS_PASS_SCORE
+    current_user_id = _current_user_id()
+    passed_at = datetime.utcnow() if passed else None
+
+    if current_user_id:
+        record, created = ReadinessQuizResult.get_or_create(
+            user=current_user_id,
+            defaults={
+                "passed": passed,
+                "score": score,
+                "total_questions": len(question_set),
+                "passed_at": passed_at,
+                "answers_json": json.dumps(result_items, ensure_ascii=False),
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow(),
+            },
+        )
+        if not created:
+            record.passed = passed
+            record.score = score
+            record.total_questions = len(question_set)
+            record.passed_at = passed_at
+            record.answers_json = json.dumps(result_items, ensure_ascii=False)
+            record.updated_at = datetime.utcnow()
+            record.save()
+        storage = "server"
+    else:
+        session["readiness_guest"] = {
+            "passed": passed,
+            "score": score,
+            "total_questions": len(question_set),
+            "passed_at": passed_at.isoformat() + "Z" if passed_at else None,
+        }
+        session.modified = True
+        storage = "session"
+
+    _clear_readiness_question_set()
+
+    return jsonify(
+        {
+            "passed": passed,
+            "score": score,
+            "total_questions": len(question_set),
+            "pass_score": READINESS_PASS_SCORE,
+            "results": result_items,
+            "storage": storage,
+            "can_access_career": passed,
+            "user_authenticated": bool(current_user_id),
+            "guest": _is_guest_user(),
+        }
+    )
 
 
 # ----------------------
@@ -123,8 +1670,8 @@ def listar_empresas():
     """
     Devuelve lista de empresas.
     Filtros opcionales:
-      - ?sector=...  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ igualdad exacta (normalizada)
-      - ?q=...       ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ bÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Âºsqueda contiene en ticker o nombre (normalizada)
+      - ?sector=... -> igualdad exacta normalizada
+      - ?q=... -> búsqueda parcial en ticker o nombre
       - ?page&per_page ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ (opcional) si se envÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­an, responde paginado
     """
     sector = request.args.get("sector")
@@ -155,7 +1702,7 @@ def listar_empresas():
 
 
 # ----------------------
-#   Motor de anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis
+#   Motor de análisis
 # ----------------------
 def _validar_payload(p):
     errores = []
@@ -421,7 +1968,7 @@ def _puntuar_y_observar(p):
 
 
 # ----------------------
-#   Persistencia anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis
+#   Persistencia análisis
 
 
 def _fix_mojibake(s):
@@ -480,6 +2027,16 @@ def _guardar_lista(path: Path, lista):
         json.dump(lista, f, ensure_ascii=False, indent=2)
 
 
+def _current_user_id():
+    user_id = session.get("user_id")
+    user = get_user_by_id(user_id)
+    return user.id if user else None
+
+
+def _is_guest_user():
+    return bool(session.get("guest"))
+
+
 def _registrar_analisis(datos):
     errores = _validar_payload(datos)
     if errores:
@@ -528,9 +2085,32 @@ def _registrar_analisis(datos):
 
     registro = _sanear_registro(registro)
 
-    historial = _cargar_lista(ANALISIS_PATH)
-    historial.insert(0, registro)
-    _guardar_lista(ANALISIS_PATH, historial)
+    user_id = _current_user_id()
+    if user_id and not _is_guest_user():
+        save_analysis_for_user(
+            user_id=user_id,
+            ticker=registro.get("ticker"),
+            payload={
+                "importe_inicial": registro.get("importe_inicial"),
+                "horizonte_anios": registro.get("horizonte_anios"),
+                "supuestos": registro.get("supuestos", {}),
+                "justificacion": registro.get("justificacion", ""),
+                "modo": registro.get("modo"),
+                "dca": registro.get("dca"),
+                "crecimiento_anual_estimado": registro.get(
+                    "crecimiento_anual_estimado"
+                ),
+                "margen_seguridad_pct": registro.get("margen_seguridad_pct"),
+                "inicio": registro.get("inicio"),
+                "fin": registro.get("fin"),
+            },
+            result={
+                "puntuacion": registro.get("puntuacion"),
+                "observaciones": registro.get("observaciones"),
+                "resumen": registro.get("resumen"),
+                "backtest": registro.get("backtest"),
+            },
+        )
 
     return jsonify(
         {
@@ -568,7 +2148,7 @@ def crear_propuesta_api():
 @bp.get("/analisis")
 def listar_analisis():
     """
-    Devuelve el historial de anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis (mÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡s recientes primero).
+    Devuelve el historial de análisis, mostrando primero los más recientes.
     Filtros opcionales (se aplican ANTES del paginado):
       - ?ticker=MSFT      (case-insensitive, igualdad exacta)
       - ?desde=YYYY-MM-DD (inclusive por fecha de timestamp)
@@ -576,28 +2156,23 @@ def listar_analisis():
     Paginado opcional:
       - ?page, ?per_page
     """
-    historial = _cargar_lista(ANALISIS_PATH)
+    user_id = _current_user_id()
+    if _is_guest_user():
+        return (
+            jsonify({"error": "El modo invitado no dispone de historial guardado."}),
+            403,
+        )
+    if not user_id:
+        return (
+            jsonify({"error": "Debes iniciar sesión para consultar tu historial."}),
+            401,
+        )
 
-    # --- Filtros ---
     ticker = request.args.get("ticker")
     desde = request.args.get("desde")
     hasta = request.args.get("hasta")
-    historial = _filtrar_analisis(historial, ticker, desde, hasta)
+    historial = list_analysis_for_user(user_id, ticker=ticker, desde=desde, hasta=hasta)
 
-    if ticker:
-        tnorm = _norm(ticker)
-        historial = [h for h in historial if _norm(h.get("ticker", "")) == tnorm]
-
-    # Para fechas, usamos comparaciÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n por prefijo de fecha (YYYY-MM-DD)
-    # porque timestamp estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ en ISO completo (YYYY-MM-DDTHH:MM:SSZ)
-    if desde:
-        # mantenemos items cuya fecha >= desde
-        historial = [h for h in historial if h.get("timestamp", "")[:10] >= desde]
-    if hasta:
-        # mantenemos items cuya fecha < hasta (exclusivo)
-        historial = [h for h in historial if h.get("timestamp", "")[:10] < hasta]
-
-    # --- Respuesta: lista o paginado ---
     page = request.args.get("page")
     per_page = request.args.get("per_page")
     if page or per_page:
@@ -608,14 +2183,25 @@ def listar_analisis():
 @bp.get("/analisis.csv")
 def exportar_analisis_csv():
     """
-    Exporta el historial de anÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡lisis en CSV (UTF-8 con BOM para Excel).
+    Exporta el historial de análisis en CSV (UTF-8 con BOM para Excel).
     Acepta los mismos filtros que GET /analisis: ?ticker, ?desde, ?hasta
     """
-    historial = _cargar_lista(ANALISIS_PATH)
+    user_id = _current_user_id()
+    if _is_guest_user():
+        return (
+            jsonify({"error": "El modo invitado no permite exportar historial."}),
+            403,
+        )
+    if not user_id:
+        return (
+            jsonify({"error": "Debes iniciar sesión para exportar tu historial."}),
+            401,
+        )
+
     ticker = request.args.get("ticker")
     desde = request.args.get("desde")
     hasta = request.args.get("hasta")
-    historial = _filtrar_analisis(historial, ticker, desde, hasta)
+    historial = list_analysis_for_user(user_id, ticker=ticker, desde=desde, hasta=hasta)
 
     headers = [
         "id",
@@ -657,7 +2243,7 @@ def exportar_analisis_csv():
             )
         w.writerow(row)
 
-    # AÃƒÆ’Ã‚Â±adimos BOM para que Excel detecte UTF-8 automÃƒÆ’Ã‚Â¡ticamente
+    # Añadimos BOM para que Excel detecte UTF-8 automáticamente
     csv_text = "\ufeff" + out.getvalue()
 
     return Response(
@@ -798,30 +2384,172 @@ class BacktestError(Exception):
         self.status_code = status_code
 
 
+class HorizonSimulationError(Exception):
+    def __init__(
+        self, message: str, status_code: int = 400, warnings: list[str] | None = None
+    ):
+        super().__init__(message)
+        self.status_code = status_code
+        self.warnings = warnings or []
+
+
 def _download_history_df(
     ticker: str, start_d: date, end_d: date, include_actions: bool = True
 ) -> pd.DataFrame:
-    ticker_clean = (ticker or "").strip()
+    ticker_clean = (ticker or "").strip().upper()
     not_found_msg = (
         f"No se encontraron datos para el ticker '{ticker_clean}'. "
-        "Asegúrate de usar el símbolo bursátil (ej: AAPL) y no el nombre de la empresa."
+        "Asegúrate de usar el símbolo bursátil correcto."
+    )
+    provider_limited_msg = (
+        "La fuente de datos de mercado ha limitado temporalmente la petición. "
+        "Hemos reintentado varias veces, pero no hemos podido obtener datos ahora mismo. "
+        "Espera unos segundos y vuelve a intentarlo."
+    )
+    generic_provider_msg = (
+        f"No se pudieron obtener datos de mercado para '{ticker_clean}' en este momento. "
+        "Hemos reintentado automáticamente la descarga, pero la fuente sigue sin responder de forma estable."
     )
     if not ticker_clean:
         raise BacktestError(not_found_msg, 404)
 
-    df = yf.download(
-        ticker_clean,
-        start=str(start_d),
-        end=str(end_d + timedelta(days=1)),
-        interval="1d",
-        auto_adjust=False,
-        actions=include_actions,
-        progress=False,
+    cache_key = (ticker_clean, str(start_d), str(end_d), bool(include_actions))
+    cached = HORIZON_HISTORY_CACHE.get(cache_key)
+    if cached is not None:
+        return cached.copy()
+
+    saw_rate_limit = False
+    saw_transient_empty = False
+    last_exception = None
+
+    for attempt, delay_seconds in enumerate(
+        HORIZON_HISTORY_RETRY_DELAYS_SECONDS, start=1
+    ):
+        if delay_seconds > 0:
+            time.sleep(delay_seconds)
+        try:
+            df = yf.download(
+                ticker_clean,
+                start=str(start_d),
+                end=str(end_d + timedelta(days=1)),
+                interval="1d",
+                auto_adjust=False,
+                actions=include_actions,
+                progress=False,
+            )
+            df = _normalize_price_df(df)
+            if df is None or df.empty:
+                saw_transient_empty = True
+                last_exception = BacktestError(
+                    "Descarga vacía o sin datos normalizables", 503
+                )
+                continue
+            extracted_series = _extract_market_price_series(df, ticker_clean)
+            if extracted_series.empty:
+                saw_transient_empty = True
+                last_exception = BacktestError(
+                    "Serie histórica vacía tras normalización", 503
+                )
+                continue
+            HORIZON_HISTORY_CACHE[cache_key] = df.copy()
+            return df
+        except YFRateLimitError as exc:
+            saw_rate_limit = True
+            last_exception = exc
+            continue
+        except BacktestError as exc:
+            last_exception = exc
+            if exc.status_code >= 500:
+                continue
+            raise
+        except Exception as exc:
+            last_exception = exc
+            continue
+
+    if saw_rate_limit:
+        raise BacktestError(provider_limited_msg, 503) from last_exception
+    if saw_transient_empty:
+        raise BacktestError(generic_provider_msg, 503) from last_exception
+    raise BacktestError(not_found_msg, 404) from last_exception
+
+
+def _extract_market_price_series(df: pd.DataFrame, ticker: str) -> pd.Series:
+    normalized_df = _normalize_price_df(df)
+    series = _extract_series(normalized_df, "Adj Close", ticker)
+    if series.empty:
+        series = _extract_series(normalized_df, "Close", ticker)
+    if isinstance(series, pd.DataFrame):
+        series = series.iloc[:, 0] if not series.empty else pd.Series(dtype=float)
+    if series is None:
+        return pd.Series(dtype=float)
+
+    series = pd.to_numeric(pd.Series(series).copy(), errors="coerce").dropna()
+    if series.empty:
+        return pd.Series(dtype=float)
+
+    datetime_index = pd.to_datetime(series.index, errors="coerce")
+    valid_mask = ~pd.isna(datetime_index)
+    series = series.loc[valid_mask]
+    datetime_index = datetime_index[valid_mask]
+    if series.empty:
+        return pd.Series(dtype=float)
+
+    series.index = pd.DatetimeIndex(datetime_index)
+    series = series[~series.index.duplicated(keep="last")].sort_index()
+    if not isinstance(series.index, pd.DatetimeIndex):
+        return pd.Series(dtype=float)
+    return series
+
+
+def _get_horizon_history_years(horizon_years: int) -> int:
+    if horizon_years <= 1:
+        return max(HORIZON_MIN_HISTORY_YEARS, 5)
+    if horizon_years >= 5:
+        return HORIZON_MAX_HISTORY_YEARS
+    if horizon_years >= 3:
+        return HORIZON_DEFAULT_HISTORY_YEARS
+    return max(HORIZON_MIN_HISTORY_YEARS, 7)
+
+
+def _downsample_horizon_series(
+    series: pd.Series, max_points: int = HORIZON_MAX_HISTORY_POINTS
+) -> pd.Series:
+    if series.empty or len(series) <= max_points:
+        return series
+    step = max(1, math.ceil(len(series) / max_points))
+    sampled = series.iloc[::step].copy()
+    if sampled.index[-1] != series.index[-1]:
+        sampled = pd.concat([sampled, series.iloc[[-1]]])
+        sampled = sampled[~sampled.index.duplicated(keep="last")]
+    return sampled
+
+
+def _compute_horizon_monthly_returns(
+    series: pd.Series, ticker: str
+) -> tuple[pd.Series, dict[str, bool]]:
+    if series.empty:
+        raise HorizonSimulationError(
+            f"{ticker} no dispone de una serie temporal válida para construir la simulación experimental.",
+            400,
+        )
+    monthly = series.resample("ME").last().pct_change()
+    monthly = monthly.replace([math.inf, -math.inf], pd.NA).dropna()
+    if monthly.empty:
+        raise HorizonSimulationError(
+            f"{ticker} no genera retornos mensuales suficientes para esta simulación experimental.",
+            400,
+        )
+    outlier_mask = monthly.abs() > HORIZON_MAX_MONTHLY_RETURN
+    had_outliers = bool(outlier_mask.any())
+    monthly = monthly.clip(
+        lower=-HORIZON_MAX_MONTHLY_RETURN, upper=HORIZON_MAX_MONTHLY_RETURN
     )
-    df = _normalize_price_df(df)
-    if df is None or df.empty:
-        raise BacktestError(not_found_msg, 404)
-    return df
+    if monthly.empty:
+        raise HorizonSimulationError(
+            f"{ticker} no genera retornos mensuales suficientes para esta simulación experimental.",
+            400,
+        )
+    return monthly, {"had_outliers": had_outliers}
 
 
 def _compute_price_summary(
@@ -1002,7 +2730,7 @@ def _market_backtest_core(payload: dict) -> dict:
     except (TypeError, ValueError):
         raise BacktestError("Horizonte invalido", 400)
     if horizon < 1:
-        raise BacktestError("Horizonte >= 1 aÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±o", 400)
+        raise BacktestError("Horizonte >= 1 año", 400)
 
     try:
         invested_initial = float(payload.get("importe_inicial") or 0)
@@ -1118,7 +2846,7 @@ def _market_backtest_core(payload: dict) -> dict:
 @bp.post("/market/backtest")
 def market_backtest():
     """
-    Calcula el resultado real de una inversiÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â³n dada usando precios Ajustados (Adj Close).
+    Calcula el resultado real de una inversión usando precios ajustados (Adj Close).
     Body JSON esperado:
     {
       "ticker": "AAPL",

@@ -1,21 +1,49 @@
 {% extends "base.html" %}
 
-{% block title %}Inicio · Simulador de an&aacute;lisis{% endblock %}
+{% block title %}Inicio · Simulador de análisis{% endblock %}
 
 {% block content %}
-<section class="hero">
+<section class="hero hero--split hero--product">
   <div class="hero__content">
-    <p class="eyebrow">Bienvenido</p>
-    <h1>Simulador de Inversi&oacute;n Hist&oacute;rica y An&aacute;lisis Fundamental</h1>
+    <p class="eyebrow">Modo práctica</p>
+    <span class="hero-badge">Análisis guiado con datos históricos</span>
+    <h1>Simulador de inversión histórica y análisis fundamental</h1>
     <p class="lead">
-      Gestiona una cartera virtual en el pasado, analiza fundamentales y valida tus estrategias a largo plazo sin riesgo financiero.
+      Analiza empresas, compara escenarios y valida decisiones de inversión a largo plazo con una interfaz más clara, mejor estructurada y orientada a la toma de decisiones.
     </p>
-    <a class="btn btn-secondary btn-large" href="{{ url_for('main.aprende_page') }}" style="margin-bottom:10px;">
-      Aprende a invertir
-    </a>
-    <a class="btn btn-primary btn-large" href="{{ url_for('main.analisis_page') }}">
-      Nuevo an&aacute;lisis
-    </a>
+    <div class="hero__actions">
+      <a class="btn btn-secondary btn-large" href="{{ url_for('main.aprende_page') }}">
+        Aprende a invertir
+      </a>
+      <a class="btn btn-primary btn-large" href="{{ url_for('main.analisis_page') }}">
+        Nuevo análisis
+      </a>
+    </div>
   </div>
+  <aside class="hero-aside">
+    <div class="hero-summary-card">
+      <h2>Qué puedes hacer aquí</h2>
+      <ul class="feature-list">
+        <li>Comparar escenarios de inversión</li>
+        <li>Registrar hipótesis y justificarlas</li>
+        <li>Revisar métricas y observaciones accionables</li>
+      </ul>
+    </div>
+  </aside>
+</section>
+
+<section class="info-strip">
+  <article class="info-strip__item">
+    <strong>Jerarquía clara</strong>
+    <p>Menos ruido visual y acciones principales más visibles.</p>
+  </article>
+  <article class="info-strip__item">
+    <strong>Mejor legibilidad</strong>
+    <p>Más aire, mejor contraste y bloques más fáciles de escanear.</p>
+  </article>
+  <article class="info-strip__item">
+    <strong>Uso más guiado</strong>
+    <p>La estructura ayuda a preparar el análisis y revisar mejor cada decisión.</p>
+  </article>
 </section>
 {% endblock %}

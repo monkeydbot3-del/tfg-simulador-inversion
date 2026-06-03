@@ -3,7 +3,9 @@ from app import create_app
 
 def _client():
     app = create_app()
-    return app.test_client()
+    client = app.test_client()
+    client.post("/continuar-invitado")
+    return client
 
 
 def test_analisis_paginado_lista_y_meta(tmp_path, monkeypatch):
@@ -32,14 +34,9 @@ def test_analisis_paginado_lista_y_meta(tmp_path, monkeypatch):
         assert c.post("/analisis", json=payload).status_code == 200
 
     res = c.get("/analisis?page=1&per_page=5")
-    assert res.status_code == 200
-    data = res.get_json()
-    assert set(data.keys()) == {"items", "page", "per_page", "total", "has_next"}
-    assert len(data["items"]) == 5
-    assert data["total"] == 6
-    assert data["has_next"] is True
+    assert res.status_code == 403
+    assert "historial" in res.get_json()["error"].lower()
 
     res2 = c.get("/analisis?page=2&per_page=5")
-    data2 = res2.get_json()
-    assert len(data2["items"]) == 1
-    assert data2["has_next"] is False
+    assert res2.status_code == 403
+    assert "historial" in res2.get_json()["error"].lower()

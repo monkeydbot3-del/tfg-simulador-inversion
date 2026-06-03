@@ -1,4 +1,4 @@
-# TFG Web App (Python/Flask) — CI básico
+# Simulador de Inversión - TFG
 
 Este repositorio está preparado con:
 - **Flask** (backend mínimo)
@@ -47,7 +47,7 @@ tests/
 - `GET /health` -> `{"status":"ok"}`
 
 ## CI en GitHub
-1. Crea el repo en GitHub y sube este contenido.
+1. Sube este contenido al repositorio de GitHub `simulador-inversion-tfg`.
 2. La acción **CI** se ejecutará automáticamente en cada `push` y `pull_request`:
    - ruff (lint)
    - black --check (formato)

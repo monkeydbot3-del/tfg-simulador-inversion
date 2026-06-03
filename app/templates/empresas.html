@@ -3,14 +3,18 @@
 {% block title %}Ejemplos de empresas · Simulador{% endblock %}
 
 {% block content %}
-<section class="page-header">
-  <h1>Ejemplos de empresas</h1>
-  <p class="muted">
-    Explora un universo ampliado de compañías de referencia y filtra rápidamente por nombre, ticker o sector.
-  </p>
+<section class="page-header page-header--with-badge">
+  <div>
+    <p class="eyebrow">Exploración de mercado</p>
+    <h1>Ejemplos de empresas</h1>
+    <p class="muted">
+      Explora un universo ampliado de compañías de referencia y filtra rápidamente por nombre, ticker o sector.
+    </p>
+  </div>
+  <span class="badge badge-soft">Listado consultable</span>
 </section>
 
-<section class="card">
+<section class="card card--elevated">
   <div class="card-section">
     <div class="form-grid">
       <div class="field">
@@ -35,7 +39,7 @@
       </div>
     </div>
 
-    <div class="actions-row">
+    <div class="actions-row actions-row--panel">
       <div class="actions-row__left">
         <button id="emp-buscar" class="btn btn-primary">Buscar</button>
         <button id="emp-prev" class="btn btn-outline">Anterior</button>
@@ -46,7 +50,7 @@
     </div>
   </div>
 
-  <div class="card-section table-wrapper">
+  <div class="card-section table-wrapper table-wrapper--soft">
     <table class="data-table">
       <thead>
         <tr>

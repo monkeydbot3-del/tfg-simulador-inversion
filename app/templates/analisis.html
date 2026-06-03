@@ -3,43 +3,79 @@
 {% block title %}Nuevo an&aacute;lisis · Simulador{% endblock %}
 
 {% block content %}
-<section class="page-header">
-  <h1>Nuevo an&aacute;lisis</h1>
-  <p class="muted">
-    Completa el formulario para obtener una puntuaci&oacute;n autom&aacute;tica con observaciones accionables.
-  </p>
+<section class="page-header page-header--with-badge practice-header">
+  <div>
+    <p class="eyebrow">Análisis guiado</p>
+    <h1>Nuevo an&aacute;lisis</h1>
+    <p class="muted">
+      Completa el formulario para obtener una puntuaci&oacute;n autom&aacute;tica con observaciones accionables y una lectura m&aacute;s clara del escenario.
+    </p>
+  </div>
+  <span class="badge badge-soft">Flujo principal</span>
 </section>
 
-<section class="card">
+<section class="card card--elevated analysis-intro-card practice-step-card">
   <div class="card-section">
-    <div class="field">
-      <label class="muted" for="anl-ticker">Ticker</label>
-      <input id="anl-ticker" name="ticker" placeholder="Ej. MSFT" autocomplete="off" />
-      <p class="muted helper-text">
-        Introduce el Ticker oficial (ej: 'AAPL', 'SAN'). Usa nomenclatura de Yahoo Finance.
-      </p>
+    <div class="section-heading">
+      <span class="career-step-badge">01</span>
+      <div>
+        <h3>Elige el activo que quieres analizar</h3>
+        <p class="muted">Empieza con un ticker válido y una hipótesis simple antes de definir el resto del escenario.</p>
+      </div>
+    </div>
+    <div class="analysis-intro">
+      <div class="field field--grow">
+        <label class="muted" for="anl-ticker">Ticker</label>
+        <input id="anl-ticker" name="ticker" placeholder="Ej. MSFT" autocomplete="off" />
+        <p class="muted helper-text">
+          Introduce el ticker oficial de Yahoo Finance, por ejemplo <strong>AAPL</strong>, <strong>MSFT</strong> o <strong>SAN</strong>.
+        </p>
+      </div>
+      <aside class="callout callout--soft">
+        <strong>Antes de empezar</strong>
+        <p>Define una hipótesis simple, el horizonte temporal y el nivel de prudencia que quieres justificar.</p>
+      </aside>
     </div>
   </div>
 </section>
 
-<section id="modo-inversion" class="card">
+<section id="modo-inversion" class="card card--elevated practice-step-card">
   <div class="card-section">
-    <h3>Modo de inversi&oacute;n</h3>
-    <div class="field-group">
-      <label>
+    <div class="section-heading">
+      <span class="career-step-badge">02</span>
+      <div>
+        <h3>Elige la estrategia de inversión</h3>
+        <p class="muted">Selecciona si quieres simular aportaciones periódicas o una única compra inicial.</p>
+      </div>
+    </div>
+    <div class="segmented-control segmented-control--compact">
+      <label class="segmented-option">
         <input type="radio" name="modo" value="DCA" id="modo-dca" checked />
-        DCA
+        <span>
+          <strong>DCA</strong>
+          <small>Aportaciones periódicas</small>
+        </span>
       </label>
-      <label>
+      <label class="segmented-option">
         <input type="radio" name="modo" value="SIN_DCA" id="modo-sin-dca" />
-        Sin DCA
+        <span>
+          <strong>Sin DCA</strong>
+          <small>Solo inversión inicial</small>
+        </span>
       </label>
     </div>
   </div>
 </section>
 
-<section id="form-comun" class="card">
+<section id="form-comun" class="card card--elevated practice-step-card">
   <div class="card-section">
+    <div class="section-heading">
+      <span class="career-step-badge">03</span>
+      <div>
+        <h3>Ajusta los parámetros principales</h3>
+        <p class="muted">Define capital, horizonte, supuestos de crecimiento y la justificación que sostendrá tu propuesta.</p>
+      </div>
+    </div>
     <div class="form-grid">
       <div class="field">
         <label for="importe-inicial" class="muted">Importe inicial (&euro;)</label>
@@ -103,9 +139,15 @@
   </div>
 </section>
 
-<section id="form-dca" class="card">
+<section id="form-dca" class="card card--elevated practice-step-card practice-step-card--support">
   <div class="card-section">
-    <h4>Par&aacute;metros DCA</h4>
+    <div class="section-heading">
+      <span class="career-step-badge">04</span>
+      <div>
+        <h4>Par&aacute;metros DCA</h4>
+        <p class="muted">Configura cómo y cuándo se harán las aportaciones periódicas dentro del escenario.</p>
+      </div>
+    </div>
     <div class="form-grid">
       <div class="field">
         <label for="dca-aporte" class="muted">Aportaci&oacute;n peri&oacute;dica (&euro;)</label>
@@ -132,35 +174,47 @@
   </div>
 </section>
 
-<section id="form-sin-dca" class="card" style="display:none">
+<section id="form-sin-dca" class="card card--elevated hidden practice-step-card practice-step-card--support" hidden>
   <div class="card-section">
-    <p class="muted">
-      Sin aportaciones peri&oacute;dicas. Solo se considera el importe inicial.
-    </p>
-    <div class="field">
+    <div class="section-heading">
+      <span class="career-step-badge">04</span>
+      <div>
+        <h4>Compra única</h4>
+        <p class="muted">Indica la fecha de compra para calcular correctamente la inversión inicial sin aportaciones periódicas.</p>
+      </div>
+    </div>
+    <div class="field field--grow">
       <label for="fechaCompra" class="muted">Fecha de compra</label>
-      <input type="date" id="fechaCompra" />
+      <input type="date" id="fechaCompra" name="inicio" />
+      <p class="muted helper-text">Esta fecha se enviará como inicio de la inversión cuando selecciones el modo sin DCA.</p>
     </div>
   </div>
 </section>
 
-<section class="card">
+<section class="card card--elevated analysis-submit-card practice-step-card practice-step-card--submit">
   <div class="card-section">
-    <div class="actions">
-      <button id="btn-enviar-propuesta" class="btn btn-primary">Enviar propuesta</button>
+    <div class="section-heading section-heading--stacked-submit">
+      <span class="career-step-badge">05</span>
+      <div>
+        <h3>Revisa los datos antes de enviar</h3>
+        <p class="muted">Cuando lo envíes, la app generará la evaluación automática y el resumen asociado.</p>
+      </div>
+    </div>
+    <div class="actions actions--submit-step">
+      <button id="btn-enviar-propuesta" class="btn btn-primary btn-large">Enviar propuesta</button>
     </div>
   </div>
 </section>
 
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<!-- Popup Precheck Yahoo Finance para revision -->
+<!-- Popup Precheck Yahoo Finance para revisión -->
 <div class="precheck-backdrop" id="precheck-modal" aria-hidden="true">
   <div class="precheck-dialog" role="dialog" aria-modal="true" aria-labelledby="precheck-title">
     <button class="precheck-close" id="precheck-close" aria-label="Cerrar">&times;</button>
     <h3 id="precheck-title">Antes de analizar…</h3>
     <p class="precheck-text">
-      Hey, ¿por qué no le echas un vistazo a los datos más recientes antes de hacer tu análisis?
+      Antes de enviar tu propuesta, revisa los datos más recientes de la empresa para validar mejor tu análisis.
       Estoy seguro de que te serán de mucha utilidad 😉
     </p>
     <div class="precheck-row">
@@ -170,11 +224,15 @@
   </div>
 </div>
 
-<div id="modalBacktest" class="modal hidden">
+<div id="modalBacktest" class="modal-overlay hidden">
   <div class="modal__content">
-    <button class="modal__close" id="modalBacktestClose">&times;</button>
-    <h3 id="mb_titulo">Resumen de la inversi&oacute;n</h3>
-    <div class="modal__body">
+    <button class="modal__close" id="modalBacktestClose" aria-label="Cerrar">&times;</button>
+    <div class="modal__body modal__body--backtest">
+      <div class="backtest-summary-hero">
+        <span class="badge badge-soft">Resultado del análisis</span>
+        <h3 id="mb_titulo">Resumen de la inversi&oacute;n</h3>
+        <p class="muted">Consulta el rendimiento del periodo, descarga los datos y revisa la evolución histórica asociada.</p>
+      </div>
       <ul class="kv">
         <li><strong>Ticker:</strong> <span id="mb_ticker"></span></li>
         <li><strong>Periodo:</strong> <span id="mb_periodo"></span></li>

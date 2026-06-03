@@ -18,11 +18,24 @@ from statistics import StatisticsError, mean
 from typing import Any, Iterable
 
 import pandas as pd
-from flask import Blueprint, jsonify, make_response, request
+from flask import Blueprint, current_app, jsonify, make_response, request, session
 from werkzeug.exceptions import BadRequest, NotFound
+
+from .services.career_session_service import (
+    deserialize_career_session,
+    get_latest_career_session_for_user,
+    get_latest_persisted_career_session_for_user,
+    get_persisted_career_session_for_user,
+    list_career_sessions_for_user,
+    list_persisted_career_turns_for_user,
+    save_career_session_for_user,
+    save_career_turn_state,
+    upsert_career_session_state,
+)
 
 try:
     from app.routes import (
+        BacktestError,
         _download_history_df,
         _extract_series,
         _series_with_date_index,
@@ -31,6 +44,12 @@ try:
     )
 except Exception:  # pragma: no cover
     import yfinance as yf
+
+    class BacktestError(Exception):
+        def __init__(self, message: str, status_code: int = 400):
+            super().__init__(message)
+            self.message = message
+            self.status_code = status_code
 
     def _download_history_df(  # type: ignore[override]
         ticker: str, start_d: date, end_d: date, include_actions: bool = True
@@ -88,6 +107,9 @@ BASE_START_DATE = date(2000, 1, 3)
 MAX_ASSETS = 10
 PORTFOLIO_SCOPE = "portfolio"
 CASH_TICKERS = {"CASH", "CASH:USD"}
+THEORETICAL_MAX_TICKERS = 5
+THEORETICAL_MAX_POINTS = 260
+THEORETICAL_MAX_COMBINATIONS = 24
 
 
 def _is_cash(ticker: str) -> bool:
@@ -750,6 +772,12 @@ def _get_session(session_id: str) -> dict[str, Any] | None:
 
 def _update_session(session: dict[str, Any]) -> None:
     _persist_session(session)
+    current_user_id = _current_user_id()
+    if current_user_id:
+        try:
+            upsert_career_session_state(current_user_id, session)
+        except Exception:
+            pass
 
 
 def _seed_from_player(player: str) -> int:
@@ -889,7 +917,7 @@ def _build_normalized_series_map(
     for ticker in non_cash:
         data = _fetch_adj_close(
             ticker, start, end
-        )  # REUSE: reutiliza descarga y normalizaciÃ³n del histÃ³rico diario
+        )  # REUSE: reutiliza descarga y normalización del histórico diario
         if data and anchor_dates is None:
             anchor_dates = _extract_dates_from_series(data)
         series_map[ticker] = _normalize_base100(data)
@@ -913,20 +941,44 @@ def _build_normalized_series_map(
 def _series_list_to_series(series_list: list[list[str, float]]) -> pd.Series:
     if not series_list:
         return pd.Series(dtype=float)
-    records: list[tuple[pd.Timestamp, float]] = []
+
+    raw_dates: list[Any] = []
+    raw_values: list[float] = []
     for entry in series_list:
-        if not entry or entry[1] is None:
+        if not isinstance(entry, (list, tuple)) or len(entry) < 2:
+            continue
+        raw_date = entry[0]
+        raw_value = entry[1]
+        if raw_value is None:
             continue
         try:
-            ts = pd.to_datetime(entry[0])
-            value = float(entry[1])
-        except (TypeError, ValueError):
+            value = float(raw_value)
+        except (TypeError, ValueError, OverflowError):
             continue
-        records.append((ts, value))
-    if not records:
+        if not math.isfinite(value):
+            continue
+        raw_dates.append(raw_date)
+        raw_values.append(value)
+
+    if not raw_dates:
         return pd.Series(dtype=float)
-    idx, values = zip(*records)
-    return pd.Series(values, index=pd.DatetimeIndex(idx)).sort_index()
+
+    dates = pd.to_datetime(raw_dates, errors="coerce")
+    valid_mask = ~pd.isna(dates)
+    if not valid_mask.any():
+        return pd.Series(dtype=float)
+
+    clean_dates = dates[valid_mask]
+    clean_values = [
+        raw_values[idx] for idx, is_valid in enumerate(valid_mask) if is_valid
+    ]
+    if not clean_values:
+        return pd.Series(dtype=float)
+
+    series = pd.Series(clean_values, index=pd.DatetimeIndex(clean_dates)).sort_index()
+    series = pd.to_numeric(series, errors="coerce")
+    series = series.replace([math.inf, -math.inf], pd.NA).dropna()
+    return series.astype("float32") if not series.empty else pd.Series(dtype=float)
 
 
 def _pd_series_to_list(series: pd.Series) -> list[list[str, float]]:
@@ -1097,12 +1149,12 @@ def _session_analysis_range(session: dict[str, Any]) -> tuple[date, date, str, s
     period = session.get("period") or {}
     start_iso = period.get("start")
     if not start_iso:
-        raise BadRequest("La sesiÃ³n no tiene periodo configurado.")
+        raise BadRequest("La sesión no tiene periodo configurado.")
     start_d = date.fromisoformat(start_iso)
 
     turns = session.get("turns") or []
     if not turns:
-        raise BadRequest("La sesiÃ³n no dispone de turnos configurados.")
+        raise BadRequest("La sesión no dispone de turnos configurados.")
 
     completed_turns = session.get("completed_turns") or []
     turn_lookup = {
@@ -1199,16 +1251,47 @@ def _portfolio_equity_series(
     return series.sort_index()
 
 
+def _downsample_series(
+    series: pd.Series, max_points: int = THEORETICAL_MAX_POINTS
+) -> pd.Series:
+    if series.empty or max_points <= 0 or len(series) <= max_points:
+        return series
+    if max_points == 1:
+        return series.iloc[[0]]
+    step = max((len(series) - 1) / (max_points - 1), 1)
+    positions = sorted(
+        {min(len(series) - 1, int(round(step * idx))) for idx in range(max_points)}
+    )
+    return series.iloc[positions]
+
+
+def _build_series_cache(
+    normalized_map: dict[str, list[list[str, float]]],
+    max_points: int | None = None,
+) -> dict[str, pd.Series]:
+    cache: dict[str, pd.Series] = {}
+    for ticker, series_list in normalized_map.items():
+        series = _series_list_to_series(series_list)
+        if max_points is not None and not series.empty:
+            series = _downsample_series(series, max_points=max_points)
+        cache[ticker] = series
+    return cache
+
+
 def _combine_normalized_series(
     tickers: list[str],
     weights: list[float],
-    normalized_map: dict[str, list[list[str, float]]],
+    normalized_map: dict[str, list[list[str, float]]] | None = None,
+    series_cache: dict[str, pd.Series] | None = None,
 ) -> pd.Series:
     if not tickers or not weights:
         return pd.Series(dtype=float)
     data: dict[str, pd.Series] = {}
     for ticker in tickers:
-        series = _series_list_to_series(normalized_map.get(ticker, []))
+        if series_cache is not None:
+            series = series_cache.get(ticker, pd.Series(dtype=float))
+        else:
+            series = _series_list_to_series((normalized_map or {}).get(ticker, []))
         if series.empty:
             return pd.Series(dtype=float)
         data[ticker] = series
@@ -1218,12 +1301,17 @@ def _combine_normalized_series(
     df = df.ffill().bfill()
     weights_by_ticker = pd.Series(weights, index=tickers)
     combined = df.mul(weights_by_ticker, axis=1).sum(axis=1)
+    combined = (
+        pd.to_numeric(combined, errors="coerce")
+        .replace([math.inf, -math.inf], pd.NA)
+        .dropna()
+    )
     if combined.empty:
         return combined
     first_value = combined.iloc[0]
     if first_value != 0:
         combined = combined / first_value * 100.0
-    return combined
+    return combined.astype("float32") if not combined.empty else combined
 
 
 def _equal_weights(count: int) -> list[float]:
@@ -1322,14 +1410,14 @@ def _compute_score_payload(
     elif te_component >= 0.4:
         notes_parts.append("tracking medio")
     else:
-        notes_parts.append("tracking volÃ¡til")
+        notes_parts.append("tracking volátil")
 
     if turnover_component >= 0.7:
-        notes_parts.append("rotaciÃ³n baja")
+        notes_parts.append("rotación baja")
     elif turnover_component >= 0.4:
-        notes_parts.append("rotaciÃ³n media")
+        notes_parts.append("rotación media")
     else:
-        notes_parts.append("rotaciÃ³n alta")
+        notes_parts.append("rotación alta")
 
     notes = ", ".join(notes_parts) + "; buen balance riesgo/retorno"
 
@@ -1419,14 +1507,17 @@ def _compute_theoretical_summary(
 ) -> dict[str, Any]:
     universe_candidates = _collect_session_universe(session)
     if not universe_candidates:
-        raise BadRequest("El universo de la sesiÃ³n estÃ¡ vacÃ­o.")
+        raise BadRequest("El universo de la sesión está vacío.")
 
     normalized_map = _build_normalized_series_map(universe_candidates, start_d, end_d)
+    full_series_cache = _build_series_cache(
+        normalized_map, max_points=THEORETICAL_MAX_POINTS
+    )
 
     ticker_metrics: dict[str, dict[str, float]] = {}
     filtered_tickers: list[str] = []
     for ticker in universe_candidates:
-        series_pd = _series_list_to_series(normalized_map.get(ticker, []))
+        series_pd = full_series_cache.get(ticker, pd.Series(dtype=float))
         if series_pd.empty:
             continue
         metrics, _ = _compute_metrics_from_base100(series_pd)
@@ -1443,21 +1534,33 @@ def _compute_theoretical_summary(
         reverse=True,
     )
 
-    limit = 5
-    use_greedy = original_count > limit
-    if len(ranked_by_cagr) > limit:
-        ranked_by_cagr = ranked_by_cagr[:limit]
+    use_greedy = original_count > THEORETICAL_MAX_TICKERS
+    if len(ranked_by_cagr) > THEORETICAL_MAX_TICKERS:
+        ranked_by_cagr = ranked_by_cagr[:THEORETICAL_MAX_TICKERS]
 
     tickers_eval = ranked_by_cagr
     if not tickers_eval:
         raise BadRequest("No hay tickers elegibles tras aplicar filtros.")
+
+    combos_count = 0
+    if kmax >= 2:
+        combos_count += math.comb(len(tickers_eval), 2) if len(tickers_eval) >= 2 else 0
+    if kmax >= 3:
+        combos_count += math.comb(len(tickers_eval), 3) if len(tickers_eval) >= 3 else 0
+    if combos_count > THEORETICAL_MAX_COMBINATIONS:
+        use_greedy = True
+
+    series_cache = {
+        ticker: full_series_cache.get(ticker, pd.Series(dtype=float))
+        for ticker in tickers_eval
+    }
 
     results: dict[str, dict[str, Any]] = {}
     method_map: dict[str, str] = {}
 
     if len(tickers_eval) >= 1:
         best_ticker = ranked_by_cagr[0]
-        series_pd = _series_list_to_series(normalized_map.get(best_ticker, []))
+        series_pd = series_cache.get(best_ticker, pd.Series(dtype=float))
         metrics = ticker_metrics[best_ticker]
         results["k1"] = {
             "tickers": [best_ticker],
@@ -1469,6 +1572,7 @@ def _compute_theoretical_summary(
                 "max_drawdown": metrics["max_drawdown"],
             },
         }
+        method_map["k1"] = "single"
 
     def _record_best_combination(label: str, combo_result: dict[str, Any]) -> None:
         payload = combo_result.copy()
@@ -1482,7 +1586,9 @@ def _compute_theoretical_summary(
             for candidate in tickers_eval:
                 if candidate == base_ticker:
                     continue
-                combo = _evaluate_combo_result([base_ticker, candidate], normalized_map)
+                combo = _evaluate_combo_result(
+                    [base_ticker, candidate], normalized_map, series_cache=series_cache
+                )
                 if not combo:
                     continue
                 if (
@@ -1501,7 +1607,9 @@ def _compute_theoretical_summary(
         else:
             best_combo = None
             for combo in combinations(tickers_eval, 2):
-                combo_result = _evaluate_combo_result(list(combo), normalized_map)
+                combo_result = _evaluate_combo_result(
+                    list(combo), normalized_map, series_cache=series_cache
+                )
                 if not combo_result:
                     continue
                 if (
@@ -1523,7 +1631,9 @@ def _compute_theoretical_summary(
             base_combo = results.get("k2")
             if not base_combo and len(tickers_eval) >= 2:
                 tentative = tickers_eval[:2]
-                base_combo = _evaluate_combo_result(tentative, normalized_map)
+                base_combo = _evaluate_combo_result(
+                    tentative, normalized_map, series_cache=series_cache
+                )
                 if base_combo:
                     _record_best_combination("k2", base_combo)
                     method_map["k2"] = "greedy"
@@ -1535,7 +1645,9 @@ def _compute_theoretical_summary(
                 combo_tickers = list(base_tickers) + [candidate]
                 if len(combo_tickers) != 3:
                     continue
-                combo_result = _evaluate_combo_result(combo_tickers, normalized_map)
+                combo_result = _evaluate_combo_result(
+                    combo_tickers, normalized_map, series_cache=series_cache
+                )
                 if not combo_result:
                     continue
                 if (
@@ -1554,7 +1666,9 @@ def _compute_theoretical_summary(
         else:
             best_combo = None
             for combo in combinations(tickers_eval, 3):
-                combo_result = _evaluate_combo_result(list(combo), normalized_map)
+                combo_result = _evaluate_combo_result(
+                    list(combo), normalized_map, series_cache=series_cache
+                )
                 if not combo_result:
                     continue
                 if (
@@ -1578,6 +1692,9 @@ def _compute_theoretical_summary(
         "normalized_map": normalized_map,
         "ticker_metrics": ticker_metrics,
         "use_greedy": use_greedy,
+        "series_cache_built": True,
+        "combinations_evaluated_scope": combos_count,
+        "downsample_points": THEORETICAL_MAX_POINTS,
     }
 
 
@@ -1613,7 +1730,13 @@ def _generate_report_payload(
         method_map = theoretical_summary["method"]
         universe_evaluated = theoretical_summary["universe"]
         theoretical_error: str | None = None
-    except BadRequest as exc:
+    except (
+        BadRequest,
+        NoHistoricalDataError,
+        MemoryError,
+        ValueError,
+        TypeError,
+    ) as exc:
         theoretical_summary = None
         theoretical_top = {}
         method_map = {}
@@ -1621,7 +1744,9 @@ def _generate_report_payload(
         normalized_map = _build_normalized_series_map(
             _collect_session_universe(session), start_d, end_d
         )
-        theoretical_error = getattr(exc, "description", str(exc))
+        theoretical_error = getattr(exc, "description", None) or getattr(
+            exc, "message", str(exc)
+        )
 
     normalized_map_with_bench = dict(normalized_map)
     normalized_map_with_bench[bench_ticker] = _pd_series_to_list(bench_series_pd)
@@ -1784,7 +1909,7 @@ def _ensure_max_assets(
             aggregated[ticker] += weight
     if len(aggregated) > max_assets:
         raise BadRequest(
-            f"La cartera admite como mÃ¡ximo {max_assets} activos por turno."
+            f"La cartera admite como máximo {max_assets} activos por turno."
         )
     return [
         {"ticker": ticker, "weight": round(aggregated[ticker], 6)} for ticker in order
@@ -1797,7 +1922,7 @@ def _parse_date(value: str | None, field: str) -> date:
     try:
         return date.fromisoformat(value)
     except ValueError as exc:  # pragma: no cover
-        raise BadRequest(f"Fecha invÃ¡lida para '{field}'.") from exc
+        raise BadRequest(f"Fecha inválida para '{field}'.") from exc
 
 
 def _instantiate_event_from_template(
@@ -2080,7 +2205,7 @@ def _build_event_from_payload(
     try:
         impact_value = float(impact_value)
     except (TypeError, ValueError) as exc:
-        raise BadRequest("impact_pct debe ser numÃ©rico.") from exc
+        raise BadRequest("impact_pct debe ser numérico.") from exc
     if impact_value < MIN_EVENT_IMPACT or impact_value > MAX_EVENT_IMPACT:
         raise BadRequest("impact_pct fuera de rango permitido [-0.5, 0.5].")
 
@@ -2111,7 +2236,7 @@ def _build_event_from_payload(
             sectors = _available_sectors(session, reference_alloc)
             if not sectors:
                 raise BadRequest(
-                    "No se encontrÃ³ un sector vÃ¡lido para asignar al evento sectorial."
+                    "No se encontró un sector válido para asignar al evento sectorial."
                 )
             target_value = rng.choice(sectors)
     elif scope_lower == "ticker":
@@ -2172,6 +2297,36 @@ def _json_error(message: str, status: int):
     return jsonify({"error": message}), status
 
 
+def _safe_json_value(value: Any) -> Any:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, (date, datetime, pd.Timestamp)):
+        try:
+            return value.isoformat()
+        except Exception:
+            return str(value)
+    if isinstance(value, dict):
+        return {str(key): _safe_json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_safe_json_value(item) for item in value]
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    if hasattr(value, "item"):
+        try:
+            return _safe_json_value(value.item())
+        except Exception:
+            pass
+    try:
+        return float(value)
+    except (TypeError, ValueError, OverflowError):
+        return str(value)
+
+
 def _ensure_session_defaults(session: dict[str, Any]) -> None:
     turns_list = session.get("turns") or []
     turns_total = (
@@ -2214,6 +2369,87 @@ def _entered_on_turn_map(session: dict[str, Any]) -> dict[str, int]:
     return entered
 
 
+def _current_user_id() -> int | None:
+    raw = session.get("user_id")
+    try:
+        return int(raw) if raw is not None else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_guest_user() -> bool:
+    return bool(session.get("guest")) and not bool(session.get("user_id"))
+
+
+def _user_can_access_store_session(user_id: int | None, session_id: str) -> bool:
+    if not user_id:
+        return False
+    link = get_latest_career_session_for_user(user_id)
+    if link and link.session_id == session_id:
+        return True
+    items = list_career_sessions_for_user(user_id, limit=100)
+    return any(item.session_id == session_id for item in items)
+
+
+def _current_user_owns_persisted_session(user_id: int | None, session_id: str) -> bool:
+    if not user_id or not session_id:
+        return False
+    return get_persisted_career_session_for_user(user_id, session_id) is not None
+
+
+def _user_can_access_any_session(user_id: int | None, session_id: str) -> bool:
+    if not user_id or not session_id:
+        return False
+    return _current_user_owns_persisted_session(
+        user_id, session_id
+    ) or _user_can_access_store_session(user_id, session_id)
+
+
+def _resolve_session_for_request(session_id: str) -> dict[str, Any] | None:
+    current_user_id = _current_user_id()
+    if current_user_id:
+        persisted = get_persisted_career_session_for_user(current_user_id, session_id)
+        persisted_payload = deserialize_career_session(persisted)
+        if persisted_payload:
+            return persisted_payload
+        if not _user_can_access_any_session(current_user_id, session_id):
+            return None
+        return _get_session(session_id)
+    return _get_session(session_id)
+
+
+def get_career_report_for_session(
+    session_id: str, bench_ticker: str | None = None, include_series: bool = False
+) -> dict[str, Any] | None:
+    session = _resolve_session_for_request(session_id)
+    if not session:
+        return None
+    _ensure_session_defaults(session)
+
+    period = session.get("period") or {}
+    start_iso = period.get("start")
+    end_iso = period.get("end")
+    if not start_iso or not end_iso:
+        raise BadRequest("La sesión no tiene periodo configurado.")
+
+    start_d = date.fromisoformat(start_iso)
+    end_d = date.fromisoformat(end_iso)
+    if end_d < start_d:
+        raise BadRequest("El periodo de la sesión no es válido.")
+
+    bench = (bench_ticker or session.get("bench") or "^GSPC").strip().upper()
+    report_payload, _context = _generate_report_payload(
+        session,
+        bench,
+        include_series,
+        start_d,
+        end_d,
+        start_iso,
+        end_iso,
+    )
+    return report_payload
+
+
 @career_bp.route("/session", methods=["POST"])
 def create_session():
     payload = request.get_json(silent=True) or {}
@@ -2221,14 +2457,14 @@ def create_session():
     difficulty = str(payload.get("difficulty", "")).strip().lower()
     if difficulty not in DIFFICULTY_CONFIG:
         return _json_error(
-            "Dificultad invÃ¡lida. Usa principiante, intermedio o experto.", 400
+            "Dificultad inválida. Usa principiante, intermedio o experto.", 400
         )
     universe = payload.get("universe") or []
     capital = payload.get("capital", 50000)
     try:
         capital_value = float(capital)
     except (TypeError, ValueError):
-        return _json_error("Capital invÃ¡lido.", 400)
+        return _json_error("Capital inválido.", 400)
     if capital_value <= 0:
         return _json_error("El capital debe ser mayor que cero.", 400)
 
@@ -2320,6 +2556,14 @@ def create_session():
     }
     _persist_session(session)
 
+    current_user_id = _current_user_id()
+    if current_user_id:
+        save_career_session_for_user(current_user_id, session_id, session)
+        try:
+            upsert_career_session_state(current_user_id, session)
+        except Exception:
+            pass
+
     next_turn = turns[0] if turns else None
     response_payload = {
         "session_id": session_id,
@@ -2341,12 +2585,116 @@ def _generate_session_id() -> str:
             return candidate
 
 
+@career_bp.route("/sessions", methods=["GET"])
+def list_sessions_status():
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error(
+            "Debes iniciar sesión para consultar tus sesiones guardadas.", 401
+        )
+    items = list_career_sessions_for_user(current_user_id, limit=12)
+    payload = [
+        {
+            "session_id": item.session_id,
+            "player": item.player,
+            "difficulty": item.difficulty,
+            "period": {
+                "start": item.period_start,
+                "end": item.period_end,
+            },
+            "updated_at": item.updated_at.isoformat() + "Z",
+            "created_at": item.created_at.isoformat() + "Z",
+        }
+        for item in items
+    ]
+    return jsonify({"sessions": payload}), 200
+
+
+@career_bp.route("/session/latest", methods=["GET"])
+def latest_session_status():
+    current_user_id = _current_user_id()
+    if not current_user_id or _is_guest_user():
+        return _json_error(
+            "Debes iniciar sesión para cargar tu última sesión guardada.", 401
+        )
+
+    latest_persisted = get_latest_persisted_career_session_for_user(current_user_id)
+    if latest_persisted:
+        session_data = deserialize_career_session(latest_persisted)
+        if session_data:
+            return (
+                jsonify(
+                    {"session": session_data, "session_id": latest_persisted.session_id}
+                ),
+                200,
+            )
+
+    latest = get_latest_career_session_for_user(current_user_id)
+    if not latest:
+        return _json_error("No tienes sesiones de carrera guardadas todavía.", 404)
+    session_data = _get_session(latest.session_id)
+    if not session_data:
+        return _json_error("La última sesión guardada ya no está disponible.", 404)
+    return jsonify({"session": session_data, "session_id": latest.session_id}), 200
+
+
 @career_bp.route("/session/<session_id>", methods=["GET"])
 def session_status(session_id: str):
-    session = _get_session(session_id)
-    if not session:
+    current_user_id = _current_user_id()
+    if current_user_id:
+        persisted = get_persisted_career_session_for_user(current_user_id, session_id)
+        persisted_payload = deserialize_career_session(persisted)
+        if persisted_payload:
+            return jsonify({"session": persisted_payload, "source": "postgres"}), 200
+        if not _user_can_access_any_session(current_user_id, session_id):
+            return _json_error("No tienes acceso a esta sesión de carrera.", 404)
+    session_payload = _resolve_session_for_request(session_id)
+    if not session_payload:
         raise NotFound("Sesión no encontrada.")
-    return jsonify({"session": session}), 200
+    return jsonify({"session": session_payload, "source": "store"}), 200
+
+
+@career_bp.route("/session/<session_id>/turns", methods=["GET"])
+def session_turns_status(session_id: str):
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error(
+            "Debes iniciar sesión para consultar los turnos persistidos.", 401
+        )
+    turns = list_persisted_career_turns_for_user(current_user_id, session_id)
+    return jsonify({"session_id": session_id, "turns": turns}), 200
+
+
+@career_bp.route("/session/save", methods=["POST"])
+def save_session_snapshot():
+    current_user_id = _current_user_id()
+    if not current_user_id:
+        return _json_error(
+            "Debes iniciar sesión para guardar la sesión en Postgres.", 401
+        )
+    payload = request.get_json(silent=True) or {}
+    session_payload = payload.get("session") or {}
+    session_id = str(session_payload.get("session_id") or "").strip()
+    if session_id and not _user_can_access_any_session(current_user_id, session_id):
+        store_session = _get_session(session_id)
+        if not store_session:
+            return _json_error("No tienes acceso a esta sesión de carrera.", 404)
+    try:
+        record = upsert_career_session_state(current_user_id, session_payload)
+    except ValueError as exc:
+        return _json_error(str(exc), 400)
+    except Exception:
+        return _json_error("No se pudo guardar la sesión de carrera en Postgres.", 500)
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "session_id": record.session_id,
+                "updated_at": record.updated_at.isoformat() + "Z",
+            }
+        ),
+        200,
+    )
 
 
 @career_bp.route("/turn", methods=["POST"])
@@ -2362,12 +2710,18 @@ def close_turn():
     if not isinstance(turn_n, int):
         return _json_error("turn_n debe ser un entero.", 400)
 
+    current_user_id = _current_user_id()
+    if current_user_id and not _user_can_access_any_session(
+        current_user_id, str(session_id)
+    ):
+        return _json_error("No tienes acceso a esta sesión de carrera.", 404)
+
     session = _get_session(session_id)
     if not session:
         raise NotFound("Sesión no encontrada.")
     _ensure_session_defaults(session)
     if session.get("closed"):
-        return _json_error("La sesiÃ³n ya finalizÃ³.", 400)
+        return _json_error("La sesión ya finalizó.", 400)
 
     pending_turn = _next_pending_turn(session)
     if not pending_turn:
@@ -2449,6 +2803,30 @@ def close_turn():
             "message": msg,
         }
         return jsonify(payload), 200
+    except BacktestError as exc:
+        raw_message = getattr(exc, "message", str(exc))
+        status_code = int(getattr(exc, "status_code", 503) or 503)
+        upper_message = raw_message.upper()
+        provider_limited = status_code >= 500
+        ticker = None
+        for item in clean_alloc:
+            candidate = str(item.get("ticker") or "").strip().upper()
+            if candidate and candidate in upper_message:
+                ticker = candidate
+                break
+        if ticker is None and len(clean_alloc) == 1:
+            ticker = str(clean_alloc[0].get("ticker") or "").strip().upper() or None
+        error_type = "market_data_provider" if provider_limited else "invalid_ticker"
+        retryable = provider_limited
+        payload = {
+            "ok": False,
+            "error": raw_message,
+            "message": raw_message,
+            "error_type": error_type,
+            "retryable": retryable,
+            "ticker": ticker,
+        }
+        return jsonify(payload), status_code
     turn_return_market = sum(
         item["weight"] * base_returns.get(item["ticker"], 0.0) for item in clean_alloc
     )
@@ -2687,9 +3065,12 @@ def close_turn():
     )
 
     session.setdefault("completed_turns", []).append(snapshot)
-    session.setdefault("decisions", []).append(
-        {"turn_n": turn_n, "alloc": deepcopy(clean_alloc), "use_dca": use_dca}
-    )
+    decision_payload = {
+        "turn_n": turn_n,
+        "alloc": deepcopy(clean_alloc),
+        "use_dca": use_dca,
+    }
+    session.setdefault("decisions", []).append(decision_payload)
 
     next_turn = _next_pending_turn(session)
     if not next_turn:
@@ -2697,10 +3078,35 @@ def close_turn():
 
     _update_session(session)
 
+    current_user_id = _current_user_id()
+    persistence = {"saved": False, "backend": "store"}
+    if current_user_id:
+        try:
+            save_career_turn_state(
+                current_user_id,
+                session,
+                turn_n,
+                decision_payload=decision_payload,
+                snapshot_payload=snapshot,
+                result_payload={
+                    "cum_return": session["cum_return"],
+                    "next_turn": next_turn if next_turn else None,
+                    "closed": bool(session.get("closed")),
+                },
+            )
+            persistence = {"saved": True, "backend": "postgres"}
+        except Exception:
+            persistence = {
+                "saved": False,
+                "backend": "store",
+                "warning": "No se pudo persistir el turno en Postgres.",
+            }
+
     response_payload = {
         "snapshot": snapshot,
         "cum_return": session["cum_return"],
         "next_turn": next_turn if next_turn else None,
+        "persistence": persistence,
     }
     return jsonify(response_payload), 200
 
@@ -2715,7 +3121,7 @@ def normalized_series():
         return _json_error("Debe proporcionar al menos un ticker.", 400)
     unique_tickers = list(dict.fromkeys(tickers))
     if len(unique_tickers) > MAX_ASSETS:
-        return _json_error("La cartera admite como mÃ¡ximo 10 activos por turno.", 400)
+        return _json_error("La cartera admite como máximo 10 activos por turno.", 400)
     start_d = _parse_date(t0_param, "t0")
     end_d = _parse_date(t1_param, "t1")
     if end_d < start_d:
@@ -2733,7 +3139,7 @@ def normalized_series():
 
 @career_bp.route("/series/<session_id>", methods=["GET"])
 def session_series(session_id: str):
-    session = _get_session(session_id)
+    session = _resolve_session_for_request(session_id)
     if not session:
         raise NotFound("Sesión no encontrada.")
     _ensure_session_defaults(session)
@@ -2744,18 +3150,18 @@ def session_series(session_id: str):
         return _json_error("Debe proporcionar al menos un ticker.", 400)
     unique_tickers = list(dict.fromkeys(tickers))
     if len(unique_tickers) > MAX_ASSETS:
-        return _json_error("La cartera admite como mÃ¡ximo 10 activos por turno.", 400)
+        return _json_error("La cartera admite como máximo 10 activos por turno.", 400)
 
     period = session.get("period") or {}
     start_iso = period.get("start")
     end_iso_period = period.get("end")
     if not start_iso:
-        return _json_error("La sesiÃ³n no tiene periodo configurado.", 400)
+        return _json_error("La sesión no tiene periodo configurado.", 400)
     start_d = date.fromisoformat(start_iso)
 
     turns = session.get("turns") or []
     if not turns:
-        return _json_error("La sesiÃ³n no dispone de turnos configurados.", 400)
+        return _json_error("La sesión no dispone de turnos configurados.", 400)
 
     completed_turns = session.get("completed_turns") or []
     turn_lookup = {
@@ -2807,7 +3213,7 @@ def session_series(session_id: str):
 
 @career_bp.route("/report/<session_id>", methods=["GET"])
 def session_report(session_id: str):
-    session = _get_session(session_id)
+    session = _resolve_session_for_request(session_id)
     if not session:
         raise NotFound("Sesión no encontrada.")
     _ensure_session_defaults(session)
@@ -2823,6 +3229,16 @@ def session_report(session_id: str):
         status_code = exc.code if hasattr(exc, "code") else 400
         return _json_error(message, status_code)
 
+    current_app.logger.info(
+        "career.report.start session_id=%s include_series=%s bench=%s turns_closed=%s turns_total=%s closed=%s",
+        session_id,
+        include_series,
+        bench_ticker,
+        len(session.get("completed_turns") or []),
+        len(session.get("turns") or []),
+        bool(session.get("closed")),
+    )
+
     try:
         report_payload, _ = _generate_report_payload(
             session,
@@ -2833,15 +3249,61 @@ def session_report(session_id: str):
             start_iso,
             end_iso,
         )
+        current_app.logger.info(
+            "career.report.payload_ready session_id=%s include_series=%s portfolio_points=%s bench_points=%s warnings=%s",
+            session_id,
+            include_series,
+            len((report_payload.get("portfolio_equity") or {}).get("series") or []),
+            len((report_payload.get("benchmark") or {}).get("series") or []),
+            len(report_payload.get("warnings") or []),
+        )
     except (BadRequest, NoHistoricalDataError) as exc:
         message = getattr(exc, "description", None) or getattr(exc, "message", str(exc))
         status_code = (
             exc.code if isinstance(exc, BadRequest) and hasattr(exc, "code") else 400
         )
+        current_app.logger.warning(
+            "career.report.domain_error session_id=%s include_series=%s status=%s error=%s",
+            session_id,
+            include_series,
+            status_code,
+            message,
+        )
         return _json_error(message, status_code)
+    except Exception as exc:
+        current_app.logger.exception(
+            "career.report.unexpected_error session_id=%s include_series=%s bench=%s",
+            session_id,
+            include_series,
+            bench_ticker,
+        )
+        return _json_error(
+            f"No se pudo generar el informe final de la sesión: {str(exc)}",
+            500,
+        )
 
     report_payload["benchmark"]["ticker"] = bench_ticker
-    return jsonify(report_payload), 200
+    safe_payload = _safe_json_value(report_payload)
+
+    try:
+        response = jsonify(safe_payload)
+        current_app.logger.info(
+            "career.report.success session_id=%s include_series=%s",
+            session_id,
+            include_series,
+        )
+        return response, 200
+    except Exception as exc:
+        current_app.logger.exception(
+            "career.report.jsonify_error session_id=%s include_series=%s bench=%s",
+            session_id,
+            include_series,
+            bench_ticker,
+        )
+        return _json_error(
+            f"No se pudo serializar el informe final de la sesión: {str(exc)}",
+            500,
+        )
 
 
 @career_bp.route("/ranking", methods=["POST"])
@@ -3164,9 +3626,15 @@ def session_benchmark(session_id: str):
 def _evaluate_combo_result(
     tickers: list[str],
     normalized_map: dict[str, list[list[str, float]]],
+    series_cache: dict[str, pd.Series] | None = None,
 ) -> dict[str, Any] | None:
     weights = _equal_weights(len(tickers))
-    combined_series = _combine_normalized_series(tickers, weights, normalized_map)
+    combined_series = _combine_normalized_series(
+        tickers,
+        weights,
+        normalized_map,
+        series_cache=series_cache,
+    )
     if combined_series.empty:
         return None
     metrics = _compute_basic_metrics(combined_series)

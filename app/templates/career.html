@@ -6,29 +6,104 @@
 
 {% block content %}
 
-<div class="page-header">
+<section class="page-header page-header--with-badge career-page-header">
+  <div>
+    <p class="eyebrow">Simulación avanzada</p>
+    <h1>Modo Carrera</h1>
+    <p class="muted">
+      Gestiona tu carrera como gestor con una presentación más clara: crea la sesión, cierra turnos, revisa métricas y compara tu resultado frente al benchmark.
+    </p>
+  </div>
+  <span class="badge badge-soft">Modo estratégico</span>
+</section>
 
-  <h1>Modo Carrera</h1>
+{% if readiness_gate_blocked %}
+<section class="career-gate-section">
+  <div class="card card--elevated career-gate-card career-gate-card--premium">
+    <div class="career-gate-card__hero">
+      <div>
+        <p class="eyebrow">Acceso previo al simulador avanzado</p>
+        <h2>Antes de entrar al Modo Carrera, demuestra que dominas lo esencial</h2>
+        <p class="muted">
+          El Modo Carrera exige interpretar riesgo, comparar tu cartera con un benchmark y entender qué significa cada turno. Por eso pedimos una validación breve antes de desbloquearlo.
+        </p>
+      </div>
+      <div class="career-gate-status {{ 'is-passed' if readiness_status.passed else 'is-blocked' }}">
+        {% if readiness_status.passed %}Acceso disponible{% else %}Pendiente de desbloqueo{% endif %}
+      </div>
+    </div>
 
-  <p class="muted">
+    <div class="career-gate-grid">
+      <div class="career-gate-panel career-gate-panel--steps">
+        <span class="career-subtle-badge">Desbloqueo en 3 pasos</span>
+        <ol class="career-gate-steps">
+          <li><strong>Aprende</strong><span>Repasa conceptos básicos de inversión y navegación por la app.</span></li>
+          <li><strong>Supera la evaluación</strong><span>Consigue al menos 7 de 10 con preguntas aleatorizadas y guiadas.</span></li>
+          <li><strong>Accede a Carrera</strong><span>Entra con una base más sólida para interpretar el resultado final.</span></li>
+        </ol>
+      </div>
 
-    Gestiona tu carrera como gestor: crea una partida con datos históricos reales, cierra turnos con tu cartera y revisa tu informe final con métricas, techo teórico y ranking local.
+      <div class="career-gate-panel career-gate-panel--benefits">
+        <span class="career-subtle-badge">Qué reforzarás</span>
+        <div class="career-gate-benefits">
+          <article>
+            <strong>Riesgo y diversificación</strong>
+            <p>Para no tomar decisiones sin contexto al construir una cartera.</p>
+          </article>
+          <article>
+            <strong>Benchmark e informe final</strong>
+            <p>Para comparar tu resultado con el mercado y entender el tracking.</p>
+          </article>
+          <article>
+            <strong>Funcionamiento de Carrera</strong>
+            <p>Para saber qué cambia en cada turno y por qué importa cada ajuste.</p>
+          </article>
+        </div>
+      </div>
+    </div>
 
-  </p>
+    <div class="career-gate-actions">
+      <a class="btn btn-primary" href="{{ url_for('main.aprende_page') }}#readiness-quiz-app">Comenzar evaluación</a>
+      <a class="btn btn-secondary" href="{{ url_for('main.aprende_page') }}">Ir a Aprender</a>
+      <a class="btn btn-ghost" href="{{ url_for('main.home') }}">Volver al inicio</a>
+    </div>
+  </div>
+</section>
+{% else %}
+<section class="career-overview-strip career-overview-strip--premium">
+  <article class="info-strip__item career-overview-item">
+    <span class="career-subtle-badge">Histórico</span>
+    <strong>Sesiones históricas</strong>
+    <p>Crea una partida sobre un periodo real y adapta decisiones a cada turno.</p>
+  </article>
+  <article class="info-strip__item career-overview-item">
+    <span class="career-subtle-badge">Turnos</span>
+    <strong>Control de cartera</strong>
+    <p>Asigna pesos, activa DCA y revisa cómo evoluciona tu exposición.</p>
+  </article>
+  <article class="info-strip__item career-overview-item">
+    <span class="career-subtle-badge">Cierre</span>
+    <strong>Informe final</strong>
+    <p>Compara portfolio, benchmark, alertas y ranking local en una sola vista.</p>
+  </article>
+</section>
 
-</div>
+<div id="career-app" class="career-layout career-layout--dashboard career-layout--redesigned">
 
+  <section class="career-setup-shell career-setup-shell--stacked">
+    <article class="card card--elevated career-card career-card--setup career-card--setup-form">
 
+      <div class="card-section">
 
-<div id="career-app" class="career-layout">
+        <div class="career-section-heading career-section-heading--hero">
+          <div>
+            <span class="career-step-badge">Paso 1</span>
+            <h2>Crear nueva sesión</h2>
+            <p class="muted">Configura el jugador, la dificultad y el periodo antes de empezar a asignar cartera.</p>
+          </div>
+        </div>
 
-  <section class="card">
-
-    <div class="card-section">
-
-      <h2>1. Crear nueva sesión</h2>
-
-      <div class="form-grid">
+        <div class="form-grid">
 
         <label class="field">
 
@@ -56,7 +131,7 @@
 
         <label class="field">
 
-          <span>Capital inicial (â¬)</span>
+          <span>Capital inicial (€)</span>
 
           <input id="career-capital" type="number" min="1000" step="1000" value="50000" />
 
@@ -72,11 +147,11 @@
 
                         <div class="field field--wide">
 
-          <div class="career-field-group">
+          <div class="career-field-group career-field-group--period">
 
             <span class="career-field-label">Periodo de juego</span>
 
-            <div class="segmented-control">
+            <div class="segmented-control career-period-control">
 
               <label class="segmented-option">
 
@@ -149,41 +224,47 @@
         </div>
 
 
-      <div class="actions-row">
+        </div>
 
-        <button id="career-create-btn" class="btn btn-primary" type="button">
-
-          Crear sesión
-
-        </button>
-
-        <button id="career-load-last-btn" class="btn btn-ghost" type="button">
-
-          Reanudar última sesión
-
-        </button>
+        <div class="career-setup-actions-card career-setup-actions-card--balanced">
+          <p class="muted career-setup-helper">Puedes empezar una simulación nueva o retomar la última si ya habías avanzado antes.</p>
+          <div class="actions-row actions-row--panel career-action-bar career-action-bar--balanced">
+            <button id="career-create-btn" class="btn btn-primary btn-large" type="button">Crear sesión</button>
+            <button id="career-load-last-btn" class="btn btn-secondary btn-large" type="button">Reanudar última sesión</button>
+          </div>
+        </div>
 
       </div>
 
-    </div>
+    </article>
+  </section>
 
+  <section class="career-saved-sessions-shell">
+    <aside id="career-saved-sessions" class="career-saved-sessions career-card career-card--saved hidden" aria-live="polite">
+      <div class="career-saved-sessions__head">
+        <span class="career-subtle-badge">Tus sesiones</span>
+        <p class="muted">Si has iniciado sesión, aquí podrás reabrir sesiones recientes de modo carrera.</p>
+      </div>
+      <div id="career-saved-sessions-list" class="career-saved-sessions__list"></div>
+    </aside>
   </section>
 
 
 
-  <section class="card" id="career-session-card" hidden>
+  <section class="card card--elevated career-card career-card--active" id="career-session-card" hidden>
 
     <div class="card-section">
 
-      <div class="career-session-header">
+      <div class="career-session-header career-session-header--elevated">
 
         <div>
 
-          <h2>2. Sesión activa</h2>
+          <span class="career-step-badge">Paso 2</span>
+          <h2>Sesión activa</h2>
 
           <p class="muted">
 
-            Session ID · <code id="career-session-id">—</code>
+            ID de sesión · <code id="career-session-id">—</code>
 
           </p>
 
@@ -215,11 +296,14 @@
 
 
 
-      <div class="career-turn-builder">
+      <div class="career-turn-builder career-turn-builder--surface">
 
-        <div class="turn-builder-head">
+        <div class="turn-builder-head career-panel-head career-panel-head--stacked">
 
-          <h3>Asignación del turno</h3>
+          <div>
+            <span class="career-subtle-badge">Asignación</span>
+            <h3>Asignación del turno</h3>
+          </div>
 
           <p class="muted">
 
@@ -229,9 +313,14 @@
 
         </div>
 
-        <div class="alloc-table" id="career-alloc-list" aria-live="polite"></div>
+        <div class="alloc-table alloc-table--stateful" id="career-alloc-list" aria-live="polite">
+          <div class="empty-state empty-state--soft">
+            <strong>No hay activos añadidos todavía</strong>
+            <p>Empieza añadiendo uno o varios activos para construir la cartera del turno.</p>
+          </div>
+        </div>
 
-        <p class="muted" id="career-alloc-summary">Peso total: 0.00 · Activos: 0</p>
+        <p class="muted career-summary-pill" id="career-alloc-summary">Peso total: 0.00 · Activos: 0</p>
 
         <div class="actions-row">
 
@@ -255,7 +344,7 @@
 
           <div class="actions-row__right">
 
-            <button id="career-close-turn" class="btn btn-primary" type="button" disabled>
+            <button id="career-close-turn" class="btn btn-primary btn-large" type="button" disabled>
 
               Cerrar turno
 
@@ -306,13 +395,17 @@
 
 
 
-  <section class="card" id="career-series-card" hidden>
+  <section class="card card--elevated career-card" id="career-series-card" hidden>
 
     <div class="card-section">
 
-      <div class="career-panel-head">
+      <div class="career-panel-head career-panel-head--series">
 
-        <h2>3. Series por activo</h2>
+        <div>
+          <span class="career-step-badge">Paso 3</span>
+          <h2>Series por activo</h2>
+          <p class="muted">Activa o desactiva tickers para comparar mejor la evolución relativa de cada posición.</p>
+        </div>
 
         <div class="career-series-controls" id="career-series-tickers"></div>
 
@@ -324,11 +417,15 @@
 
       </div>
 
-      <div class="chart-wrapper">
+      <div class="chart-wrapper chart-wrapper--career">
 
+        <div class="loading-surface loading-surface--inline hidden" id="career-series-loading" aria-live="polite">
+          <span class="global-loading-spinner" aria-hidden="true"></span>
+          <span>Cargando series...</span>
+        </div>
         <canvas id="career-series-chart" aria-label="Series base 100 por activo"></canvas>
 
-        <p id="career-series-empty" class="empty">Selecciona una sesión y activos para ver las series.</p>
+        <p id="career-series-empty" class="empty empty--panel">Selecciona una sesión y activos para ver las series.</p>
 
       </div>
 
@@ -338,13 +435,17 @@
 
 
 
-  <section class="card" id="career-report-card" hidden>
+  <section class="card card--elevated career-card" id="career-report-card" hidden>
 
     <div class="card-section">
 
-      <div class="career-panel-head">
+      <div class="career-panel-head career-panel-head--report">
 
-        <h2>4. Informe final</h2>
+        <div>
+          <span class="career-step-badge">Paso 4</span>
+          <h2>Informe final</h2>
+          <p class="muted">Cierra la partida con una lectura comparada entre cartera, benchmark, alertas y resultado educativo final.</p>
+        </div>
 
         <div class="actions-row">
 
@@ -366,7 +467,7 @@
 
 
 
-      <div class="career-score">
+      <div class="career-score career-score--elevated">
 
         <div class="star-badge" id="career-score-stars" aria-live="polite">&mdash;&#9733;</div>
 
@@ -382,7 +483,7 @@
 
 
 
-      <div class="career-metrics">
+      <div class="career-metrics career-metrics--dashboard">
 
         <div class="metric-card">
 
@@ -418,7 +519,7 @@
 
         <div id="career-warnings-list" class="warning-chips" aria-live="polite">
 
-          <span class="muted">Sin advertencias.</span>
+          <span class="status-chip status-chip--ok">Sin advertencias</span>
 
         </div>
 
@@ -426,13 +527,41 @@
 
 
 
-      <div class="chart-wrapper">
+      <div class="chart-wrapper chart-wrapper--career">
 
+        <div class="loading-surface loading-surface--inline hidden" id="career-equity-loading" aria-live="polite">
+          <span class="global-loading-spinner" aria-hidden="true"></span>
+          <span>Generando informe y gráfico...</span>
+        </div>
         <canvas id="career-equity-chart" aria-label="Equity vs Benchmark"></canvas>
 
       </div>
 
 
+
+      <div class="career-horizon-cta card-section--sub hidden" id="career-horizon-cta">
+        <div class="career-ranking-head">
+          <div>
+            <h4>Continuar en Modo Horizonte</h4>
+            <p class="muted">Lanza una proyección experimental basada en patrones históricos a partir de la cartera final. No es una predicción y no debe usarse para decisiones reales.</p>
+          </div>
+          <a id="career-horizon-link" class="btn btn-primary" href="{{ url_for('main.horizon_page') }}">Abrir Modo Horizonte</a>
+        </div>
+      </div>
+
+      <div class="career-ai-tutor card-section--sub" id="career-ai-tutor-card">
+        <div class="career-ranking-head">
+          <div>
+            <h4>Tutor IA</h4>
+            <p class="muted">Recibe una explicación educativa de tu simulación.</p>
+            <p class="muted">El Tutor IA analiza tu partida como si corrigiera un ejercicio: qué ha salido bien, qué podrías mejorar y qué conceptos conviene repasar.</p>
+          </div>
+          <button id="career-ai-btn" class="btn btn-primary" type="button">Analizar con IA</button>
+        </div>
+        <p class="career-ai-disclaimer muted">Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. No constituye asesoramiento financiero ni una recomendación de inversión real.</p>
+        <p id="career-ai-status" class="muted horizon-status-message">Genera el informe final y, si el Tutor IA está disponible en este entorno, podrás pedir una lectura educativa de la simulación.</p>
+        <div id="career-ai-output" class="career-ai-output hidden" aria-live="polite"></div>
+      </div>
 
       <div class="career-export">
 
@@ -494,7 +623,7 @@
               </tr>
             </thead>
             <tbody id="career-ranking-body">
-              <tr><td colspan="6" class="empty">Sin envíos todavía.</td></tr>
+              <tr><td colspan="6" class="empty empty--panel">Sin envíos todavía.</td></tr>
             </tbody>
           </table>
         </div>
@@ -517,6 +646,7 @@
         </div>
 
         <pre id="career-share-output" class="career-share-output" aria-live="polite">Solicita un informe para habilitar el share.</pre>
+        <p class="muted career-helper-copy">Cuando haya informe, podrás reutilizar este payload para compartir o reproducir la simulación.</p>
 
       </div>
 
@@ -525,14 +655,9 @@
   </section>
 
 </div>
-
-
+{% endif %}
 
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-
-
-
-<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" integrity="sha384-e6cc9LaIG7xZ3XD5B+jtr1NhTWPQGQdRCh6xiZ+ZFUtWCpg4ycv3Sh+SkZoopvUY" crossorigin="anonymous"></script>
 
 {% endblock %}
 

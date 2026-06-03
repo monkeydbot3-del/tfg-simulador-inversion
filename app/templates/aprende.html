@@ -3,17 +3,28 @@
 {% block title %}Aprende a invertir · Simulador{% endblock %}
 
 {% block content %}
+<section class="page-header page-header--with-badge learn-page-header">
+  <div>
+    <p class="eyebrow">Fase 3 · Aprendizaje guiado</p>
+    <h1>Aprende los conceptos clave antes de gestionar una cartera</h1>
+    <p class="muted">Repasa riesgo, diversificación, horizonte temporal y lectura de resultados antes de entrar en Modo Carrera.</p>
+  </div>
+  <span class="badge badge-soft">Base educativa</span>
+</section>
+
 <section class="edu-section">
-  <div class="card">
-    <div class="edu-grid">
-      <div>
-        <p class="eyebrow">Guía esencial</p>
-        <h1>Aprende a invertir</h1>
-        <p class="lead">
-          Antes de lanzar tu primera simulación, revisa los conceptos clave para diseñar un plan sencillo y realista.
-        </p>
+  <div class="card card--elevated edu-hero-card learn-hero-card">
+    <div class="edu-grid learn-hero-grid">
+      <div class="learn-hero-copy">
+        <p class="eyebrow">Recorrido previo</p>
+        <h2>Primero entiendes la lógica, después validas que estás listo</h2>
+        <p class="lead">Esta sección conecta los conceptos básicos con la forma real en la que la app evalúa resultados, compara con benchmark y plantea decisiones en Carrera.</p>
+        <div class="learn-hero-actions">
+          <a class="btn btn-primary" href="#readiness-quiz-app">Ir al readiness quiz</a>
+          <a class="btn btn-secondary" href="{{ url_for('main.manual_page') }}">Ver manual completo</a>
+        </div>
       </div>
-      <div>
+      <div class="learn-hero-aside">
         <img class="img-slot" src="/static/img/dinero-tiempo.webp" alt="Ilustración sobre crecimiento compuesto" />
       </div>
     </div>
@@ -21,64 +32,63 @@
 </section>
 
 <section class="edu-section">
-  <div class="card">
-    <h2>Campos principales del simulador</h2>
-    <p>Estos cuatro elementos construyen la mayor parte de tus previsiones. Dedica unos minutos a definirlos.</p>
-    <div class="edu-grid">
+  <div class="card card--elevated learn-module-card">
+    <div class="learn-section-head">
       <div>
-        <h3>1. Importe inicial (€)</h3>
-        <p>Es el capital que aportas hoy. Refleja ahorros disponibles y debe ser una cifra que no comprometa tus gastos básicos.</p>
-        <ul>
-          <li><strong>Cómo estimarlo:</strong> suma ahorros líquidos que puedas inmovilizar sin urgencia.</li>
-          <li><strong>Ejemplo:</strong> 5.000&nbsp;€ destinados a un plan de 5 años.</li>
-          <li><strong>Consejo:</strong> mantén un fondo de emergencia separado para imprevistos.</li>
-        </ul>
+        <p class="eyebrow">Qué debes manejar</p>
+        <h2>Conceptos que luego aparecerán en tus simulaciones</h2>
       </div>
-      <div>
-        <h3>2. Horizonte (años, ≥1)</h3>
-        <p>Plazo mínimo durante el cual mantendrás la inversión. A mayor horizonte, menor impacto de la volatilidad.</p>
-        <ul>
-          <li><strong>Recomendación:</strong> comienza en 1 año y apunta a 5+ si quieres aprovechar el interés compuesto.</li>
-          <li><strong>Ejemplo:</strong> Guardar 10 años permite atravesar ciclos económicos completos.</li>
-          <li><strong>Riesgo:</strong> horizontes cortos requieren más liquidez y tolerancia a oscilaciones.</li>
-        </ul>
-      </div>
-      <div>
-        <h3>3. Crecimiento anual estimado (%)</h3>
-        <p>Proyección del aumento medio anual de tu inversión. Es opcional, pero útil para crear escenarios.</p>
-        <ul>
-          <li><strong>Cómo estimarlo:</strong> revisa el crecimiento histórico de ingresos o beneficios (ej. 7,5&nbsp;%).</li>
-          <li><strong>Precaución:</strong> tasas altas son difíciles de mantener; contrasta con previsiones realistas.</li>
-          <li><strong>Escenarios:</strong> compara uno moderado (5&nbsp;%) con otro optimista (8-10&nbsp;%) y evalúa diferencias.</li>
-        </ul>
-      </div>
-      <div>
-        <h3>4. Margen de seguridad (%)</h3>
-        <p>Colchón que recorta tus estimaciones para protegerte frente a errores o eventos inesperados.</p>
-        <ul>
-          <li><strong>Regla general:</strong> aplica entre 15&nbsp;% y 30&nbsp;% según la calidad del negocio.</li>
-          <li><strong>Ejemplo:</strong> si valoras una acción en 100&nbsp;€, con margen del 20&nbsp;% solo comprarías por debajo de 80&nbsp;€.</li>
-          <li><strong>Beneficio:</strong> te obliga a ser prudente al proyectar crecimientos o múltiplos de valoración.</li>
-        </ul>
-      </div>
+      <p class="muted">No necesitas teoría infinita, solo una base clara para interpretar resultados y tomar decisiones con criterio.</p>
+    </div>
+    <div class="learn-module-grid">
+      <article class="learn-module-tile">
+        <span class="career-step-badge">01</span>
+        <h3>Riesgo y rentabilidad</h3>
+        <p>Una cartera puede subir más, pero también caer más. El objetivo es entender ese intercambio antes de simular.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">02</span>
+        <h3>Diversificación</h3>
+        <p>Concentrarlo todo en una sola empresa o sector aumenta la fragilidad del resultado.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">03</span>
+        <h3>Horizonte temporal</h3>
+        <p>El plazo cambia por completo cómo se leen la volatilidad, los drawdowns y la paciencia necesaria.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">04</span>
+        <h3>DCA y aportaciones</h3>
+        <p>No es lo mismo una compra única que una estrategia con aportaciones periódicas constantes.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">05</span>
+        <h3>Benchmark</h3>
+        <p>Sirve para comparar tu resultado con una referencia de mercado y no quedarte solo con la intuición.</p>
+      </article>
+      <article class="learn-module-tile">
+        <span class="career-step-badge">06</span>
+        <h3>Lectura del informe</h3>
+        <p>Rentabilidad, CAGR, drawdown o volatilidad cuentan historias distintas y conviene distinguirlas.</p>
+      </article>
     </div>
   </div>
 </section>
 
 <section class="edu-section">
-  <div class="card">
-    <div class="edu-grid">
+  <div class="card card--elevated learn-application-card">
+    <div class="edu-grid learn-application-grid">
       <div>
-        <h2>Cómo preparar tu análisis</h2>
-        <ol>
-          <li>Investiga el modelo de negocio y su ventaja competitiva.</li>
-          <li>Revisa estados financieros y ratios de deuda para entender la salud de la empresa.</li>
-          <li>Define el horizonte temporal y la estrategia de aportaciones (única, periódica, con <abbr title="Aportaci&oacute;n peri&oacute;dica constante">DCA</abbr>, etc.).</li>
-          <li>Introduce los campos en el simulador y genera escenarios conservadores y optimistas.</li>
-          <li>Evalúa el margen de seguridad antes de tomar decisiones reales.</li>
+        <p class="eyebrow">Cómo aplicarlo en la app</p>
+        <h2>Del concepto a la simulación</h2>
+        <ol class="learn-ordered-list">
+          <li>Define capital inicial, horizonte y enfoque de aportaciones.</li>
+          <li>Contrasta si la cartera está demasiado concentrada o si el benchmark te está dejando atrás.</li>
+          <li>Compara escenarios conservadores y optimistas sin tratar las proyecciones como certezas.</li>
+          <li>Lee el resultado final con contexto: no solo cuánto ganas o pierdes, sino cómo llegas hasta ahí.</li>
         </ol>
       </div>
-      <div>
+      <div class="learn-application-side">
         <img class="img-slot" src="/static/img/analisis.webp" alt="Ilustración sobre análisis de inversiones" />
       </div>
     </div>
@@ -86,7 +96,7 @@
 </section>
 
 <section class="edu-section">
-  <div class="card">
+  <div class="card card--elevated">
     <h2>Consejos prácticos</h2>
     <ul>
       <li>Invierte en negocios que entiendas y cuya evolución puedas seguir.</li>
@@ -95,10 +105,152 @@
       <li>Revisa periódicamente las métricas clave (<abbr title="Tasa de crecimiento anual compuesto">CAGR</abbr>, volatilidad, drawdown) para ajustar tu plan.</li>
     </ul>
     <p class="muted">*Este contenido es educativo y no constituye asesoramiento financiero personalizado.*</p>
-    <div class="cta-center">
+  </div>
+</section>
 
-      
+<section class="edu-section">
+  <div class="card card--elevated horizon-edu-card">
+    <p class="eyebrow">Modo Horizonte</p>
+    <h2>Modo Horizonte: escenarios experimentales</h2>
+    <p>Este modo permite explorar escenarios hipotéticos generados a partir de patrones históricos. No predice el futuro y no debe interpretarse como asesoramiento financiero.</p>
+    <ul>
+      <li>Los resultados pasados no garantizan resultados futuros.</li>
+      <li>Su finalidad es educativa y demostrativa.</li>
+      <li>Distingue entre simulación histórica y proyección experimental ficticia.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="edu-section">
+  <div class="card card--elevated readiness-card" id="readiness-quiz-app"
+       data-pass-score="{{ readiness_pass_score }}"
+       data-total-questions="{{ readiness_total_questions }}"
+       data-initial-passed="{{ 'true' if readiness_status.passed else 'false' }}">
+    <div class="readiness-card__hero">
+      <div>
+        <p class="eyebrow">Evaluación de preparación</p>
+        <h2>Desbloquea el Modo Carrera con un recorrido guiado</h2>
+        <p class="muted">
+          Ya no es solo un test: primero repasas lo importante, después validas que sabes interpretar riesgo, benchmark, diversificación y métricas de la simulación.
+        </p>
+      </div>
+      <div class="readiness-status-chip {{ 'is-passed' if readiness_status.passed else 'is-pending' }}" id="readiness-status-chip">
+        {% if readiness_status.passed %}Aprobado{% else %}Pendiente{% endif %}
+      </div>
+    </div>
+
+    <div class="readiness-summary" id="readiness-summary">
+      <div class="readiness-summary__metric">
+        <span class="muted">Puntuación mínima</span>
+        <strong>{{ readiness_pass_score }}/{{ readiness_total_questions }}</strong>
+      </div>
+      <div class="readiness-summary__metric">
+        <span class="muted">Estado actual</span>
+        <strong id="readiness-current-state">{% if readiness_status.passed %}Puedes acceder al Modo Carrera{% else %}Necesitas superar la validación final{% endif %}</strong>
+      </div>
+      <div class="readiness-summary__metric">
+        <span class="muted">Persistencia</span>
+        <strong>{% if readiness_status.user_authenticated %}Se guarda en tu cuenta{% else %}Se mantiene en esta sesión{% endif %}</strong>
+      </div>
+    </div>
+
+    <div class="readiness-journey">
+      <article class="readiness-journey-card">
+        <span class="career-step-badge">Paso 1</span>
+        <h3>Aprende lo esencial</h3>
+        <p class="muted">Riesgo, diversificación, benchmark, volatilidad y DCA con lenguaje simple.</p>
+      </article>
+      <article class="readiness-journey-card">
+        <span class="career-step-badge">Paso 2</span>
+        <h3>Conecta la teoría con la app</h3>
+        <p class="muted">Entiende qué significa Portfolio, Benchmark, Tracking y qué cambia entre práctica y carrera.</p>
+      </article>
+      <article class="readiness-journey-card">
+        <span class="career-step-badge">Paso 3</span>
+        <h3>Valida que estás listo</h3>
+        <p class="muted">Completa el recorrido final y desbloquea el acceso al modo más avanzado.</p>
+      </article>
+    </div>
+
+    <div class="readiness-stage-shell">
+      <aside class="readiness-stage-panel">
+        <p class="eyebrow">Recorrido</p>
+        <h3>Tu progreso</h3>
+        <div class="readiness-stage-list">
+          <div class="readiness-stage-item is-active" id="readiness-stage-intro">
+            <strong>Introducción guiada</strong>
+            <span>Qué vas a repasar y por qué importa.</span>
+          </div>
+          <div class="readiness-stage-item" id="readiness-stage-practice">
+            <strong>Ponte a prueba</strong>
+            <span>Una pregunta cada vez, con contexto y feedback.</span>
+          </div>
+          <div class="readiness-stage-item" id="readiness-stage-result">
+            <strong>Resultado final</strong>
+            <span>Resumen, revisión rápida y acceso a Carrera si apruebas.</span>
+          </div>
+        </div>
+        <div class="readiness-progress" aria-hidden="true">
+          <div class="readiness-progress__bar"><span id="readiness-progress-bar"></span></div>
+          <p id="readiness-progress-label" class="muted">Preparando recorrido…</p>
+        </div>
+      </aside>
+
+      <div class="readiness-stage-content">
+        <div class="readiness-intro-card" id="readiness-intro-card">
+          <span class="career-subtle-badge">Antes de empezar</span>
+          <h3>Una validación breve, pensada como onboarding</h3>
+          <p>
+            El objetivo no es examinarte sin contexto, sino confirmar que ya sabes interpretar lo básico antes de entrar en una simulación con turnos, benchmark e informe final.
+          </p>
+          <div class="readiness-intro-points">
+            <article>
+              <strong>Riesgo y diversificación</strong>
+              <p>Para no confundir una cartera concentrada con una estrategia equilibrada.</p>
+            </article>
+            <article>
+              <strong>Benchmark e informe</strong>
+              <p>Para entender si tu resultado mejora o empeora frente al mercado.</p>
+            </article>
+            <article>
+              <strong>Modo Carrera</strong>
+              <p>Para saber qué estás decidiendo en cada turno y cómo leer el resultado acumulado.</p>
+            </article>
+          </div>
+          <div class="readiness-actions">
+            <button type="button" class="btn btn-primary" id="readiness-start-btn">Comenzar recorrido</button>
+            <a class="btn btn-secondary" href="{{ url_for('main.manual_page') }}">Ver manual</a>
+          </div>
+        </div>
+
+        <div class="readiness-question-card hidden" id="readiness-question-card">
+          <div class="readiness-question-card__head">
+            <div class="readiness-question-card__meta">
+              <span class="career-subtle-badge" id="readiness-topic-badge">Conceptos básicos</span>
+              <span class="readiness-context-label" id="readiness-context-title">Recorrido guiado</span>
+            </div>
+            <h3 id="readiness-question-text">Cargando evaluación…</h3>
+            <p class="muted" id="readiness-context-hint">Selecciona la opción que mejor encaja con la situación.</p>
+          </div>
+          <div class="readiness-options" id="readiness-options"></div>
+          <div class="readiness-feedback hidden" id="readiness-feedback"></div>
+          <div class="readiness-actions">
+            <button type="button" class="btn btn-secondary" id="readiness-restart-btn">Empezar de nuevo</button>
+            <button type="button" class="btn btn-primary" id="readiness-next-btn" disabled>Siguiente</button>
+          </div>
+        </div>
+
+        <div class="readiness-result hidden" id="readiness-result"></div>
+      </div>
     </div>
   </div>
 </section>
+
+<div class="readiness-result-modal hidden" id="readiness-result-modal" aria-hidden="true">
+  <div class="readiness-result-modal__backdrop" data-readiness-modal-close></div>
+  <div class="readiness-result-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="readiness-modal-title">
+    <button type="button" class="readiness-result-modal__close" id="readiness-modal-close" aria-label="Cerrar resultado">×</button>
+    <div id="readiness-result-modal-content"></div>
+  </div>
+</div>
 {% endblock %}

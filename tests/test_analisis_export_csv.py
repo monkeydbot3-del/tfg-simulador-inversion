@@ -9,7 +9,9 @@ def _client():
 
     app = create_app()
     app.config.update(TESTING=True)
-    return app.test_client()
+    client = app.test_client()
+    client.post("/continuar-invitado")
+    return client
 
 
 def _csv_to_rows(data: bytes):
@@ -51,41 +53,8 @@ def test_csv_basico_descarga_y_cabeceras(tmp_path, monkeypatch):
         assert c.post("/analisis", json=p).status_code == 200
 
     r = c.get("/analisis.csv")
-    assert r.status_code == 200
-
-    # Content-Type y nombre de archivo
-    ct = r.headers.get("Content-Type", "")
-    disp = r.headers.get("Content-Disposition", "")
-    assert ct.startswith("text/csv")
-    assert "attachment" in disp and "analisis.csv" in disp
-
-    rows = _csv_to_rows(r.data)
-    assert len(rows) >= 2  # al menos cabecera + 1 fila
-
-    # Cabecera: validar prefijo esperado
-    expected_prefix = [
-        "id",
-        "timestamp",
-        "ticker",
-        "importe_inicial",
-        "horizonte_anios",
-        "puntuacion",
-        "resumen",
-    ]
-
-    header = rows[0]
-    # Aseguramos que las primeras columnas son correctas
-    assert header[: len(expected_prefix)] == expected_prefix
-
-    # Si hay columnas adicionales (bt_start, etc.), comprobar que empiezan por "bt_"
-    if len(header) > len(expected_prefix):
-        extra = header[len(expected_prefix) :]
-        assert all(col.startswith("bt_") for col in extra)
-
-    # Verificar contenido de filas
-    for row in rows[1:]:
-        assert len(row) >= len(expected_prefix)
-        assert row[2] in ("MSFT", "AAPL")
+    assert r.status_code == 403
+    assert "exportar historial" in r.get_json()["error"].lower()
 
 
 def test_csv_vacio(tmp_path, monkeypatch):
@@ -99,7 +68,5 @@ def test_csv_vacio(tmp_path, monkeypatch):
     c = _client()
 
     r = c.get("/analisis.csv")
-    assert r.status_code == 200
-    rows = _csv_to_rows(r.data)
-    assert len(rows) == 1  # solo cabecera
-    assert "ticker" in rows[0]
+    assert r.status_code == 403
+    assert "exportar historial" in r.get_json()["error"].lower()

@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Iniciar sesión{% endblock %}
+{% block content %}
+<section class="auth-shell auth-shell--minimal">
+  <section class="auth-panel auth-panel--form auth-panel--centered">
+    <div class="auth-card auth-card--compact auth-card--premium">
+      <div class="auth-card__header auth-card__header--compact">
+        <span class="auth-kicker">Acceso</span>
+        <h1>Iniciar sesión</h1>
+        <p>Accede para continuar tus simulaciones.</p>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="auth-flash-stack">
+            {% for category, message in messages %}
+              <div class="auth-alert auth-alert--{{ category|default('info') }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="post" action="{{ url_for('auth.login_submit') }}" class="auth-form">
+        <label class="auth-field">
+          <span>Correo electrónico</span>
+          <input type="email" name="email" placeholder="tu@correo.com" required />
+        </label>
+        <label class="auth-field">
+          <span>Contraseña</span>
+          <input type="password" name="password" placeholder="Introduce tu contraseña" required />
+        </label>
+        <button type="submit" class="btn btn-primary auth-submit">Iniciar sesión</button>
+      </form>
+
+      <div class="auth-utility-links">
+        <p class="auth-switch">¿Aún no tienes cuenta? <a href="{{ url_for('auth.register_page') }}">Crear cuenta</a></p>
+      </div>
+
+      <div class="auth-divider"><span>o si prefieres</span></div>
+
+      <form method="post" action="{{ url_for('auth.continue_as_guest') }}" class="auth-guest-form auth-guest-form--compact">
+        <button type="submit" class="btn btn-secondary auth-guest-btn">Continuar como invitado</button>
+        <p class="auth-helper">Podrás explorar la app, pero el historial y el progreso persistente no se guardarán en tu cuenta.</p>
+      </form>
+    </div>
+  </section>
+</section>
+{% endblock %}

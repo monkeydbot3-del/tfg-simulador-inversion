@@ -3,7 +3,9 @@ from app import create_app
 
 def _client():
     app = create_app()
-    return app.test_client()
+    client = app.test_client()
+    client.post("/continuar-invitado")
+    return client
 
 
 def _payload_base():
@@ -33,23 +35,9 @@ def test_post_analisis_guarda_en_historial_y_get_lista():
 
     # 2) GET /analisis devuelve una lista con al menos 1 elemento
     res2 = c.get("/analisis")
-    assert res2.status_code == 200
-    lista = res2.get_json()
-    assert isinstance(lista, list)
-    assert len(lista) >= 1
-
-    # 3) Estructura mínima de cada item guardado
-    item = lista[0]
-    for key in [
-        "id",
-        "timestamp",
-        "ticker",
-        "importe_inicial",
-        "horizonte_anios",
-        "puntuacion",
-        "resumen",
-    ]:
-        assert key in item
+    assert res2.status_code == 403
+    data2 = res2.get_json()
+    assert "historial" in data2["error"].lower()
 
 
 def test_get_analisis_vacio_no_revienta(tmp_path, monkeypatch):
@@ -61,5 +49,5 @@ def test_get_analisis_vacio_no_revienta(tmp_path, monkeypatch):
 
     c = _client()
     res = c.get("/analisis")
-    assert res.status_code == 200
-    assert res.get_json() == []
+    assert res.status_code == 403
+    assert "historial" in res.get_json()["error"].lower()

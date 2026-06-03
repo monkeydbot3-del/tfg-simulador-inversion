@@ -1,25 +1,160 @@
 {% extends "base.html" %}
-{% block title %}Simulador de Inversiones{% endblock %}
+{% block title %}Simulador de inversiones{% endblock %}
 
 {% block content %}
-<section class="landing-hero">
-  <h1>Bienvenido al simulador de inversiones, escoja el modo que desea:</h1>
-
-  <div class="landing-actions">
-    <div class="landing-item">
-      <img src="{{ url_for('static', filename='img/modo-practica.png') }}" alt="Modo Práctica" class="landing-icon">
-      <a class="landing-btn" href="{{ url_for('main.inicio_alias') }}">Modo Práctica</a>
+<section class="home-hero home-hero--refined">
+  <div class="home-hero__content">
+    <p class="eyebrow">Simulación educativa de inversión</p>
+    <h1>Aprende inversión simulando decisiones sobre datos históricos reales</h1>
+    <p class="lead home-hero__lead">
+      Analiza empresas, compara tus decisiones con benchmarks y recorre distintos modos de aprendizaje dentro de una app pensada para practicar, no para invertir dinero real.
+    </p>
+    <div class="hero__actions hero__actions--balanced">
+      <a class="btn btn-mode btn-large" href="{{ url_for('main.analisis_page') }}">Modo Práctica</a>
+      <a class="btn btn-mode btn-large" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
+      <a class="btn btn-mode btn-large" href="{{ url_for('main.aprende_page') }}">Aprender</a>
     </div>
+    <p class="home-hero__note">Incluye comparación histórica, continuidad entre modos y un Tutor IA opcional sobre el informe final de Carrera.</p>
+  </div>
+</section>
 
-    <div class="landing-item">
-      <img src="{{ url_for('static', filename='img/modo-carrera.png') }}" alt="Modo Carrera" class="landing-icon">
-      <a class="landing-btn" href="{{ url_for('main.career_page') }}">Modo Carrera</a>
+{% if session.get('user_id') or session.get('guest') %}
+<section class="home-session-strip card">
+  <div class="card-section home-session-strip__inner">
+    <div class="home-session-strip__copy">
+      <span class="eyebrow">Tu sesión</span>
+      <h2>
+        {% if session.get('user_id') and current_user %}
+        Estás dentro como {{ current_user.username or current_user.email }}
+        {% elif session.get('guest') %}
+        Estás navegando en modo invitado
+        {% else %}
+        Tu sesión está activa
+        {% endif %}
+      </h2>
+      <p class="muted">
+        {% if session.get('user_id') and current_user %}
+        Tu progreso puede mantenerse entre sesiones y puedes cambiar de cuenta cuando quieras.
+        {% elif session.get('guest') %}
+        Puedes explorar la app sin cuenta, pero el historial persistente queda reservado al acceso autenticado.
+        {% endif %}
+      </p>
     </div>
-
-    <div class="landing-item">
-      <img src="{{ url_for('static', filename='img/manual-usuario.png') }}" alt="Manual de Usuario" class="landing-icon">
-      <a class="landing-btn" href="{{ url_for('main.manual_page') }}">Manual de Usuario</a>
+    <div class="home-session-strip__actions home-session-strip__actions--equal">
+      {% if session.get('guest') %}
+      <a class="btn btn-mode" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
+      <a class="btn btn-mode" href="{{ url_for('auth.register_page') }}">Crear cuenta</a>
+      <form method="post" action="{{ url_for('auth.logout_submit') }}" class="nav-inline-form">
+        <button type="submit" class="btn btn-mode">Salir del modo invitado</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('auth.logout_submit') }}" class="nav-inline-form">
+        <button type="submit" class="btn btn-mode">Cerrar sesión</button>
+      </form>
+      {% endif %}
     </div>
   </div>
+</section>
+{% else %}
+<section class="home-onboarding card home-onboarding--compact">
+  <div class="card-section home-onboarding__inner">
+    <div>
+      <span class="eyebrow">Empieza como prefieras</span>
+      <h2>Guarda tu progreso o prueba primero la experiencia</h2>
+      <p class="muted">Crea una cuenta para guardar historial y continuidad, o explora primero la app antes de decidir.</p>
+    </div>
+    <div class="home-onboarding__actions home-onboarding__actions--equal">
+      <a class="btn btn-mode" href="{{ url_for('auth.register_page') }}">Crear cuenta</a>
+      <a class="btn btn-mode" href="{{ url_for('auth.login_page') }}">Iniciar sesión</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="home-mode-grid">
+  <article class="home-mode-card home-mode-card--primary card">
+    <div class="card-section">
+      <div class="home-mode-card__header">
+        <span class="badge badge-soft">Educativo</span>
+        <h2>Modo Práctica</h2>
+      </div>
+      <p>Ideal para empezar. Analiza una empresa, plantea una hipótesis y observa qué ocurrió históricamente.</p>
+      <ul class="home-mode-card__list">
+        <li>Entrada rápida a la app</li>
+        <li>Comparación sencilla y observaciones</li>
+        <li>Bueno para familiarizarse con el flujo</li>
+      </ul>
+      <a class="btn btn-mode" href="{{ url_for('main.analisis_page') }}">Abrir Modo Práctica</a>
+    </div>
+  </article>
+
+  <article class="home-mode-card card">
+    <div class="card-section">
+      <div class="home-mode-card__header">
+        <span class="badge badge-soft">Progresivo</span>
+        <h2>Modo Carrera</h2>
+      </div>
+      <p>Gestiona una cartera por turnos, toma decisiones en contexto y termina con un informe mucho más completo.</p>
+      <ul class="home-mode-card__list">
+        <li>Progresión por etapas</li>
+        <li>Persistencia de sesiones</li>
+        <li>Continuidad con informe final</li>
+      </ul>
+      <a class="btn btn-mode" href="{{ url_for('main.career_page') }}">Abrir Modo Carrera</a>
+    </div>
+  </article>
+
+  <article class="home-mode-card card">
+    <div class="card-section">
+      <div class="home-mode-card__header">
+        <span class="badge badge-soft">Experimental</span>
+        <h2>Modo Horizonte</h2>
+      </div>
+      <p>Explora una continuación hipotética basada en patrones históricos, siempre con disclaimers visibles y prudentes.</p>
+      <ul class="home-mode-card__list">
+        <li>Escenario experimental</li>
+        <li>Continuidad desde Carrera</li>
+        <li>No equivale a predicción real</li>
+      </ul>
+      <a class="btn btn-mode" href="{{ url_for('main.horizon_page') }}">Ver Modo Horizonte</a>
+    </div>
+  </article>
+
+  <article class="home-mode-card card">
+    <div class="card-section">
+      <div class="home-mode-card__header">
+        <span class="badge badge-soft">Apoyo</span>
+        <h2>Aprender</h2>
+      </div>
+      <p>Refuerza conceptos, entiende los flujos y utiliza el readiness quiz antes de entrar en Carrera.</p>
+      <ul class="home-mode-card__list">
+        <li>Base pedagógica</li>
+        <li>Readiness quiz previo</li>
+        <li>Puente entre teoría y práctica</li>
+      </ul>
+      <a class="btn btn-mode" href="{{ url_for('main.aprende_page') }}">Ir a Aprender</a>
+    </div>
+  </article>
+</section>
+
+<section class="home-value-grid home-value-grid--subtle">
+  <article class="home-value-card card">
+    <div class="card-section">
+      <h2>Compara con benchmark</h2>
+      <p>Observa no solo el resultado final, sino también la trayectoria relativa de una decisión dentro de un contexto histórico.</p>
+    </div>
+  </article>
+  <article class="home-value-card card">
+    <div class="card-section">
+      <h2>Aprende de tus propios resultados</h2>
+      <p>La app está pensada para ayudarte a revisar qué hiciste, por qué cambió el resultado y qué aprendiste del proceso.</p>
+    </div>
+  </article>
+  <article class="home-value-card card">
+    <div class="card-section">
+      <h2>Continúa con Tutor IA y Horizonte</h2>
+      <p>Cuando terminas una carrera, puedes revisar un análisis educativo y abrir una capa experimental de continuidad.</p>
+    </div>
+  </article>
 </section>
 {% endblock %}
