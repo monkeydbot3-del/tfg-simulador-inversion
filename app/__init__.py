@@ -6,7 +6,7 @@ import matplotlib
 # Force a headless backend so Matplotlib never opens GUI windows on the server.
 matplotlib.use("Agg")
 
-from flask import Flask
+from flask import Flask, session
 
 from .auth import auth_bp
 from .career import career_bp
@@ -20,6 +20,7 @@ from .models import (
     User,
 )
 from .routes import bp as main_bp
+from .services.auth_service import get_user_by_id
 
 
 ASSET_VERSION = (
@@ -41,7 +42,12 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_asset_version():
-        return {"asset_version": app.config.get("ASSET_VERSION", "dev")}
+        user_id = session.get("user_id")
+        current_user = get_user_by_id(user_id) if user_id else None
+        return {
+            "asset_version": app.config.get("ASSET_VERSION", "dev"),
+            "current_user": current_user,
+        }
 
     @app.before_request
     def _before_request():
