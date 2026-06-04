@@ -965,3 +965,15 @@
   - 
   - 
   - 
+
+
+## 2026-06-04
+- Rama: `hotfix/auth-navbar-state`
+- Commit: `4612ca2`
+- Título: Hotfix final de navbar para ocultar acciones anónimas en usuario autenticado
+- Archivos tocados:
+  - `app/templates/base.html`
+  - `tests/test_frontend.py`
+  - `CHANGELOG_AI.md`
+  - `docs/ai_report.md`
+  - `CURRENT_STATE.md`
