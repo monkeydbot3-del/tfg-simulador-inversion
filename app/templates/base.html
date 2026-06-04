@@ -9,8 +9,9 @@
 </head>
 {% set _nav_mode = nav_mode or 'practice' %}
 {% set _user_id = session.get('user_id') %}
-{% set _is_guest = session.get('guest') %}
-{% set _has_account = _user_id and current_user %}
+{% set _is_authenticated = _user_id is not none and _user_id != '' %}
+{% set _is_guest = (session.get('guest') and not _is_authenticated) %}
+{% set _has_account = _is_authenticated %}
 {% set _is_auth_page = request.endpoint in ['auth.login_page', 'auth.register_page'] %}
 <body data-nav-mode="{{ _nav_mode }}" data-user-id="{{ _user_id or '' }}" data-is-guest="{{ 'true' if _is_guest else 'false' }}" class="{% if _is_auth_page %}page-auth{% endif %}">
   <div class="app-shell">

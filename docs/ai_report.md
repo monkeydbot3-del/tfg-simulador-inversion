@@ -9342,3 +9342,85 @@ Tras la consolidación conviene revisar:
 - que el tag final aparezca en remoto
 - que Render siga desplegando la rama esperada si aún apunta a preview
 - que, si se decide mover producción a , el servicio quede apuntando a la rama correcta
+
+
+## Hotfix final auth navbar - ocultar acciones anónimas en pantallas internas autenticadas
+
+### Nueva evidencia de Render
+Se confirmó que el login sí funcionaba porque en Inicio aparecía correctamente un mensaje del tipo:
+- `Estás dentro como javier`
+
+Sin embargo, en pantallas internas como Práctica, Carrera y otras, la navbar seguía mostrando:
+- `Iniciar sesión`
+- `Crear cuenta`
+
+Por tanto, el problema ya no estaba en la autenticación global, sino en la condición exacta que usaba la navbar para decidir qué bloque renderizar.
+
+### Causa real exacta
+La condición problemática estaba en `app/templates/base.html`.
+
+Antes del fix final, la navbar calculaba:
+- `_user_id = session.get('user_id')`
+- `_is_guest = session.get('guest')`
+- `_has_account = _user_id and current_user`
+
+Aunque `current_user` ya se estaba inyectando desde el context processor, esta condición seguía siendo demasiado frágil para una decisión crítica de render.
+
+La corrección definitiva fue hacer explícita la prioridad del estado:
+1. si hay `user_id` en sesión, el usuario debe tratarse como autenticado real
+2. solo si no hay usuario autenticado puede considerarse el modo invitado
+3. en ausencia de ambos, se trata de un usuario anónimo
+
+### Bloque corregido
+En `base.html` se sustituyó la interpretación implícita por una jerarquía explícita:
+- `_is_authenticated = _user_id is not none and _user_id != ''`
+- `_is_guest = (session.get('guest') and not _is_authenticated)`
+- `_has_account = _is_authenticated`
+
+Con esto, si existe `user_id` en sesión:
+- desaparecen `Iniciar sesión`
+- desaparecen `Crear cuenta`
+- desaparece `Modo invitado`
+- se muestra el bloque autenticado con `Cerrar sesión`
+
+### Qué se mantiene visible para invitado
+En modo invitado se mantiene:
+- `Modo invitado`
+- `Sin historial persistente`
+- `Iniciar sesión`
+- posibilidad de salir
+
+### Test obligatorio añadido
+Se añadió un test específico de HTML real sobre páginas internas autenticadas:
+- login real con usuario de prueba
+- GET de:
+  - `/nuevo-analisis`
+  - `/aprende`
+  - `/modo-carrera`
+  - `/modo-horizonte`
+
+Y se comprueba que el HTML:
+- NO contiene `Modo invitado`
+- NO contiene `Sin historial persistente`
+- NO contiene `Iniciar sesión`
+- NO contiene `Crear cuenta`
+- SÍ contiene `Cerrar sesión`
+
+### Validación técnica ejecutada
+Se ejecutó:
+- `python3 -m py_compile run.py app/__init__.py app/routes.py app/auth.py app/career.py app/models.py app/services/career_session_service.py`
+- `ruff check .`
+- `black --check .`
+- `SECRET_KEY=ci-secret-key DATABASE_URL=sqlite:///ci.db pytest --cov=app --cov-report=xml`
+
+Resultado:
+- `29 passed`
+
+### Alcance del fix
+No se tocó:
+- diseño visual
+- CSS
+- lógica de simulaciones
+- persistencia de Carrera/Horizonte
+- endpoints funcionales de producto
+- flujo principal de login/logout/registro más allá del render correcto de navbar

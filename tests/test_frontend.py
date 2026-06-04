@@ -88,3 +88,34 @@ def test_logout_clears_session_state():
     with client.session_transaction() as flask_session:
         assert flask_session.get("user_id") is None
         assert flask_session.get("guest") is None
+
+
+def test_authenticated_navbar_hides_anonymous_actions_on_internal_pages():
+    app = create_app()
+
+    with app.app_context():
+        user = User.get_or_none(User.email == "internal-pages@example.com")
+        if not user:
+            user = create_user(
+                email="internal-pages@example.com",
+                password="supersecreto",
+                username="InternalUser",
+            )
+
+    client = app.test_client()
+    login = client.post(
+        "/login",
+        data={"email": "internal-pages@example.com", "password": "supersecreto"},
+        follow_redirects=False,
+    )
+    assert login.status_code == 302
+
+    for path in ["/nuevo-analisis", "/aprende", "/modo-carrera", "/modo-horizonte"]:
+        res = client.get(path)
+        html = res.get_data(as_text=True)
+        assert res.status_code == 200, path
+        assert "Modo invitado" not in html, path
+        assert "Sin historial persistente" not in html, path
+        assert ">Iniciar sesión<" not in html, path
+        assert ">Crear cuenta<" not in html, path
+        assert "Cerrar sesión" in html, path
