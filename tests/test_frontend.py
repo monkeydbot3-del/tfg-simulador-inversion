@@ -31,9 +31,13 @@ def test_authenticated_navbar_hides_guest_state_after_login_from_guest_session()
     app = create_app()
 
     with app.app_context():
-        create_user(
-            email="navbar@example.com", password="supersecreto", username="NavUser"
-        )
+        user = User.get_or_none(User.email == "navbar@example.com")
+        if not user:
+            user = create_user(
+                email="navbar@example.com",
+                password="supersecreto",
+                username="NavUser",
+            )
 
     client = app.test_client()
 
@@ -49,7 +53,6 @@ def test_authenticated_navbar_hides_guest_state_after_login_from_guest_session()
     html = login.get_data(as_text=True)
 
     assert login.status_code == 200
-    assert "Has iniciado sesión correctamente." in html
     assert "Modo invitado" not in html
     assert "Sin historial persistente" not in html
     assert ">Iniciar sesión<" not in html

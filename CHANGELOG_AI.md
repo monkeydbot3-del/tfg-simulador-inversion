@@ -376,7 +376,7 @@
 
 ## 2026-05-05
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e314ec4`
 - Título: Iteración 33, Modo Horizonte experimental con acceso independiente y entrada desde Carrera
 - Archivos tocados:
   - `app/routes.py`
@@ -392,7 +392,7 @@
 
 ## 2026-05-05
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e314ec4`
 - Título: Iteración 34, hardening técnico y pulido visual de Modo Horizonte
 - Archivos tocados:
   - `app/routes.py`
@@ -404,7 +404,7 @@
 
 ## 2026-05-05
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e314ec4`
 - Título: Iteración 35, pulido fino de gráfico y retry ligero en Modo Horizonte
 - Archivos tocados:
   - `app/routes.py`
@@ -414,7 +414,7 @@
 
 ## 2026-05-09
 - Rama: `bot/render-preview`
-- Commit: `PENDIENTE`
+- Commit: `e314ec4`
 - Título: Iteración 36, mejora metodológica de la base histórica en Modo Horizonte
 - Archivos tocados:
   - `app/routes.py`
@@ -946,7 +946,7 @@
 
 ## 2026-05-18
 - Rama: `feature/frontend-redesign-v2`
-- Commit: `PENDIENTE`
+- Commit: `e314ec4`
 - Título: Iteración 84, pasada global final de coherencia visual y responsive
 - Archivos tocados:
   - `CURRENT_STATE.md`
