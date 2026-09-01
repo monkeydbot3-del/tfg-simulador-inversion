@@ -417,7 +417,15 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     );
     const chartRows = Array.isArray(chartResult) ? chartResult : chartResult?.rows || [];
     const fallbackReason = Array.isArray(chartResult) ? null : chartResult?.reason || null;
-    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+    if (!options.inlineTarget) {
+      modal.classList.remove("hidden");
+    }
+
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
+
     const drawn = renderAnalysisDetailChart(canvasEl, chartRows, {
       label:
         String(options.mode || data.modo || "").toUpperCase() === "SIN_DCA"
@@ -427,7 +435,9 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     });
     if (!drawn) {
       console.debug("[analysis-chart] fallback-final", {
-        reason: fallbackReason || (typeof Chart === "undefined" ? "chartjs-unavailable" : "chart-did-not-draw"),
+        reason:
+          fallbackReason ||
+          (typeof Chart === "undefined" ? "chartjs-unavailable" : "chart-did-not-draw"),
         ticker: ticker || data.ticker,
         start: safeStart,
         end: safeEnd,
@@ -464,8 +474,6 @@ async function showBacktestSummary(ticker, start, end, summary, options = {}) {
     if (adjLink) adjLink.href = `${base}&adjusted=true`;
     const rawLink = document.getElementById("mb_csv_raw");
     if (rawLink) rawLink.href = `${base}&adjusted=false`;
-
-    modal.classList.remove("hidden");
   }
 }
 
