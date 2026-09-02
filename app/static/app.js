@@ -3374,6 +3374,8 @@ function showCareerTurnBreakdown(turn) {
   const overallReturn = Number(turn?.turn_return || 0);
   const returnsMap = turn?.ret_by_ticker_final || turn?.ret_by_ticker || null;
   const alloc = Array.isArray(turn?.alloc) ? turn.alloc : [];
+  const portfolioShift = Number(turn?.ret_portfolio_shift ?? NaN);
+  const hasPortfolioShift = Number.isFinite(portfolioShift) && Math.abs(portfolioShift) > 1e-9;
 
   const modal = createCareerModal({
     id: "career-turn-breakdown",
@@ -3410,16 +3412,12 @@ function showCareerTurnBreakdown(turn) {
         const tickerReturn = Number(tickerRetRaw ?? NaN);
         if (!Number.isFinite(tickerReturn)) return null;
         const contribution = weight * tickerReturn;
-        const share =
-          Number.isFinite(overallReturn) && Math.abs(overallReturn) > 1e-9
-            ? contribution / overallReturn
-            : null;
-        return { ticker, weight, tickerReturn, contribution, share };
+        return { ticker, weight, tickerReturn, contribution };
       })
       .filter(Boolean)
       .sort((a, b) => b.contribution - a.contribution) || [];
 
-  if (!rows.length) {
+  if (!rows.length && !hasPortfolioShift) {
     const message = document.createElement("p");
     message.className = "modal__message";
     message.textContent = "No hay datos suficientes para desglosar este turno.";
@@ -3433,15 +3431,13 @@ function showCareerTurnBreakdown(turn) {
           <th>Ticker</th>
           <th>Peso inicio</th>
           <th>Retorno ticker</th>
-          <th>Contribución</th>
-          <th>Aporte vs turno</th>
+          <th>Contribución al turno</th>
         </tr>
       </thead>
       <tbody>
         ${rows
           .map((row) => {
             const contributionPct = row.contribution * 100;
-            const sharePct = row.share !== null && row.share !== undefined ? row.share * 100 : null;
             const contributionClass = contributionPct < 0 ? "text-neg" : "text-pos";
             return `
               <tr>
@@ -3451,11 +3447,22 @@ function showCareerTurnBreakdown(turn) {
               row.tickerReturn * 100
             )}</td>
                 <td class="${contributionClass}">${fmtSignedPct(contributionPct)}</td>
-                <td>${sharePct === null ? ND : fmtSignedPct(sharePct)}</td>
               </tr>
             `;
           })
           .join("")}
+        ${
+          hasPortfolioShift
+            ? `<tr class="career-breakdown-adjustment-row">
+                <td><strong>Ajuste por eventos de cartera</strong></td>
+                <td>${ND}</td>
+                <td>${ND}</td>
+                <td class="${portfolioShift < 0 ? "text-neg" : "text-pos"}">${fmtSignedPct(
+                  portfolioShift * 100
+                )}</td>
+              </tr>`
+            : ""
+        }
       </tbody>
     `;
     modal.body.appendChild(table);
