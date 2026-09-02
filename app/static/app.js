@@ -3948,10 +3948,6 @@ function renderCareerAiSections(payload) {
 
   const sections = Array.isArray(payload?.sections) ? payload.sections : [];
   const fallbackAnalysis = normalizeCareerAiTextContent(payload?.analysis || payload?.message || "");
-  const safeDisclaimer = String(
-    payload?.disclaimer ||
-      "Este análisis tiene finalidad educativa y se basa únicamente en los datos de la simulación. No constituye asesoramiento financiero ni una recomendación de inversión real."
-  ).trim();
 
   const renderedSections = sections.length
     ? sections
@@ -3981,11 +3977,7 @@ function renderCareerAiSections(payload) {
       </article>
     `;
 
-  host.innerHTML = `${renderedSections}
-    <article class="career-ai-section career-ai-section--disclaimer">
-      <h5>Disclaimer</h5>
-      <p>${escapeHtml(safeDisclaimer)}</p>
-    </article>`;
+  host.innerHTML = renderedSections;
   host.classList.remove("hidden");
 }
 

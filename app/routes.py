@@ -968,6 +968,7 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
     benchmark_metrics = benchmark.get("metrics") or {}
     tracking = report.get("tracking") or {}
     score = report.get("score") or {}
+    metric_quality = report.get("metric_quality") or {}
     turns = report.get("turns") or []
     if not isinstance(turns, list):
         turns = []
@@ -1037,6 +1038,15 @@ def _build_career_ai_payload(session: dict, report: dict) -> dict:
             "tracking_error": tracking.get("tracking_error"),
             "information_ratio": tracking.get("information_ratio"),
         },
+        "turnover_avg": report.get("turnover_avg"),
+        "metric_quality": {
+            "portfolio_months_count": metric_quality.get("portfolio_months_count"),
+            "benchmark_months_count": metric_quality.get("benchmark_months_count"),
+            "tracking_joined_months_count": metric_quality.get("tracking_joined_months_count"),
+            "volatility_reliable": metric_quality.get("volatility_reliable"),
+            "benchmark_volatility_reliable": metric_quality.get("benchmark_volatility_reliable"),
+            "tracking_error_reliable": metric_quality.get("tracking_error_reliable"),
+        },
         "score": {
             "stars": score.get("stars"),
             "value": score.get("value"),
@@ -1089,13 +1099,23 @@ def _generate_career_ai_analysis(ai_payload: dict) -> dict:
         "Devuelve exclusivamente JSON válido con estas claves: "
         "summary, strengths, improvements, benchmark_analysis, risk_notes, historical_context, learning_recommendations, final_advice, disclaimer. "
         "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings cortos. "
-        "No inventes datos no presentes en el payload. Si falta información, dilo con honestidad. "
+        "Utiliza únicamente los datos incluidos en el payload. No inventes métricas ni causas no presentes en los datos. "
+        "Diferencia claramente entre hechos calculados e interpretaciones educativas. "
+        "Si una métrica es null, falta, llega acompañada de advertencias de calidad o aparece con fiabilidad insuficiente, trátala como no concluyente y dilo con honestidad. "
+        "No conviertas automáticamente un valor 0.0 en una fortaleza. "
+        "No infieras rotación a partir del número de turnos cerrados; usa turnover_avg solo si está disponible. turnover_avg está expresado como ratio decimal, por ejemplo 0.1833 equivale aproximadamente a 18.33%. "
+        "No afirmes que la cartera está diversificada como hecho objetivo solo porque haya varios activos; si no existe una métrica específica de diversificación, limítate a describir la presencia de varios tickers con cautela. "
+        "Si una métrica parece contradictoria con otras, indícalo en vez de inventar una explicación. "
+        "Prioriza claridad educativa y prudencia sobre sonar positivo. "
+        "Si falta información, dilo con honestidad. "
         "Mantén la respuesta compacta y útil, evitando párrafos largos."
     )
     user_prompt = (
         "Analiza esta simulación del Modo Carrera con finalidad educativa. "
         "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura. "
-        "Si faltan datos, dilo explícitamente y céntrate en las métricas disponibles.\n\n"
+        "Si faltan datos, dilo explícitamente y céntrate en las métricas disponibles. "
+        "Si volatility o tracking_error valen 0.0 pero metric_quality indica fiabilidad insuficiente, no los presentes como fortalezas y trátalos como no concluyentes. "
+        "Interpreta turnover_avg como una ratio decimal, no como un porcentaje ya escalado.\n\n"
         f"Datos resumidos de simulación:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
     )
     openai_started_at = time.monotonic()

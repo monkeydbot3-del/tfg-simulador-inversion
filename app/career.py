@@ -1721,6 +1721,24 @@ def _generate_report_payload(
         portfolio_metrics, bench_metrics, portfolio_monthly, bench_monthly
     )
 
+    portfolio_months_count = int(len(portfolio_monthly))
+    benchmark_months_count = int(len(bench_monthly))
+    tracking_joined_months_count = 0
+    if not portfolio_monthly.empty and not bench_monthly.empty:
+        tracking_joined = pd.concat(
+            [portfolio_monthly, bench_monthly], axis=1, join="inner"
+        )
+        tracking_joined_months_count = int(len(tracking_joined.dropna()))
+
+    metric_quality = {
+        "portfolio_months_count": portfolio_months_count,
+        "benchmark_months_count": benchmark_months_count,
+        "tracking_joined_months_count": tracking_joined_months_count,
+        "volatility_reliable": portfolio_months_count >= 12,
+        "benchmark_volatility_reliable": benchmark_months_count >= 12,
+        "tracking_error_reliable": tracking_joined_months_count >= 12,
+    }
+
     try:
         theoretical_summary = _compute_theoretical_summary(
             session, start_d, end_d, kmax
@@ -1853,6 +1871,8 @@ def _generate_report_payload(
         "theoretical": theoretical_payload,
         "score": score_payload,
         "warnings": warnings,
+        "metric_quality": metric_quality,
+        "turnover_avg": round(turnover_avg, 6),
     }
 
     context = {
@@ -1863,6 +1883,7 @@ def _generate_report_payload(
         "tracking": tracking,
         "score_internal": score_info,
         "turnover_avg": turnover_avg,
+        "metric_quality": metric_quality,
         "warnings": warnings,
         "universe_evaluated": universe_evaluated,
         "normalized_map": normalized_map_with_bench,
