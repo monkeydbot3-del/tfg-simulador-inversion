@@ -8,6 +8,11 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.get("/registro")
 def register_page():
+    if session.get("user_id"):
+        return redirect(url_for("main.home"))
+    if session.get("guest"):
+        session.pop("guest", None)
+        session.modified = True
     return render_template("register.html", active="register", nav_mode="practice")
 
 
@@ -40,8 +45,11 @@ def register_submit():
 
 @auth_bp.get("/login")
 def login_page():
-    if session.get("user_id") or session.get("guest"):
+    if session.get("user_id"):
         return redirect(url_for("main.home"))
+    if session.get("guest"):
+        session.pop("guest", None)
+        session.modified = True
     return render_template("login.html", active="login", nav_mode="practice")
 
 

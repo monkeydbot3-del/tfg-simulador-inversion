@@ -27,6 +27,22 @@ def test_guest_navbar_shows_guest_state_and_login():
     assert "Iniciar sesión" in html
 
 
+def test_guest_can_open_login_form_from_guest_state():
+    app = create_app()
+    client = app.test_client()
+
+    with client.session_transaction() as flask_session:
+        flask_session["guest"] = True
+
+    res = client.get("/login", follow_redirects=False)
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    assert "<h1>Iniciar sesión</h1>" in html
+
+    with client.session_transaction() as flask_session:
+        assert flask_session.get("guest") is None
+
+
 def test_authenticated_navbar_hides_guest_state_after_login_from_guest_session():
     app = create_app()
 
@@ -61,6 +77,22 @@ def test_authenticated_navbar_hides_guest_state_after_login_from_guest_session()
 
     with client.session_transaction() as flask_session:
         assert flask_session.get("user_id") is not None
+        assert flask_session.get("guest") is None
+
+
+def test_guest_can_open_register_form_from_guest_state():
+    app = create_app()
+    client = app.test_client()
+
+    with client.session_transaction() as flask_session:
+        flask_session["guest"] = True
+
+    res = client.get("/registro", follow_redirects=False)
+    assert res.status_code == 200
+    html = res.get_data(as_text=True)
+    assert "<h1>Crear cuenta</h1>" in html
+
+    with client.session_transaction() as flask_session:
         assert flask_session.get("guest") is None
 
 
