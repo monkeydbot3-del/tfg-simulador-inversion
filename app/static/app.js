@@ -4017,7 +4017,7 @@ async function runCareerAiAnalysis() {
   try {
     const data = await jsonPost(`/api/ai/career-analysis/${encodeURIComponent(careerState.sessionId)}`, {});
     renderCareerAiSections(data);
-    renderCareerAiStatus(data?.disclaimer || "Análisis educativo generado.", "success");
+    renderCareerAiStatus("Análisis educativo generado.", "success");
     mostrarToastOk("Tutor IA completado.");
   } catch (err) {
     const timeoutMessage = "El Tutor IA ha tardado demasiado en responder. Puedes reintentarlo en unos segundos.";

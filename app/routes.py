@@ -960,6 +960,244 @@ def _truncate_text(value, max_len: int = 240):
     return text[: max_len - 1].rstrip() + "…"
 
 
+def _summarize_career_events(events: Any) -> list[dict[str, Any]]:
+    if not isinstance(events, list):
+        return []
+    summary: list[dict[str, Any]] = []
+    for item in events:
+        if not isinstance(item, dict):
+            continue
+        entry = {
+            "kind": item.get("kind"),
+            "scope": item.get("scope"),
+            "label": item.get("label") or item.get("title") or item.get("name"),
+            "direction": item.get("direction"),
+            "ticker": item.get("ticker"),
+            "sector": item.get("sector"),
+            "impact": _safe_round_number(item.get("impact"), 6),
+            "remaining_turns": item.get("remaining_turns"),
+        }
+        summary.append({k: v for k, v in entry.items() if v is not None})
+    return summary
+
+
+def _compute_turn_contributions(turn: dict[str, Any]) -> dict[str, float]:
+    alloc = turn.get("alloc") or []
+    returns_map = turn.get("ret_by_ticker_final") or {}
+    if not isinstance(alloc, list) or not isinstance(returns_map, dict):
+        return {}
+
+    normalized_returns: dict[str, float] = {}
+    for key, value in returns_map.items():
+        ticker_key = str(key or "").strip().upper()
+        if not ticker_key:
+            continue
+        try:
+            normalized_returns[ticker_key] = float(value)
+        except (TypeError, ValueError):
+            continue
+
+    contributions: dict[str, float] = {}
+    for item in alloc:
+        if not isinstance(item, dict):
+            continue
+        ticker = str(item.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        try:
+            weight = float(item.get("weight") or 0.0)
+        except (TypeError, ValueError):
+            continue
+        if ticker not in normalized_returns:
+            continue
+        ticker_return = normalized_returns[ticker]
+        if not math.isfinite(ticker_return):
+            continue
+        contributions[ticker] = round(weight * ticker_return, 6)
+    return contributions
+
+
+def _alloc_to_weight_map(alloc_list: Any) -> dict[str, float]:
+    if not isinstance(alloc_list, list):
+        return {}
+    result: dict[str, float] = {}
+    for item in alloc_list:
+        if not isinstance(item, dict):
+            continue
+        ticker = str(item.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        try:
+            result[ticker] = float(item.get("weight") or 0.0)
+        except (TypeError, ValueError):
+            result[ticker] = 0.0
+    return result
+
+
+def _weights_match_with_tolerance(
+    left: dict[str, float], right: dict[str, float], tolerance: float = 1e-6
+) -> bool:
+    tickers = set(left) | set(right)
+    return all(abs(left.get(ticker, 0.0) - right.get(ticker, 0.0)) <= tolerance for ticker in tickers)
+
+
+def _compute_strategy_changes(
+    completed_turn_snapshots: list[dict[str, Any]], tolerance: float = 1e-6
+) -> list[dict[str, Any]]:
+    changes: list[dict[str, Any]] = []
+    ordered_turns = [turn for turn in completed_turn_snapshots if isinstance(turn, dict)]
+    for previous, current in zip(ordered_turns, ordered_turns[1:]):
+        current_alloc = _alloc_to_weight_map(current.get("alloc") or [])
+        baseline_alloc = _alloc_to_weight_map(previous.get("alloc_next_suggested") or [])
+        if not baseline_alloc:
+            changes.append(
+                {
+                    "from_turn": previous.get("turn_n") or previous.get("n"),
+                    "to_turn": current.get("turn_n") or current.get("n"),
+                    "rebalanced": None,
+                    "turnover": None,
+                    "changes": [],
+                    "baseline": "unknown",
+                }
+            )
+            continue
+
+        if _weights_match_with_tolerance(baseline_alloc, current_alloc, tolerance=tolerance):
+            changes.append(
+                {
+                    "from_turn": previous.get("turn_n") or previous.get("n"),
+                    "to_turn": current.get("turn_n") or current.get("n"),
+                    "rebalanced": False,
+                    "turnover": 0.0,
+                    "changes": [],
+                    "baseline": "previous_alloc_next_suggested",
+                }
+            )
+            continue
+
+        tickers = sorted(set(baseline_alloc) | set(current_alloc))
+        transition_changes = []
+        diff_sum = 0.0
+        for ticker in tickers:
+            old_weight = baseline_alloc.get(ticker, 0.0)
+            new_weight = current_alloc.get(ticker, 0.0)
+            delta = new_weight - old_weight
+            diff_sum += abs(delta)
+            transition_changes.append(
+                {
+                    "ticker": ticker,
+                    "previous_weight": round(old_weight, 6),
+                    "new_weight": round(new_weight, 6),
+                    "delta": round(delta, 6),
+                }
+            )
+        changes.append(
+            {
+                "from_turn": previous.get("turn_n") or previous.get("n"),
+                "to_turn": current.get("turn_n") or current.get("n"),
+                "rebalanced": True,
+                "turnover": round(0.5 * diff_sum, 6),
+                "changes": transition_changes,
+                "baseline": "previous_alloc_next_suggested",
+            }
+        )
+    return changes
+
+
+def _build_career_ai_payload_v2(session: dict, report: dict) -> dict:
+    report = report or {}
+    meta = report.get("meta") or {}
+    portfolio_metrics = (report.get("portfolio_equity") or {}).get("metrics") or {}
+    benchmark = report.get("benchmark") or {}
+    benchmark_metrics = benchmark.get("metrics") or {}
+    turns = report.get("turns") or []
+    if not isinstance(turns, list):
+        turns = []
+
+    turns_payload = []
+    for turn in turns:
+        if not isinstance(turn, dict):
+            continue
+        turn_payload = {
+            "turn": turn.get("n") or turn.get("turn_n"),
+            "start": (turn.get("range") or {}).get("start"),
+            "end": (turn.get("range") or {}).get("end"),
+            "allocation_start": [
+                {
+                    "ticker": str(item.get("ticker") or "").strip().upper(),
+                    "weight": _safe_round_number(item.get("weight"), 6),
+                }
+                for item in (turn.get("alloc") or [])
+                if isinstance(item, dict) and item.get("ticker")
+            ],
+            "use_dca": bool(turn.get("use_dca")),
+            "dca_in_turn": turn.get("dca_in_turn"),
+            "turn_return": turn.get("turn_return"),
+            "turn_return_market": turn.get("turn_return_market"),
+            "ret_by_ticker_final": turn.get("ret_by_ticker_final") or {},
+            "ticker_contributions": _compute_turn_contributions(turn),
+            "ret_portfolio_shift": turn.get("ret_portfolio_shift"),
+            "events_applied": _summarize_career_events(turn.get("events_applied") or []),
+            "portfolio_value_end": turn.get("portfolio_value"),
+        }
+        if turn.get("ret_ticker_shift"):
+            turn_payload["ret_ticker_shift"] = turn.get("ret_ticker_shift")
+        turns_payload.append(turn_payload)
+
+    strategy_source = [
+        snap
+        for snap in (session.get("completed_turns") or [])
+        if isinstance(snap, dict)
+    ]
+
+    strategy_changes = _compute_strategy_changes(strategy_source)
+    best_turn = None
+    worst_turn = None
+    if turns_payload:
+        ranked_turns = [
+            turn
+            for turn in turns_payload
+            if isinstance(turn.get("turn_return"), (int, float))
+        ]
+        if ranked_turns:
+            best = max(ranked_turns, key=lambda turn: float(turn.get("turn_return") or 0.0))
+            worst = min(ranked_turns, key=lambda turn: float(turn.get("turn_return") or 0.0))
+            best_turn = {"turn": best.get("turn"), "turn_return": best.get("turn_return")}
+            worst_turn = {"turn": worst.get("turn"), "turn_return": worst.get("turn_return")}
+
+    payload = {
+        "simulation_summary": {
+            "period": report.get("range") or {},
+            "difficulty": meta.get("difficulty"),
+            "turns_total": meta.get("turns_total"),
+            "turns_closed": meta.get("turns_closed"),
+            "capital_initial": meta.get("capital_initial"),
+            "capital_final": meta.get("capital_current"),
+            "capital_invested_total": meta.get("invested_so_far"),
+            "pnl_abs": meta.get("pnl_abs"),
+            "pnl_pct_on_invested_capital": meta.get("pnl_pct"),
+            "portfolio_total_return": portfolio_metrics.get("total_return"),
+            "portfolio_cagr": portfolio_metrics.get("CAGR"),
+            "portfolio_max_drawdown": {
+                "value": portfolio_metrics.get("max_drawdown"),
+                "basis": "turn_closures",
+            },
+            "benchmark_ticker": benchmark.get("ticker"),
+            "benchmark_total_return": benchmark_metrics.get("total_return"),
+            "benchmark_cagr": benchmark_metrics.get("CAGR"),
+        },
+        "turn_highlights": {
+            "best_turn": best_turn,
+            "worst_turn": worst_turn,
+            "active_rebalances": sum(1 for item in strategy_changes if item.get("rebalanced") is True),
+            "unknown_rebalance_transitions": sum(1 for item in strategy_changes if item.get("rebalanced") is None),
+        },
+        "turns": turns_payload,
+        "strategy_changes": strategy_changes,
+    }
+    return _sanitize_ai_value(payload) or {}
+
+
 def _build_career_ai_payload(session: dict, report: dict) -> dict:
     report = report or {}
     meta = report.get("meta") or {}
@@ -1089,34 +1327,51 @@ def _generate_career_ai_analysis(ai_payload: dict) -> dict:
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"), timeout=timeout_seconds)
     system_prompt = (
         "Eres un tutor educativo de inversión simulada dentro de una aplicación académica. "
-        "Tu tarea es explicar los resultados de una simulación histórica o experimental de forma clara, pedagógica y prudente. "
-        "No das asesoramiento financiero real, no recomiendas comprar ni vender activos, no predices el futuro y no afirmas que una estrategia vaya a funcionar en mercados reales. "
-        "Analizas únicamente los datos proporcionados por la aplicación con finalidad educativa. "
-        "Responde siempre en español, con tono claro y didáctico y relativamente breve. "
+        "Tu función es actuar como un profesor que revisa cómo el usuario ha gestionado una partida concreta del Modo Carrera. "
+        "No eres un auditor técnico del sistema ni un asesor financiero. "
+        "Analizas únicamente el payload proporcionado por la aplicación. "
+        "No utilices conocimiento macroeconómico, histórico o de mercado externo para rellenar contexto ausente. "
+        "No inventes datos, turnos, precios, causas, contrafactuales ni métricas no incluidas en el payload. "
+        "No recomiendes comprar o vender activos reales, no hagas predicciones y no presentes una decisión como universalmente buena o mala. "
+        "Describe solo el efecto observado en esta simulación. "
+        "Cuando ayude, cita turnos, pesos, retornos y contribuciones concretas. "
+        "Si falta información, dilo con honestidad y no la completes con suposiciones. "
+        "Un cambio de pesos por drift no es una decisión del usuario. "
+        "Solo existe rebalanceo cuando strategy_changes[].rebalanced == true. "
+        "Si strategy_changes[].rebalanced == false, puedes decir que el usuario mantuvo la cartera sin modificar activamente esa asignación. "
+        "Si strategy_changes[].rebalanced == null, no infieras si hubo rebalanceo. "
+        "ticker_contributions representa contribución dentro de ese turno. "
+        "Puedes explicar contribuciones por turno, pero no sumes automáticamente contribuciones de distintos turnos para atribuir el resultado final global a un ticker. "
+        "La presencia de DCA solo indica aportaciones adicionales durante la simulación. No afirmes que el DCA mejoró o empeoró rentabilidad, riesgo, precio medio o resultado salvo que exista un contrafactual calculado, que actualmente no existe. "
+        "Sí puedes usar DCA para explicar la diferencia entre pnl_pct_on_invested_capital y portfolio_total_return. "
+        "ret_portfolio_shift se suma directamente al retorno total del turno y puede expresarse como efecto en puntos porcentuales sobre el turno. "
+        "ret_ticker_shift[ticker] modifica el retorno de ese ticker. No equivale directamente a su efecto en puntos porcentuales sobre toda la cartera; para eso debes utilizar ticker_contributions, que ya incorpora el peso del activo. "
+        "La comparación con benchmark es solo global. "
+        "Solo compara la estrategia con el benchmark si benchmark_total_return y/o benchmark_cagr contienen valores numéricos disponibles. Si faltan, son null o no están presentes, indica brevemente que no hay datos suficientes del benchmark y no inventes ninguna comparación. "
+        "Puedes comparar portfolio_total_return, portfolio_cagr, benchmark_total_return y benchmark_cagr. "
+        "No existe benchmark por turno, así que no atribuyas la diferencia frente al benchmark a un turno concreto como hecho cerrado. "
+        "portfolio_max_drawdown con basis=turn_closures significa el mayor retroceso observado en la curva agregada por cierres de turno. "
+        "Nunca lo describas como drawdown diario o intraturno. "
+        "Distingue correctamente pnl_pct_on_invested_capital, portfolio_total_return y portfolio_cagr. "
+        "No los mezcles como si fueran la misma métrica. "
         'Debes incluir literalmente este disclaimer en la respuesta final: "'
         + AI_TUTOR_DISCLAIMER
         + '". '
-        "Devuelve exclusivamente JSON válido con estas claves: "
-        "summary, strengths, improvements, benchmark_analysis, risk_notes, historical_context, learning_recommendations, final_advice, disclaimer. "
-        "strengths, improvements, risk_notes y learning_recommendations deben ser arrays de strings cortos. "
-        "Utiliza únicamente los datos incluidos en el payload. No inventes métricas ni causas no presentes en los datos. "
-        "Diferencia claramente entre hechos calculados e interpretaciones educativas. "
-        "Si una métrica es null, falta, llega acompañada de advertencias de calidad o aparece con fiabilidad insuficiente, trátala como no concluyente y dilo con honestidad. "
-        "No conviertas automáticamente un valor 0.0 en una fortaleza. "
-        "No infieras rotación a partir del número de turnos cerrados; usa turnover_avg solo si está disponible. turnover_avg está expresado como ratio decimal, por ejemplo 0.1833 equivale aproximadamente a 18.33%. "
-        "No afirmes que la cartera está diversificada como hecho objetivo solo porque haya varios activos; si no existe una métrica específica de diversificación, limítate a describir la presencia de varios tickers con cautela. "
-        "Si una métrica parece contradictoria con otras, indícalo en vez de inventar una explicación. "
-        "Prioriza claridad educativa y prudencia sobre sonar positivo. "
-        "Si falta información, dilo con honestidad. "
-        "Mantén la respuesta compacta y útil, evitando párrafos largos."
+        "Devuelve exclusivamente JSON válido con estas claves exactas: "
+        "summary, management_review, impact_factors, event_effects, benchmark_comparison, learning_points, final_advice, disclaimer. "
+        "summary, management_review, benchmark_comparison y final_advice deben ser strings breves. "
+        "impact_factors, event_effects y learning_points deben ser arrays de 2 a 5 strings cortos y concretos cuando haya datos suficientes. "
+        "Mantén la respuesta compacta, clara y útil."
     )
     user_prompt = (
-        "Analiza esta simulación del Modo Carrera con finalidad educativa. "
-        "Nunca recomiendes comprar o vender activos reales ni hables de predicción futura. "
-        "Si faltan datos, dilo explícitamente y céntrate en las métricas disponibles. "
-        "Si volatility o tracking_error valen 0.0 pero metric_quality indica fiabilidad insuficiente, no los presentes como fortalezas y trátalos como no concluyentes. "
-        "Interpreta turnover_avg como una ratio decimal, no como un porcentaje ya escalado.\n\n"
-        f"Datos resumidos de simulación:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
+        "Analiza esta partida del Modo Carrera como un profesor que revisa cómo se ha gestionado la cartera. "
+        "Prioriza lo que ocurrió en los turnos, la evolución de asignaciones, los rebalanceos activos reales, las contribuciones dentro de cada turno, el efecto de los eventos y la comparación global con el benchmark. "
+        "Elimina del discurso volatilidad, tracking error, information ratio, calidad de métricas, warnings técnicos y contexto macro externo. "
+        "Usa turn_highlights para identificar mejor turno, peor turno y conteos mínimos de rebalanceo. "
+        "No confundas drift con rebalanceo. "
+        "Si strategy_changes marca rebalanced=false, trátalo como continuidad pasiva de la cartera. "
+        "Usa solo los datos del payload.\n\n"
+        f"Payload de la partida:\n{json.dumps(ai_payload, ensure_ascii=False, indent=2)}"
     )
     openai_started_at = time.monotonic()
     logger.info(
@@ -1225,7 +1480,7 @@ def readiness_status_api():
 
 @bp.post("/api/ai/career-analysis/<session_id>")
 def ai_career_analysis_api(session_id: str):
-    from .career import get_career_report_for_session
+    from .career import _resolve_session_for_request, get_career_report_for_session
 
     endpoint_started_at = time.monotonic()
     logger.info("ai.tutor.start", extra={"session_id": session_id})
@@ -1321,14 +1576,13 @@ def ai_career_analysis_api(session_id: str):
             422,
         )
 
-    ai_payload = _build_career_ai_payload({}, report)
+    session_payload = _resolve_session_for_request(session_id) or {}
+    ai_payload = _build_career_ai_payload_v2(session_payload, report)
     logger.info(
         "ai.tutor.summary_ready",
         extra={
             "session_id": session_id,
-            "tickers": len(ai_payload.get("tickers_used") or []),
-            "turns_closed": ai_payload.get("turns_closed"),
-            "warnings": len(ai_payload.get("warnings") or []),
+            "turns_closed": (ai_payload.get("simulation_summary") or {}).get("turns_closed"),
             "payload_chars": len(json.dumps(ai_payload, ensure_ascii=False)),
         },
     )
@@ -1428,39 +1682,34 @@ def ai_career_analysis_api(session_id: str):
 
     sections = [
         {
-            "title": "Resumen general",
+            "title": "Resumen de la partida",
             "type": "text",
             "content": analysis.get("summary"),
         },
         {
-            "title": "Qué has hecho bien",
-            "type": "list",
-            "content": analysis.get("strengths") or [],
-        },
-        {
-            "title": "Qué podrías mejorar",
-            "type": "list",
-            "content": analysis.get("improvements") or [],
-        },
-        {
-            "title": "Comparación con benchmark",
+            "title": "Cómo gestionaste la cartera",
             "type": "text",
-            "content": analysis.get("benchmark_analysis"),
+            "content": analysis.get("management_review"),
         },
         {
-            "title": "Riesgos detectados",
+            "title": "Qué factores tuvieron más impacto",
             "type": "list",
-            "content": analysis.get("risk_notes") or [],
+            "content": analysis.get("impact_factors") or [],
         },
         {
-            "title": "Contexto histórico",
+            "title": "Efecto de los eventos",
+            "type": "list",
+            "content": analysis.get("event_effects") or [],
+        },
+        {
+            "title": "Comparación con el benchmark",
             "type": "text",
-            "content": analysis.get("historical_context"),
+            "content": analysis.get("benchmark_comparison"),
         },
         {
-            "title": "Conceptos para repasar",
+            "title": "Qué puedes aprender de esta partida",
             "type": "list",
-            "content": analysis.get("learning_recommendations") or [],
+            "content": analysis.get("learning_points") or [],
         },
         {
             "title": "Conclusión educativa",
